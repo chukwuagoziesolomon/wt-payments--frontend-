@@ -16,15 +16,15 @@ export const navigationItems: NavGroup = {
     },
     {
       title: "Payouts",
-      url: "/dashboard/payouts",
+      url: "/dashboard/payout",
       icon: "payoutIcon",
       isActive: false,
     },
     {
-      title: "Wallet",
+      title: "Wallets",
       url: "/dashboard/wallet",
       icon: "walletIcon",
-      isActive: true,
+      isActive: false,
     },
     {
       title: "Currency",
