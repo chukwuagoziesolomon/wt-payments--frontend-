@@ -4,33 +4,33 @@ import { Copy } from "lucide-react";
 const withdrawals = [
   {
     date: "04 Sept. 2025",
-    asset: "USDC/ASSET",
-    icon: "/usdc-icon.png", // Replace with your asset icon path
+    asset: "USDC/BASE",
+    icon: "/images/usdcbase.png",
     amount: "-200 USDC",
     amountClass: "text-red-500",
     wallet: "usdt..e723648475",
   },
   {
     date: "04 Sept. 2025",
-    asset: "USDT",
-    icon: "/usdt-icon.png", // Replace with your asset icon path
+    asset: "USDT/ASSET",
+    icon: "/images/usdtasset.png",
     amount: "-$200",
     amountClass: "text-red-500",
     wallet: "72364847565",
   },
   {
     date: "04 Sept. 2025",
-    asset: "USDC/ASSET",
-    icon: "/usdc-icon.png",
+    asset: "USDC/BASE",
+    icon: "/images/usdcbase.png",
     amount: "-200 USDC",
     amountClass: "text-red-500",
     wallet: "usdt..e723648475",
   },
   {
     date: "04 Sept. 2025",
-    asset: "USDC/ASSET",
-    icon: "/usdc-icon.png",
-    amount: "-200 USDC",
+    asset: "USDT/ASSET",
+    icon: "/images/usdtasset.png",
+    amount: "-200 USDT",
     amountClass: "text-red-500",
     wallet: "usdt..e723648475",
   },

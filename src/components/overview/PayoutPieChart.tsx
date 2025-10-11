@@ -19,19 +19,20 @@ export function PayoutPieChart() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col items-center">
-          <div className="w-full flex justify-center items-center" style={{ height: 200 }}>
-            <ResponsiveContainer width={200} height={200}>
+          <div className="w-full flex justify-center items-center" style={{ height: 280 }}>
+            <ResponsiveContainer width={280} height={280}>
               <PieChart>
                 <Pie
                   data={data}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={70}
+                  outerRadius={110}
                   dataKey="value"
                   startAngle={90}
                   endAngle={-270}
-                  stroke="none"
+                  stroke="#1A1A1A"
+                  strokeWidth={12}
                 >
                   {data.map((entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={entry.color} />
@@ -45,7 +46,7 @@ export function PayoutPieChart() {
                   dominantBaseline="middle"
                   className="text-lg font-bold fill-white"
                 >
-                  Total\n$250
+                  Total $250
                 </text>
               </PieChart>
             </ResponsiveContainer>
