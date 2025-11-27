@@ -4,11 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-export function WithdrawalOtpModal({ open, onClose, email, onVerify, onResend }) {
+type WithdrawalOtpModalProps = {
+  open: boolean;
+  onClose: () => void;
+  email: string;
+  onVerify: (code: string) => void;
+  onResend: () => void;
+};
+
+export function WithdrawalOtpModal({ open, onClose, email, onVerify, onResend }: WithdrawalOtpModalProps) {
   const [code, setCode] = React.useState(["", "", "", "", "", ""]);
   const inputs = React.useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleChange = (i, val) => {
+  const handleChange = (i: number, val: string) => {
     if (/^[0-9]?$/.test(val)) {
       const newCode = [...code];
       newCode[i] = val;
@@ -17,7 +25,7 @@ export function WithdrawalOtpModal({ open, onClose, email, onVerify, onResend })
     }
   };
 
-  const handleKeyDown = (i, e) => {
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace" && !code[i] && i > 0) {
       inputs.current[i - 1]?.focus();
     }
@@ -52,7 +60,7 @@ export function WithdrawalOtpModal({ open, onClose, email, onVerify, onResend })
                 {code.map((digit, i) => (
                   <input
                     key={i}
-                    ref={el => (inputs.current[i] = el)}
+                    ref={el => { inputs.current[i] = el; }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
