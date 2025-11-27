@@ -66,7 +66,7 @@ function MobileList() {
 
         <ul className="flex flex-col gap-4">
           {transactions.map((tx, idx) => (
-            <li key={idx} className="flex items-start justify-between">
+            <li key={idx} className="flex items-start justify-between py-4 px-3">
               <div className="flex-1 pr-3">
                 <div className="text-base font-medium">{tx.customer}</div>
                 <div className="mt-1 flex items-center gap-1 text-sm text-blue-300">
@@ -139,22 +139,22 @@ function DesktopTable() {
             <TableBody>
               {transactions.map((tx, idx) => (
                 <TableRow key={idx}>
-                  <TableCell className="text-foreground">{tx.date}</TableCell>
-                  <TableCell className="text-foreground">{tx.method}</TableCell>
-                  <TableCell className="text-foreground">
+                  <TableCell className="text-foreground py-4 px-3">{tx.date}</TableCell>
+                  <TableCell className="text-foreground py-4 px-3">{tx.method}</TableCell>
+                  <TableCell className="text-foreground py-4 px-3">
                     <div className="flex items-center gap-2">
                       <img src={tx.icon} alt={tx.currency} className="w-6 h-6 rounded-full" />
                       <span>{tx.currency}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-foreground">
+                  <TableCell className="text-foreground py-4 px-3">
                     <div className="flex items-center gap-1">
                       <span className="text-blue-300 cursor-pointer">{tx.wallet}</span>
                       <Copy className="w-3 h-3 cursor-pointer" />
                     </div>
                   </TableCell>
-                  <TableCell className="text-foreground">{tx.amount}</TableCell>
-                  <TableCell className="text-foreground">
+                  <TableCell className="text-foreground py-4 px-3">{tx.amount}</TableCell>
+                  <TableCell className="text-foreground py-4 px-3">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${statusColor[tx.status as keyof typeof statusColor]}`}>{tx.status}</span>
                   </TableCell>
                 </TableRow>

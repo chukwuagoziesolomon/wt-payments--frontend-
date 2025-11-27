@@ -17,26 +17,9 @@ export function PayoutSummaryCards() {
 
   return (
     <div className="relative">
-      {/* Navigation Buttons */}
-      <button
-        onClick={() => scroll('left')}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-2 shadow-lg hover:bg-accent transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => scroll('right')}
-        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-2 shadow-lg hover:bg-accent transition-colors"
-      >
-        <ChevronRight className="w-4 h-4" />
-      </button>
-
-      {/* Scrollable Cards Container */}
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
-      >
-        <Card className="flex-shrink-0 w-80">
+      {/* Desktop Grid Layout */}
+      <div className="hidden md:grid md:grid-cols-3 md:gap-4">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Payout</CardTitle>
           </CardHeader>
@@ -44,7 +27,7 @@ export function PayoutSummaryCards() {
             <div className="text-2xl font-bold">$205</div>
           </CardContent>
         </Card>
-        <Card className="flex-shrink-0 w-80">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Pending Payout</CardTitle>
           </CardHeader>
@@ -52,7 +35,7 @@ export function PayoutSummaryCards() {
             <div className="text-2xl font-bold">$105</div>
           </CardContent>
         </Card>
-        <Card className="flex-shrink-0 w-80">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Current Pending Interval</CardTitle>
           </CardHeader>
@@ -60,6 +43,54 @@ export function PayoutSummaryCards() {
             <div className="text-2xl font-bold">$20</div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Mobile Scrollable Layout */}
+      <div className="md:hidden relative">
+        {/* Navigation Buttons */}
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-2 shadow-lg hover:bg-accent transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm border border-border rounded-full p-2 shadow-lg hover:bg-accent transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+
+        {/* Scrollable Cards Container */}
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
+        >
+          <Card className="flex-shrink-0 w-80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Payout</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">$205</div>
+            </CardContent>
+          </Card>
+          <Card className="flex-shrink-0 w-80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Pending Payout</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">$105</div>
+            </CardContent>
+          </Card>
+          <Card className="flex-shrink-0 w-80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Current Pending Interval</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">$20</div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

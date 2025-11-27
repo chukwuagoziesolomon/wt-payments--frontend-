@@ -53,20 +53,20 @@ export function CurrencyTable() {
             <TableBody>
               {rows.map((row, i) => (
                 <TableRow key={i}>
-                  <TableCell>
+                  <TableCell className="py-4 px-3">
                     <div className="flex items-center gap-2">
                       <img src={row.icon} alt={row.token} className="w-6 h-6 rounded-full" />
                       <span>{row.token}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{row.chain}</TableCell>
-                  <TableCell>
+                  <TableCell className="py-4 px-3">{row.chain}</TableCell>
+                  <TableCell className="py-4 px-3">
                     <div className="flex items-center gap-1">
                       <span className="text-blue-300 cursor-pointer">{row.address}</span>
                       <Copy className="w-3 h-3" />
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4 px-3">
                     <div className="flex items-center">
                       {statusDot(row.status)}
                       <span className="text-sm">{row.status}</span>
