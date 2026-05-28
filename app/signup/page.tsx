@@ -9,7 +9,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -56,7 +55,6 @@ export default function SignupPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  // navigate when at least a business option is selected
                   if (selected) {
                     router.push(`/signup/step2?country=${encodeURIComponent(country)}&type=${encodeURIComponent(selected)}`);
                   }

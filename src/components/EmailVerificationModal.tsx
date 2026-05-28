@@ -100,7 +100,11 @@ export function EmailVerificationModal({ open, onClose, email, onVerify, onResen
                     Resend code
                   </button>
                 </div>
-                <Button type="submit" className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-md mt-2">
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-[#6c5dd3] to-[#5b4adf] text-white text-base font-semibold py-3 rounded-xl mt-2 shadow-lg hover:opacity-95 transition-opacity"
+                  style={{ boxShadow: '0 6px 18px rgba(92,68,187,0.18)' }}
+                >
                   Verify
                 </Button>
               </form>
@@ -155,7 +159,11 @@ export function EmailVerificationModal({ open, onClose, email, onVerify, onResen
                     Resend code
                   </button>
                 </div>
-                <Button type="submit" className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-md mt-2">
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-[#6c5dd3] to-[#5b4adf] text-white text-base font-semibold py-3 rounded-xl mt-2 shadow-lg hover:opacity-95 transition-opacity"
+                  style={{ boxShadow: '0 6px 18px rgba(92,68,187,0.18)' }}
+                >
                   Verify
                 </Button>
               </form>

@@ -94,8 +94,10 @@ function SidebarProvider({
   // Helper to toggle the sidebar.
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const toggleSidebar = React.useCallback(() => {
-    // biome-ignore lint/nursery/noShadow: <explanation>
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
+    // Determine mobile state synchronously to avoid race with the media query effect.
+    const isMobileNow =
+      typeof window !== "undefined" ? window.innerWidth < 768 : isMobile;
+    return isMobileNow ? setOpenMobile((open) => !open) : setOpen((open) => !open);
   }, [isMobile, setOpen, setOpenMobile]);
 
   // Adds a keyboard shortcut to toggle the sidebar.

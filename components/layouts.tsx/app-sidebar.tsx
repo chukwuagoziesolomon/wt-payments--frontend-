@@ -4,21 +4,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { RiDashboardLine, RiWalletLine, RiMoneyDollarCircleLine, RiSettings3Line, RiBankCardLine, RiCoinsLine } from "@remixicon/react";
-
-
-const menuItems = [
-  { label: "Overview", icon: RiDashboardLine, href: "/dashboard" },
-  { label: "Transaction", icon: RiBankCardLine, href: "/dashboard/transactions" },
-  { label: "Payout", icon: RiMoneyDollarCircleLine, href: "/dashboard/payout" },
-  { label: "Wallet", icon: RiWalletLine, href: "/dashboard/wallet" },
-  { label: "Currency", icon: RiCoinsLine, href: "/dashboard/currency" },
-];
+import { Sidebar } from "@/components/ui/sidebar";
 
 export default function AppSidebar() {
+  const menuItems = [
+    { label: "Overview", icon: RiDashboardLine, href: "/dashboard" },
+    { label: "Transaction", icon: RiBankCardLine, href: "/dashboard/transactions" },
+    { label: "Payout", icon: RiMoneyDollarCircleLine, href: "/dashboard/payout" },
+    { label: "Wallet", icon: RiWalletLine, href: "/dashboard/wallet" },
+    { label: "Currency", icon: RiCoinsLine, href: "/dashboard/currency" },
+  ];
+
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-56 flex-col bg-[#131316] border-r border-[#23232b] text-white">
+    <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
       <div className="flex flex-col gap-2 px-4 pt-6 pb-2">
         <div className="flex items-center mb-2 justify-center">
           <Image src="/images/logo.svg" alt="zedify" width={56} height={56} />
@@ -61,6 +61,5 @@ export default function AppSidebar() {
           </Link>
         </div>
       </nav>
-    </aside>
+    </Sidebar>
   );
-}

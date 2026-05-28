@@ -11,7 +11,7 @@ function WithdrawButton() {
     <Button
       variant="default"
       size="sm"
-      className="px-3 py-1"
+      className="px-3 py-1 hidden md:inline-flex"
       onClick={() => router.push('/dashboard/wallet/withdraw')}
     >
       Withdraw

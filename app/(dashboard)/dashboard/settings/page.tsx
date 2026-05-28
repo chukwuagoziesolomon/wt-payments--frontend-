@@ -51,7 +51,7 @@ function AccountInfoSettingsContent() {
                 </span>
                 <input
                   type="text"
-                  className="flex-1 bg-[#19191d] border border-[#23242A] rounded-md px-4 py-2 text-white"
+                  className="flex-1 bg-[#19191d] border border-[#23242A] rounded-md px-4 py-2 text-white min-w-0 truncate"
                   value="909 687 9086"
                   readOnly
                 />
@@ -146,7 +146,7 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen p-8 bg-background">
+    <div className="min-h-screen p-4 sm:p-8 bg-background">
       <h1 className="text-xl font-semibold text-white mb-6">
         Setting{'>>'}{tab === "account" ? "Account Info" : tab === "payout" ? "Payout" : tab === "webhook" ? "Webhook Configuration" : ""}
       </h1>
@@ -155,13 +155,18 @@ export default function SettingsPage() {
       {tab === "account" && <AccountInfoSettingsContent />}
       {tab === "webhook" && (
         <>
-          {/* Conditional rendering: no shadcn card/sheet on mobile */}
-          <div className="block sm:hidden w-full px-2 py-4 bg-[#19191d] rounded-none border-b border-[#23242A]">
-            <h2 className="text-lg font-semibold text-white mb-4">API Configuration (Live)</h2>
-            <ApiConfigurationSection mode="live" />
-            <h2 className="text-lg font-semibold text-white mb-4 mt-8">API Configuration (Test)</h2>
-            <ApiConfigurationSection mode="test" />
-          </div>
+          {/* Mobile: render headings and sections full-bleed so they can stretch */}
+          <>
+            <h2 className="text-lg font-semibold text-white mb-3 px-2">API Configuration (Live)</h2>
+            <div className="px-0">
+              <ApiConfigurationSection mode="live" />
+            </div>
+
+            <h2 className="text-lg font-semibold text-white mb-3 mt-6 px-2">API Configuration (Test)</h2>
+            <div className="px-0">
+              <ApiConfigurationSection mode="test" />
+            </div>
+          </>
           <div className="hidden sm:block">
             <ApiConfigurationSection mode="live" />
             <ApiConfigurationSection mode="test" />
