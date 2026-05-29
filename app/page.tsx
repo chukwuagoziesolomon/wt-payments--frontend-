@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode, type CSSProperties } from "react";
 import Link from "next/link";
 
 /* ═══════════════════════════════════════════════════════════
@@ -348,22 +348,22 @@ body { overflow-x: hidden; }
 
 /* ─── HOOK: InView ─── */
 function useInView(threshold = 0.12) {
-  const ref = useRef(null);
-  const [vis, setVis] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [vis, setVis] = useState<boolean>(false);
   useEffect(() => {
     const el = ref.current; if (!el) return;
     const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVis(true); io.disconnect(); } }, { threshold });
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  return [ref, vis];
+  return [ref, vis] as [React.RefObject<HTMLDivElement>, boolean];
 }
 
 /* ─── HOOK: Mouse position ─── */
 function useMouse() {
   const [pos, setPos] = useState({ x: -500, y: -500 });
   useEffect(() => {
-    const h = e => setPos({ x: e.clientX, y: e.clientY });
+    const h = (e: MouseEvent) => setPos({ x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", h);
     return () => window.removeEventListener("mousemove", h);
   }, []);
@@ -371,26 +371,26 @@ function useMouse() {
 }
 
 /* ─── HOOK: Counter animation ─── */
-function useCounter(target, duration = 1800, start = false) {
-  const [val, setVal] = useState(0);
+function useCounter(target: number, duration: number = 1800, start: boolean = false): number {
+  const [val, setVal] = useState<number>(0);
   useEffect(() => {
     if (!start) return;
-    let raf;
+    let raf: number | undefined;
     const startTime = performance.now();
-    const tick = (now) => {
+    const tick = (now: number) => {
       const p = Math.min((now - startTime) / duration, 1);
       const ease = 1 - Math.pow(1 - p, 3);
       setVal(Math.floor(ease * target));
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => { if (raf !== undefined) cancelAnimationFrame(raf); };
   }, [target, duration, start]);
   return val;
 }
 
 /* ─── Reveal wrapper ─── */
-function Reveal({ children, delay = 0, dir = "up", style = {}, className = "" }) {
+function Reveal({ children, delay = 0, dir = "up", style = {}, className = "" }: { children?: React.ReactNode; delay?: number; dir?: string; style?: React.CSSProperties; className?: string }) {
   const [ref, vis] = useInView();
   const from = dir === "left" ? "translateX(-50px)" : dir === "right" ? "translateX(50px)" : dir === "scale" ? "scale(0.9)" : "translateY(44px)";
   return (
@@ -406,7 +406,7 @@ function Reveal({ children, delay = 0, dir = "up", style = {}, className = "" })
 }
 
 /* ─── Glow text ─── */
-function G({ children, c = "#9d8df1", cls = "" }) {
+function G({ children, c = "#9d8df1", cls = "" }: { children?: ReactNode; c?: string; cls?: string }) {
   return (
     <span className={cls} style={{ color: c, textShadow: `0 0 24px ${c}77, 0 0 48px ${c}33` }}>
       {children}
@@ -428,7 +428,7 @@ function Stars({ n = 5 }) {
 }
 
 /* ─── Live Ticker ─── */
-function Ticker({ items, reverse = false, speed = 28 }) {
+function Ticker({ items, reverse = false, speed = 28 }: { items: any[]; reverse?: boolean; speed?: number }) {
   const doubled = [...items, ...items];
   return (
     <div style={{ overflow: "hidden" }}>
@@ -466,7 +466,7 @@ function Ticker({ items, reverse = false, speed = 28 }) {
 
 /* ─── Mock Dashboard Window ─── */
 function DashboardWindow() {
-  const [activeRow, setActiveRow] = useState(null);
+  const [activeRow, setActiveRow] = useState<number | null>(null);
   const rows = [
     { name: "Bitcoin",  sym: "BTC", price: "$67,240",   change: "+2.41%", green: true,  vol: "$4.2M"  },
     { name: "Ethereum", sym: "ETH", price: "$3,540",    change: "+1.18%", green: true,  vol: "$2.1M"  },
@@ -624,7 +624,7 @@ function OrbitVisual() {
 }
 
 /* ─── Pricing Card ─── */
-function PricingCard({ plan, price, desc, features, cta, highlight, color, delay }) {
+function PricingCard({ plan, price, desc, features, cta, highlight, color, delay }: any) {
   return (
     <Reveal delay={delay}>
       <div className={`pricing-card ${highlight ? "neon-border" : "glass"}`}
@@ -650,7 +650,7 @@ function PricingCard({ plan, price, desc, features, cta, highlight, color, delay
         </div>
         <p style={{ fontSize:14,color:"rgba(255,255,255,0.5)",marginBottom:28,lineHeight:1.6 }}>{desc}</p>
         <div style={{ display:"flex",flexDirection:"column",gap:12,marginBottom:32 }}>
-          {features.map(f => (
+          {features.map((f: any) => (
             <div key={f} className="check-item">
               <div className="check-icon">✓</div>
               <span style={{ fontSize:14,color:"rgba(255,255,255,0.65)" }}>{f}</span>
@@ -666,8 +666,8 @@ function PricingCard({ plan, price, desc, features, cta, highlight, color, delay
 }
 
 /* ─── FAQ Item ─── */
-function FAQItem({ q, a, delay }) {
-  const [open, setOpen] = useState(false);
+function FAQItem({ q, a, delay }: any) {
+  const [open, setOpen] = useState<boolean>(false);
   return (
     <Reveal delay={delay}>
       <div className="faq-item" onClick={() => setOpen(!open)} style={{ cursor:"pointer", padding:"22px 0" }}>
@@ -846,7 +846,7 @@ export default function WesternTreasury() {
     { indent:0, tokens:[{t:"comment",v:"// → https://pay.western.io/p_xK9m2..."}] },
   ];
 
-  const tokenColor = { kw:"#b8a4f9", fn:"#a78bfa", str:"#c084fc", prop:"#9d8df1", num:"#9d8df1", env:"#f43f5e", comment:"rgba(255,255,255,0.3)", txt:"rgba(255,255,255,0.75)" };
+  const tokenColor: Record<string, string> = { kw:"#b8a4f9", fn:"#a78bfa", str:"#c084fc", prop:"#9d8df1", num:"#9d8df1", env:"#f43f5e", comment:"rgba(255,255,255,0.3)", txt:"rgba(255,255,255,0.75)" };
 
   return (
     <div style={{ background:"#08050f", color:"#ede8fd", fontFamily:"'Bricolage Grotesque',sans-serif", minHeight:"100vh", position:"relative", overflowX:"hidden" }}>
