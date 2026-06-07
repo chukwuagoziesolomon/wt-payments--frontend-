@@ -56,6 +56,13 @@ export default function SignupPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (selected) {
+                    // persist initial selection so later steps can resume
+                    try {
+                      const draft = { country, business_type: selected };
+                      localStorage.setItem("signupDraft", JSON.stringify(draft));
+                    } catch (err) {
+                      // ignore storage errors
+                    }
                     router.push(`/signup/step2?country=${encodeURIComponent(country)}&type=${encodeURIComponent(selected)}`);
                   }
                 }}

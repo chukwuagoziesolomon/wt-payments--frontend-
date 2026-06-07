@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useWalletBalance } from "@/hooks/use-wallet-balance";
 
 function WithdrawButton() {
   const router = useRouter();
@@ -21,6 +22,20 @@ function WithdrawButton() {
 
 export function WalletSummaryCards() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const liveBalance = useWalletBalance();
+
+  const balanceUsd = liveBalance
+    ? `$${liveBalance.total_balance_usd.toLocaleString()}`
+    : "$—";
+
+  // Show first wallet's crypto balance if available
+  const firstWallet = liveBalance?.wallets?.[0];
+  const cryptoSubtext =
+    firstWallet && firstWallet.balance_crypto != null && firstWallet.symbol
+      ? `${firstWallet.balance_crypto} ${firstWallet.symbol}`
+      : null;
+
+  const assetCount = liveBalance?.wallets?.length ?? "—";
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -54,8 +69,10 @@ export function WalletSummaryCards() {
             <WithdrawButton />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$205</div>
-            <div className="text-xs text-muted-foreground">0.00008193 BTC</div>
+            <div className="text-2xl font-bold">{balanceUsd}</div>
+            {cryptoSubtext && (
+              <div className="text-xs text-muted-foreground">{cryptoSubtext}</div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -63,7 +80,7 @@ export function WalletSummaryCards() {
             <CardTitle className="text-sm font-medium">Number of Asset</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">{assetCount}</div>
           </CardContent>
         </Card>
       </div>
@@ -79,8 +96,10 @@ export function WalletSummaryCards() {
             <WithdrawButton />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$205</div>
-            <div className="text-xs text-muted-foreground">0.00008193 BTC</div>
+            <div className="text-2xl font-bold">{balanceUsd}</div>
+            {cryptoSubtext && (
+              <div className="text-xs text-muted-foreground">{cryptoSubtext}</div>
+            )}
           </CardContent>
         </Card>
 
@@ -89,7 +108,7 @@ export function WalletSummaryCards() {
             <CardTitle className="text-sm font-medium">Number of Asset</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">{assetCount}</div>
           </CardContent>
         </Card>
       </div>

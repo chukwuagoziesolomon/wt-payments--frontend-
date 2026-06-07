@@ -1,8 +1,66 @@
+"use client"
+
+import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, CircleDollarSign, Activity } from "lucide-react";
+import { useWalletBalance } from "@/hooks/use-wallet-balance";
+
+type Stats = {
+  totalWalletBalance: number;
+  totalPayout: number;
+  totalPaymentProcessed: number;
+};
 
 export function SummaryCards() {
+  const [stats, setStats] = React.useState<Stats | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const liveBalance = useWalletBalance();
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+        const token = localStorage.getItem("authToken") || localStorage.getItem("token") || null;
+        const headers: Record<string,string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch(`${apiBase}/dashboard/stats`, {
+          method: "GET",
+          headers,
+          credentials: "include",
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error((data && data.data) || `Status ${res.status}`);
+        if (mounted) setStats(data.result || null);
+      } catch (err: any) {
+        if (mounted) setError(err.message || "Failed to load stats");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  const formatCurrency = (v: number) => `$${v.toLocaleString()}`;
+
+  // SSE overrides the initial wallet balance as soon as a live event arrives
+  const walletBalanceDisplay =
+    liveBalance != null
+      ? formatCurrency(liveBalance.total_balance_usd)
+      : loading
+      ? "—"
+      : stats
+      ? formatCurrency(stats.totalWalletBalance)
+      : error
+      ? "Error"
+      : "$0";
+
   return (
     <div>
       {/* Mobile: horizontal carousel */}
@@ -16,11 +74,8 @@ export function SummaryCards() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$205</div>
-              <div className="text-xs text-muted-foreground">= 0.00008193 BTC</div>
-              <div className="flex items-center gap-1 mt-2">
-                <Badge variant="secondary">↑ 2%</Badge>
-              </div>
+              <div className="text-2xl font-bold">{walletBalanceDisplay}</div>
+              {error && <div className="text-sm text-destructive mt-2">{error}</div>}
             </CardContent>
           </Card>
           <Card className="min-w-[260px] snap-start">
@@ -31,11 +86,8 @@ export function SummaryCards() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">$150</div>
-              <div className="text-sm text-muted-foreground">= 0.00000183 BTC</div>
-              <div className="flex items-center gap-1 mt-2">
-                <Badge variant="secondary">↑ 2%</Badge>
-              </div>
+              <div className="text-3xl font-bold">{loading ? "—" : stats ? formatCurrency(stats.totalPayout) : (error ? "Error" : "$0")}</div>
+              {error && <div className="text-sm text-destructive mt-2">{error}</div>}
             </CardContent>
           </Card>
           <Card className="min-w-[260px] snap-start">
@@ -46,11 +98,8 @@ export function SummaryCards() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">$120</div>
-              <div className="text-sm text-muted-foreground">= 0.00000183 BTC</div>
-              <div className="flex items-center gap-1 mt-2">
-                <Badge variant="secondary">↑ 2%</Badge>
-              </div>
+              <div className="text-3xl font-bold">{loading ? "—" : stats ? formatCurrency(stats.totalPaymentProcessed) : (error ? "Error" : "$0")}</div>
+              {error && <div className="text-sm text-destructive mt-2">{error}</div>}
             </CardContent>
           </Card>
         </div>
@@ -66,11 +115,8 @@ export function SummaryCards() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">$205</div>
-            <div className="text-sm text-muted-foreground">= 0.00008193 BTC</div>
-            <div className="flex items-center gap-1 mt-2">
-              <Badge variant="secondary">↑ 2%</Badge>
-            </div>
+            <div className="text-3xl font-bold">{walletBalanceDisplay}</div>
+            {error && <div className="text-sm text-destructive mt-2">{error}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -81,11 +127,8 @@ export function SummaryCards() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$150</div>
-            <div className="text-xs text-muted-foreground">= 0.00000183 BTC</div>
-            <div className="flex items-center gap-1 mt-2">
-              <Badge variant="secondary">↑ 2%</Badge>
-            </div>
+            <div className="text-2xl font-bold">{loading ? "—" : stats ? formatCurrency(stats.totalPayout) : (error ? "Error" : "$0")}</div>
+            {error && <div className="text-sm text-destructive mt-2">{error}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -96,11 +139,8 @@ export function SummaryCards() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$120</div>
-            <div className="text-xs text-muted-foreground">= 0.00000183 BTC</div>
-            <div className="flex items-center gap-1 mt-2">
-              <Badge variant="secondary">↑ 2%</Badge>
-            </div>
+            <div className="text-2xl font-bold">{loading ? "—" : stats ? formatCurrency(stats.totalPaymentProcessed) : (error ? "Error" : "$0")}</div>
+            {error && <div className="text-sm text-destructive mt-2">{error}</div>}
           </CardContent>
         </Card>
       </div>

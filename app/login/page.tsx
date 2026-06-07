@@ -42,14 +42,14 @@ export default function LoginPage() {
             <CardContent>
               <form onSubmit={onSubmit} className="bg-card mx-auto w-full">
                 <div className="mb-6">
-                  <label className="block text-sm text-muted-foreground mb-2">Email address</label>
+                  <label className="block text-base text-muted-foreground mb-2">Email address</label>
                   <div className="rounded-md border border-border p-3">
                     <Input className="border-0 bg-transparent px-0" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm text-muted-foreground mb-2">Password</label>
+                  <label className="block text-base text-muted-foreground mb-2">Password</label>
                   <div className="rounded-md border border-border p-3">
                     <Input className="border-0 bg-transparent px-0" type="password" placeholder="••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>

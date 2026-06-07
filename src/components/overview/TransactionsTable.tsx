@@ -1,52 +1,41 @@
+"use client";
+
+import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Filter, Search, ChevronRight } from "lucide-react";
+import { getPaymentIntentHistory, type HistoryListItem } from "@/lib/payment-intent-history";
 
-const transactions = [
-  {
-    date: "04 Sept. 2025",
-    customer: "Eze Emmanuella",
-    method: "Crypto",
-    currency: "USDC/BASE",
-    icon: "/images/usdcbase.png",
-    wallet: "usdt..e723648475",
-    amount: "200 USDC",
-    status: "Completed",
-  },
-  {
-    date: "04 Sept. 2025",
-    customer: "Eze Emmanuella",
-    method: "Fiat",
-    currency: "USDT/ASSET",
-    icon: "/images/usdtasset.png",
-    wallet: "usdt..e723648475",
-    amount: "200 USDT",
-    status: "Completed",
-  },
-  {
-    date: "04 Sept. 2025",
-    customer: "Eze Emmanuella",
-    method: "Crypto",
-    currency: "USDC/BASE",
-    icon: "/images/usdcbase.png",
-    wallet: "72364847565",
-    amount: "200 USDC",
-    status: "Completed",
-  },
-];
+const PAGE_SIZE = 3;
 
-const statusColor = {
-  Pending: "bg-yellow-900 text-yellow-200",
-  Completed: "bg-green-900 text-green-200",
-} as const;
-
-function MobileList() {
+function MobileList({
+  transactions,
+  loading,
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  transactions: HistoryListItem[];
+  loading: boolean;
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
   return (
     <Card className="md:hidden">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold">Transactions</CardTitle>
-        <span className="text-xs text-muted-foreground">View All &gt;</span>
+        <button
+          onClick={() => {
+            window.location.href = "/dashboard/transactions";
+          }}
+          className="text-xs text-muted-foreground"
+        >
+          View All &gt;
+        </button>
       </CardHeader>
       <CardContent>
         {/* Search + Filter */}
@@ -64,43 +53,88 @@ function MobileList() {
           </button>
         </div>
 
-        <ul className="flex flex-col gap-4">
-          {transactions.map((tx, idx) => (
-            <li key={idx} className="flex items-start justify-between py-4 px-3">
+        {loading ? (
+          <div className="text-sm text-muted-foreground py-6">Loading transactions...</div>
+        ) : transactions.length === 0 ? (
+          <div className="text-sm text-muted-foreground py-6">No transactions found.</div>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {transactions.map((tx) => (
+              <li key={tx.id} className="flex items-start justify-between py-4 px-3">
               <div className="flex-1 pr-3">
                 <div className="text-base font-medium">{tx.customer}</div>
                 <div className="mt-1 flex items-center gap-1 text-sm text-blue-300">
-                  <span>{tx.wallet}</span>
+                  <span>{tx.walletAddress}</span>
                   <Copy className="h-3.5 w-3.5" />
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">{tx.date}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{tx.paidOn}</div>
               </div>
               <div className="text-right">
-                <div className="text-base font-semibold">{tx.amount}</div>
+                <div className="text-base font-semibold">{tx.amountDisplay}</div>
                 <div className="mt-2">
-                  <Badge className={`${statusColor[tx.status as keyof typeof statusColor]} px-2 py-0.5 text-xs`}>
-                    {tx.status}
+                  <Badge className={`${tx.statusClass} px-2 py-0.5 text-xs`}>
+                    {tx.statusLabel}
                   </Badge>
                 </div>
               </div>
             </li>
-          ))}
-        </ul>
+            ))}
+          </ul>
+        )}
+
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-end gap-2 mt-3 text-xs text-muted-foreground">
+            <span>Page {page + 1} of {totalPages}</span>
+            <button
+              onClick={onPrev}
+              disabled={page === 0}
+              className="px-2 py-1 bg-background border border-border rounded disabled:opacity-40"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={onNext}
+              disabled={page >= totalPages - 1}
+              className="px-2 py-1 bg-background border border-border rounded disabled:opacity-40"
+            >
+              &gt;
+            </button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function DesktopTable() {
+function DesktopTable({
+  transactions,
+  loading,
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  transactions: HistoryListItem[];
+  loading: boolean;
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
   return (
     <Card className="hidden md:block">
       <CardHeader className="pb-2">
         <div className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold text-foreground">Transaction</CardTitle>
-          <div className="flex items-center gap-2">
+          <button
+            className="flex items-center gap-2"
+            onClick={() => {
+              window.location.href = "/dashboard/transactions";
+            }}
+          >
             <span className="text-sm text-muted-foreground">View All</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </div>
+          </button>
         </div>
         <div className="w-full h-px bg-border mt-2"></div>
       </CardHeader>
@@ -137,25 +171,34 @@ function DesktopTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((tx, idx) => (
-                <TableRow key={idx}>
-                  <TableCell className="text-foreground py-4 px-3">{tx.date}</TableCell>
-                  <TableCell className="text-foreground py-4 px-3">{tx.method}</TableCell>
-                  <TableCell className="text-foreground py-4 px-3">
-                    <div className="flex items-center gap-2">
-                      <img src={tx.icon} alt={tx.currency} className="w-6 h-6 rounded-full" />
-                      <span>{tx.currency}</span>
-                    </div>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Loading transactions...
                   </TableCell>
+                </TableRow>
+              )}
+              {!loading && transactions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No transactions found.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && transactions.map((tx) => (
+                <TableRow key={tx.id}>
+                  <TableCell className="text-foreground py-4 px-3">{tx.paidOn}</TableCell>
+                  <TableCell className="text-foreground py-4 px-3">Crypto</TableCell>
+                  <TableCell className="text-foreground py-4 px-3">{tx.currencyDisplay}</TableCell>
                   <TableCell className="text-foreground py-4 px-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-blue-300 cursor-pointer">{tx.wallet}</span>
+                      <span className="text-blue-300 cursor-pointer">{tx.walletAddress}</span>
                       <Copy className="w-3 h-3 cursor-pointer" />
                     </div>
                   </TableCell>
-                  <TableCell className="text-foreground py-4 px-3">{tx.amount}</TableCell>
+                  <TableCell className="text-foreground py-4 px-3">{tx.amountDisplay}</TableCell>
                   <TableCell className="text-foreground py-4 px-3">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${statusColor[tx.status as keyof typeof statusColor]}`}>{tx.status}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${tx.statusClass}`}>{tx.statusLabel}</span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -166,10 +209,22 @@ function DesktopTable() {
           <span>Showing {transactions.length} entries</span>
           <div className="flex items-center gap-2 mt-2 md:mt-0">
             <span>Page</span>
-            <span className="px-2 py-1 bg-background border border-border rounded">1</span>
-            <span>of 0</span>
-            <button className="px-2 py-1 bg-background border border-border rounded">&lt;</button>
-            <button className="px-2 py-1 bg-background border border-border rounded">&gt;</button>
+            <span className="px-2 py-1 bg-background border border-border rounded">{page + 1}</span>
+            <span>of {totalPages}</span>
+            <button
+              onClick={onPrev}
+              disabled={page === 0}
+              className="px-2 py-1 bg-background border border-border rounded disabled:opacity-40"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={onNext}
+              disabled={page >= totalPages - 1}
+              className="px-2 py-1 bg-background border border-border rounded disabled:opacity-40"
+            >
+              &gt;
+            </button>
           </div>
         </div>
       </CardContent>
@@ -178,10 +233,54 @@ function DesktopTable() {
 }
 
 export function TransactionsTable() {
+  const [allItems, setAllItems] = React.useState<HistoryListItem[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [page, setPage] = React.useState(0);
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadHistory() {
+      setLoading(true);
+      try {
+        const { items } = await getPaymentIntentHistory();
+        if (mounted) {
+          setAllItems(items);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadHistory();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
+  const pageItems = allItems.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const handlePrev = () => setPage((p) => Math.max(0, p - 1));
+  const handleNext = () => setPage((p) => Math.min(totalPages - 1, p + 1));
+
   return (
     <div>
-      <MobileList />
-      <DesktopTable />
+      <MobileList
+        transactions={pageItems}
+        loading={loading}
+        page={page}
+        totalPages={totalPages}
+        onPrev={handlePrev}
+        onNext={handleNext}
+      />
+      <DesktopTable
+        transactions={pageItems}
+        loading={loading}
+        page={page}
+        totalPages={totalPages}
+        onPrev={handlePrev}
+        onNext={handleNext}
+      />
     </div>
   );
 }
