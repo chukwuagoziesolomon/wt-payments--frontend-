@@ -38,6 +38,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/backend/:path*",
+        destination: `${apiBase}/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {

@@ -86,7 +86,7 @@ export default function SignupStep3() {
         if (authFile) form.append("shareholders_approval_letter", authFile);
       }
 
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+      const apiBase = "/backend";
       const res = await fetch(`${apiBase}/user/account/signup`, {
         method: "POST",
         body: form,
@@ -210,13 +210,102 @@ export default function SignupStep3() {
       </div>
 
       {showReviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white rounded-2xl shadow-2xl px-10 py-8 w-full max-w-lg text-center">
-            <h3 className="text-lg font-semibold mb-4">Information under review</h3>
-            <p className="text-sm text-muted-foreground mb-6">Thanks — we've received your documents. Our team will review your submission and contact you at the email you provided.</p>
-            <div className="flex justify-center gap-3">
-              <Button onClick={() => setShowReviewModal(false)}>Close</Button>
-              <Button variant="outline" onClick={goToLogin}>Go to Login</Button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-[#3a3a40] overflow-hidden"
+            style={{ background: "linear-gradient(160deg, #17171a 0%, #0e0e10 100%)" }}
+          >
+            {/* top accent bar */}
+            <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #5b4dd4, #9d8df1, #b8a4f9)" }} />
+
+            {/* subtle grid bg */}
+            <div
+              className="absolute inset-0 pointer-events-none opacity-30"
+              style={{
+                backgroundImage: "linear-gradient(rgba(79,79,143,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(79,79,143,0.07) 1px,transparent 1px)",
+                backgroundSize: "40px 40px",
+              }}
+            />
+
+            <div className="relative px-8 py-10 flex flex-col items-center text-center">
+              {/* icon */}
+              <div className="mb-6 relative">
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center"
+                  style={{ background: "linear-gradient(135deg, rgba(91,77,212,0.25), rgba(157,141,241,0.15))", border: "1px solid rgba(157,141,241,0.3)" }}
+                >
+                  {/* checkmark */}
+                  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                    <circle cx="18" cy="18" r="17" stroke="url(#ck-grad)" strokeWidth="1.5" />
+                    <path d="M11 18.5l5 5 9-10" stroke="#9d8df1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <defs>
+                      <linearGradient id="ck-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#9d8df1" />
+                        <stop offset="1" stopColor="#5b4dd4" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                {/* glow */}
+                <div className="absolute inset-0 rounded-full" style={{ background: "radial-gradient(circle, rgba(157,141,241,0.2) 0%, transparent 70%)" }} />
+              </div>
+
+              {/* heading */}
+              <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
+                Application submitted!
+              </h3>
+              <div className="w-10 h-0.5 rounded-full mb-4" style={{ background: "linear-gradient(90deg, #9d8df1, #5b4dd4)" }} />
+
+              {/* body */}
+              <p className="text-sm text-[#b8b8b8] leading-relaxed mb-8 max-w-sm">
+                We've received your documents and your account is now{" "}
+                <span className="text-[#9d8df1] font-medium">under review</span>.
+                Our team will verify your submission and reach out to you at the email you provided.
+              </p>
+
+              {/* steps */}
+              <div className="w-full rounded-xl border border-[#2a2a30] bg-[#111114] p-4 mb-8 text-left space-y-3">
+                {[
+                  { step: "1", label: "Documents submitted", done: true },
+                  { step: "2", label: "Admin review (1–2 business days)", done: false },
+                  { step: "3", label: "Account activated", done: false },
+                ].map(({ step, label, done }) => (
+                  <div key={step} className="flex items-center gap-3">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                      style={done
+                        ? { background: "linear-gradient(135deg,#9d8df1,#5b4dd4)", color: "#fff" }
+                        : { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.1)" }
+                      }
+                    >
+                      {done ? (
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path d="M2 5.5l2.5 2.5 3.5-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : step}
+                    </div>
+                    <span className={`text-sm ${done ? "text-white font-medium" : "text-[#666]"}`}>{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* actions */}
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={goToLogin}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}
+                >
+                  Go to Login
+                </button>
+                <button
+                  onClick={() => setShowReviewModal(false)}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold transition-colors"
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

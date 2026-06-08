@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, CircleDollarSign, Activity } from "lucide-react";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { authFetch } from "@/lib/auth-fetch";
 
 type Stats = {
   totalWalletBalance: number;
@@ -24,15 +25,14 @@ export function SummaryCards() {
       setLoading(true);
       setError(null);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+        const apiBase = "/backend";
         const token = localStorage.getItem("authToken") || localStorage.getItem("token") || null;
         const headers: Record<string,string> = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const res = await fetch(`${apiBase}/dashboard/stats`, {
+        const res = await authFetch(`${apiBase}/dashboard/stats`, {
           method: "GET",
           headers,
-          credentials: "include",
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error((data && data.data) || `Status ${res.status}`);
