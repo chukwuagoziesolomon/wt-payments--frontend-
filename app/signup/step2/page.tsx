@@ -56,10 +56,15 @@ export default function SignupStep2() {
     }
   }, [businessName, firstName, email, phoneCode, phoneNumber]);
 
+  // persist password in sessionStorage only (cleared when tab closes)
+  React.useEffect(() => {
+    if (password) {
+      try { sessionStorage.setItem("signupPassword", password); } catch (err) {}
+    }
+  }, [password]);
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // For now, navigate to root/dashboard after submit
-    console.log({ businessName, firstName, email, phoneCode, phoneNumber });
     router.push("/signup/step3");
   }
 

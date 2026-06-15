@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RiDashboardLine, RiWalletLine, RiMoneyDollarCircleLine, RiSettings3Line, RiBankCardLine, RiCoinsLine } from "@remixicon/react";
+import { RiDashboardLine, RiWalletLine, RiMoneyDollarCircleLine, RiSettings3Line, RiBankCardLine, RiCoinsLine, RiStoreLine, RiArchiveLine, RiFileHistoryLine } from "@remixicon/react";
 import { Sidebar } from "@/components/ui/sidebar";
 
 export default function AppSidebar() {
@@ -13,6 +13,9 @@ export default function AppSidebar() {
     { label: "Payout", icon: RiMoneyDollarCircleLine, href: "/dashboard/payout" },
     { label: "Wallet", icon: RiWalletLine, href: "/dashboard/wallet" },
     { label: "Currency", icon: RiCoinsLine, href: "/dashboard/currency" },
+    { label: "Shop Builder", icon: RiStoreLine, href: "/dashboard/shop" },
+    { label: "Products", icon: RiArchiveLine, href: "/dashboard/shop/products" },
+    { label: "Payments", icon: RiFileHistoryLine, href: "/dashboard/payments" },
   ];
 
   const pathname = usePathname();

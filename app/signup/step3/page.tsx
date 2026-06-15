@@ -26,6 +26,7 @@ export default function SignupStep3() {
   const [phoneCode, setPhoneCode] = React.useState("");
   const [phoneNumber, setPhoneNumber] = React.useState("");
   const [businessName, setBusinessName] = React.useState("");
+  const [firstName, setFirstName] = React.useState("");
   const [businessType, setBusinessType] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [showReviewModal, setShowReviewModal] = React.useState(false);
@@ -72,6 +73,7 @@ export default function SignupStep3() {
       const phone = `${phoneCode || ""}${phoneNumber || ""}`;
       form.append("phone", phone);
       form.append("business_name", businessName || "");
+      if (firstName) form.append("full_name", firstName);
       if (businessType) form.append("business_type", businessType);
       form.append("bvn", bvn);
       // include NIN optionally
@@ -96,6 +98,7 @@ export default function SignupStep3() {
       if (res.ok && data && data.error === false) {
         // clear saved draft so user doesn't resume
         try { localStorage.removeItem("signupDraft"); } catch (e) {}
+        try { sessionStorage.removeItem("signupPassword"); } catch (e) {}
         setShowReviewModal(true);
       } else {
         const msg = data && data.data ? data.data : `Signup failed (${res.status})`;
@@ -119,10 +122,16 @@ export default function SignupStep3() {
       if (draft.phoneCode) setPhoneCode(draft.phoneCode);
       if (draft.phoneNumber) setPhoneNumber(draft.phoneNumber);
       if (draft.businessName) setBusinessName(draft.businessName);
+      if (draft.firstName) setFirstName(draft.firstName);
       if (draft.business_type) setBusinessType(draft.business_type);
     } catch (err) {
       // ignore
     }
+    // load password from sessionStorage (set in step 2)
+    try {
+      const pw = sessionStorage.getItem("signupPassword");
+      if (pw) setPassword(pw);
+    } catch (err) {}
   }, []);
 
   function goToLogin() {
