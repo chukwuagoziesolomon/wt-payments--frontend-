@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 
 /* ═══════════════════════════════════════════════════════════
@@ -204,11 +204,6 @@ body { overflow-x: hidden; }
   letter-spacing:0.3px;
 }
 .pill-violet {
-  background: rgba(157,141,241,0.1);
-  border-color: rgba(157,141,241,0.22);
-  color: #b8a4f9;
-}
-.pill-violet {
   background: rgba(167,139,250,0.1);
   border-color: rgba(167,139,250,0.22);
   color: #a78bfa;
@@ -368,7 +363,7 @@ function useInView(threshold = 0.12) {
 function useMouse() {
   const [pos, setPos] = useState({ x: -500, y: -500 });
   useEffect(() => {
-    const h = (e: MouseEvent) => setPos({ x: e.clientX, y: e.clientY });
+    const h = e => setPos({ x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", h);
     return () => window.removeEventListener("mousemove", h);
   }, []);
@@ -568,6 +563,10 @@ function DashboardWindow() {
 
 /* ─── Orbit Visual ─── */
 function OrbitVisual() {
+  // FIX: Stable animation values — no Math.random() in render
+  const floatAnims = ["float1", "float2", "float3", "float1"];
+  const floatDurs  = ["3s", "4s", "3.5s", "5s"];
+
   return (
     <div style={{ position:"relative", width:360, height:360, margin:"0 auto" }}>
       {/* Rings */}
@@ -596,18 +595,22 @@ function OrbitVisual() {
         boxShadow:"0 0 60px rgba(157,141,241,0.2), inset 0 0 30px rgba(157,141,241,0.05)",
         animation:"morphBlob 7s ease-in-out infinite",
       }}>💎</div>
-      {/* Floating asset badges */}
+      {/* Floating asset badges — FIX: stable animation values */}
       {[
-        {label:"BTC",  pct:"+2.4%", c:"#f7931a", top:30,  left:-20},
-        {label:"ETH",  pct:"+1.1%", c:"#627eea", bottom:50,right:-25},
-        {label:"USDC", pct:"Stable",c:"#2775ca", bottom:0, left:20},
-        {label:"SOL",  pct:"+5.3%", c:"#9945ff", top:80,  right:10},
+        {label:"BTC",  pct:"+2.4%", c:"#f7931a", top:30,  left:-20,  animIdx:0},
+        {label:"ETH",  pct:"+1.1%", c:"#627eea", bottom:50,right:-25, animIdx:1},
+        {label:"USDC", pct:"Stable",c:"#2775ca", bottom:0, left:20,   animIdx:2},
+        {label:"SOL",  pct:"+5.3%", c:"#9945ff", top:80,  right:10,  animIdx:3},
       ].map(b => (
         <div key={b.label} className="glass" style={{
-          position:"absolute", ...{ top:b.top, bottom:b.bottom, left:b.left, right:b.right },
+          position:"absolute",
+          ...(b.top    !== undefined ? { top:    b.top    } : {}),
+          ...(b.bottom !== undefined ? { bottom: b.bottom } : {}),
+          ...(b.left   !== undefined ? { left:   b.left   } : {}),
+          ...(b.right  !== undefined ? { right:  b.right  } : {}),
           padding:"9px 14px", borderRadius:12,
           display:"flex",alignItems:"center",gap:8, zIndex:2,
-          animation:`float${(Math.floor(Math.random()*3)+1)} ${3+Math.random()*2}s ease-in-out infinite`,
+          animation:`${floatAnims[b.animIdx]} ${floatDurs[b.animIdx]} ease-in-out infinite`,
         }}>
           <div style={{ width:26,height:26,borderRadius:"50%",background:b.c+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:b.c }}>{b.label[0]}</div>
           <div>
@@ -814,6 +817,14 @@ export default function WesternTreasury() {
     { q:"Do you offer 24/7 support?", a:"Yes. All plans include 24/7 email support. Growth and Enterprise plans include live chat, phone support, and a dedicated account manager for mission-critical operations." },
   ];
 
+  // FIX: Stable mock transaction data — computed once with useMemo, not on every render
+  const mockTransactions = useMemo(() => (
+    Array.from({ length: 5 }, (_, j) => ({
+      id: 10000 + j * 9871 % 90000,
+      amount: (100 + j * 1847.33).toFixed(2),
+    }))
+  ), []);
+
   const codeLines = [
     { indent:0, tokens:[{t:"comment",v:"// Initialize Western Treasury SDK"}] },
     { indent:0, tokens:[{t:"kw",v:"import"},{t:"txt",v:" { WesternTreasury } "},{t:"kw",v:"from"},{t:"str",v:" '@western/sdk'"}] },
@@ -823,7 +834,8 @@ export default function WesternTreasury() {
     { indent:0, tokens:[{t:"txt",v:"});"}] },
     { indent:0, tokens:[] },
     { indent:0, tokens:[{t:"comment",v:"// Accept a payment in 3 lines"}] },
-    { indent:0, tokens:[{t:"kw",v:"const"},{t:"txt",v:" payment = "},{t:"kw",v:"await"},{t:"txt",v:" client.payments."},{t:"fn",v:"create"},,{t:"txt",v:"({"}] },
+    // FIX: Removed the double comma that was here
+    { indent:0, tokens:[{t:"kw",v:"const"},{t:"txt",v:" payment = "},{t:"kw",v:"await"},{t:"txt",v:" client.payments."},{t:"fn",v:"create"},{t:"txt",v:"({"}] },
     { indent:1, tokens:[{t:"prop",v:"amount"},{t:"txt",v:": "},{t:"num",v:"4200"}] },
     { indent:1, tokens:[{t:"prop",v:"currency"},{t:"txt",v:": "},{t:"str",v:"'USDC'"}] },
     { indent:1, tokens:[{t:"prop",v:"network"},{t:"txt",v:": "},{t:"str",v:"'ethereum'"}] },
@@ -872,12 +884,21 @@ export default function WesternTreasury() {
             ))}
           </div>
 
-          {/* CTAs */}
+          {/* FIX: Links styled correctly — using style prop instead of conflicting className */}
           <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-            <Link href="/login" className="btn-ghost" style={{ fontSize:14,padding:"9px 22px", display:"inline-flex", alignItems:"center", gap:8 }}>Log In</Link>
-            <Link href="/signup" className="btn-primary" style={{ fontSize:14,padding:"9px 22px", display:"inline-flex", alignItems:"center", gap:8 }}>
-              <span>Get Started Free</span>
-              <span style={{ fontSize:16 }}>→</span>
+            <Link href="/login" style={{
+              fontSize:14, padding:"9px 22px", display:"inline-flex", alignItems:"center", gap:8,
+              background:"transparent", border:"1px solid rgba(255,255,255,0.14)",
+              color:"rgba(255,255,255,0.75)", borderRadius:10, cursor:"pointer", textDecoration:"none",
+              transition:"all 0.25s",
+            }}>Log In</Link>
+            <Link href="/signup" style={{
+              fontSize:14, padding:"9px 22px", display:"inline-flex", alignItems:"center", gap:8,
+              background:"linear-gradient(135deg,#9d8df1,#5b4dd4)",
+              color:"#f0eeff", fontWeight:700, borderRadius:10, cursor:"pointer", textDecoration:"none",
+              transition:"transform 0.25s, box-shadow 0.25s",
+            }}>
+              Get Started Free <span style={{ fontSize:16 }}>→</span>
             </Link>
           </div>
         </div>
@@ -998,8 +1019,8 @@ export default function WesternTreasury() {
             <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:48,flexWrap:"wrap" }}>
               {["GreenFlow","Switchlab","TrxAge","Nomad Labs","ChainPay","NeoRetail"].map(n => (
                 <div key={n} style={{ fontSize:18,fontWeight:800,color:"rgba(255,255,255,0.15)",letterSpacing:"-0.5px",transition:"color 0.3s",cursor:"default",fontFamily:"'Bricolage Grotesque',sans-serif" }}
-                  onMouseEnter={e => e.target.style.color="rgba(255,255,255,0.55)"}
-                  onMouseLeave={e => e.target.style.color="rgba(255,255,255,0.15)"}
+                  onMouseEnter={e => e.currentTarget.style.color="rgba(255,255,255,0.55)"}
+                  onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.15)"}
                 >{n}</div>
               ))}
             </div>
@@ -1060,7 +1081,7 @@ export default function WesternTreasury() {
               { val:`${c2 >= 40000 ? "40K" : Math.floor(c2/1000)+"K"}+`, label:"Active Businesses",color:"#b8a4f9", delay:100 },
               { val:`${c3 >= 9998 ? "99.98" : (c3/100).toFixed(0)}%`,  label:"Uptime SLA",         color:"#a78bfa", delay:200 },
               { val:`${c4}+`,                                            label:"Countries Supported",color:"#c084fc", delay:300 },
-            ].map((s,i) => (
+            ].map((s) => (
               <Reveal key={s.label} delay={s.delay} dir="scale">
                 <div className="card" style={{ padding:"36px 28px",textAlign:"center" }}>
                   <div className="stat-number" style={{ fontSize:"clamp(32px,4vw,52px)",color:s.color,marginBottom:8,animationDelay:`${s.delay}ms` }}>{s.val}</div>
@@ -1144,18 +1165,19 @@ export default function WesternTreasury() {
                       <span style={{ fontSize:13,fontWeight:700,color:"rgba(255,255,255,0.6)" }}>{f.title} Overview</span>
                       <div style={{ padding:"3px 10px",borderRadius:6,background:`${f.color}18`,border:`1px solid ${f.color}33`,fontSize:10,fontWeight:700,color:f.color }}>LIVE</div>
                     </div>
-                    {Array.from({length:5}).map((_,j) => (
-                      <div key={j} style={{
+                    {/* FIX: Use stable mockTransactions instead of Math.random() */}
+                    {mockTransactions.map((tx) => (
+                      <div key={tx.id} style={{
                         display:"flex",alignItems:"center",justifyContent:"space-between",
                         padding:"10px 12px",marginBottom:4,borderRadius:8,
                         background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.04)",
                       }}>
                         <div style={{ display:"flex",alignItems:"center",gap:8 }}>
                           <div style={{ width:22,height:22,borderRadius:6,background:`${f.color}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:f.color }}>Ⓦ</div>
-                          <span style={{ fontSize:12,color:"rgba(255,255,255,0.6)" }}>Transaction #{Math.floor(Math.random()*90000+10000)}</span>
+                          <span style={{ fontSize:12,color:"rgba(255,255,255,0.6)" }}>Transaction #{tx.id}</span>
                         </div>
                         <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                          <span style={{ fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.8)" }}>${(Math.random()*9000+100).toFixed(2)}</span>
+                          <span style={{ fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.8)" }}>${tx.amount}</span>
                           <div style={{ padding:"2px 8px",borderRadius:20,background:"rgba(157,141,241,0.15)",fontSize:9,fontWeight:700,color:"#9d8df1" }}>Success</div>
                         </div>
                       </div>
@@ -1258,9 +1280,10 @@ export default function WesternTreasury() {
                     <div key={li} style={{ display:"flex",gap:20 }}>
                       <span style={{ color:"rgba(255,255,255,0.15)",userSelect:"none",minWidth:18,textAlign:"right",fontSize:11 }}>{li+1}</span>
                       <div style={{ paddingLeft: line.indent * 20 }}>
-                        {(line.tokens||[]).map((tok, ti) => tok ? (
+                        {/* FIX: filter out null/undefined tokens before mapping */}
+                        {(line.tokens || []).filter(Boolean).map((tok, ti) => (
                           <span key={ti} style={{ color: tokenColor[tok.t] || "#fff" }}>{tok.v}</span>
-                        ) : null)}
+                        ))}
                         {li === codeLines.length - 1 && (
                           <span style={{ borderRight:"2px solid #9d8df1",animation:"blink 1s step-end infinite",marginLeft:1 }}> </span>
                         )}
@@ -1527,8 +1550,8 @@ export default function WesternTreasury() {
               <div style={{ display:"flex",gap:10 }}>
                 {["𝕏","in","⬛","○"].map(s => (
                   <div key={s} style={{ width:34,height:34,borderRadius:9,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.07)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:"rgba(255,255,255,0.4)",cursor:"pointer",transition:"all 0.2s" }}
-                    onMouseEnter={e => { e.target.style.borderColor="rgba(157,141,241,0.4)"; e.target.style.color="#9d8df1"; }}
-                    onMouseLeave={e => { e.target.style.borderColor="rgba(255,255,255,0.07)"; e.target.style.color="rgba(255,255,255,0.4)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(157,141,241,0.4)"; e.currentTarget.style.color="#9d8df1"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.07)"; e.currentTarget.style.color="rgba(255,255,255,0.4)"; }}
                   >{s}</div>
                 ))}
               </div>
@@ -1545,8 +1568,8 @@ export default function WesternTreasury() {
                 <div style={{ fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.35)",letterSpacing:"1.2px",textTransform:"uppercase",marginBottom:16 }}>{col.title}</div>
                 {col.links.map(l => (
                   <div key={l} style={{ fontSize:14,color:"rgba(255,255,255,0.42)",marginBottom:10,cursor:"pointer",transition:"color 0.2s" }}
-                    onMouseEnter={e => e.target.style.color="#9d8df1"}
-                    onMouseLeave={e => e.target.style.color="rgba(255,255,255,0.42)"}
+                    onMouseEnter={e => e.currentTarget.style.color="#9d8df1"}
+                    onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.42)"}
                   >{l}</div>
                 ))}
               </div>
@@ -1559,8 +1582,8 @@ export default function WesternTreasury() {
             <div style={{ display:"flex",gap:24 }}>
               {["Privacy","Terms","Cookies"].map(l => (
                 <span key={l} style={{ fontSize:13,color:"rgba(255,255,255,0.3)",cursor:"pointer",transition:"color 0.2s" }}
-                  onMouseEnter={e => e.target.style.color="#9d8df1"}
-                  onMouseLeave={e => e.target.style.color="rgba(255,255,255,0.3)"}
+                  onMouseEnter={e => e.currentTarget.style.color="#9d8df1"}
+                  onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.3)"}
                 >{l}</span>
               ))}
             </div>
