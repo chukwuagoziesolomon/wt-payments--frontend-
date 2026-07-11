@@ -1,3 +1,4 @@
+"use client";
 import { WalletSummaryCards } from "../../../../src/components/wallet/WalletSummaryCards";
 import { WithdrawalHistoryTable } from "../../../../src/components/wallet/WithdrawalHistoryTable";
 

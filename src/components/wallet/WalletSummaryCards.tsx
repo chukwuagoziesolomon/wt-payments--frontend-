@@ -1,8 +1,23 @@
 "use client";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+
+function WithdrawButton() {
+  const router = useRouter();
+  return (
+    <Button
+      variant="default"
+      size="sm"
+      className="px-3 py-1"
+      onClick={() => router.push('/dashboard/wallet/withdraw')}
+    >
+      Withdraw
+    </Button>
+  );
+}
 
 export function WalletSummaryCards() {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -36,7 +51,7 @@ export function WalletSummaryCards() {
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-            <button className="bg-background border border-border rounded px-3 py-1 text-xs">Withdraw</button>
+            <WithdrawButton />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$205</div>
@@ -61,13 +76,14 @@ export function WalletSummaryCards() {
         <Card className="flex-shrink-0 w-80">
           <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-            <button className="bg-background border border-border rounded px-3 py-1 text-xs">Withdraw</button>
+            <WithdrawButton />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$205</div>
             <div className="text-xs text-muted-foreground">0.00008193 BTC</div>
           </CardContent>
         </Card>
+
         <Card className="flex-shrink-0 w-80">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Number of Asset</CardTitle>

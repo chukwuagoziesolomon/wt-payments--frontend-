@@ -26,6 +26,7 @@ export const navigationItems: NavGroup = {
       icon: "walletIcon",
       isActive: false,
     },
+    // Reconstructed Currency nav item (re-added to ensure it renders)
     {
       title: "Currency",
       url: "/dashboard/currency",
