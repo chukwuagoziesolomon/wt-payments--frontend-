@@ -4,7 +4,7 @@ export async function GET(req: Request) {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
   try {
     const url = new URL(req.url);
-    const backendUrl = `${apiBase}/user/withdrawal/quote${url.search}`;
+    const backendUrl = `${apiBase}/api/user/withdrawal/quote${url.search}`;
     const headers = new Headers();
     const auth = req.headers.get("authorization");
     if (auth) headers.set("authorization", auth);

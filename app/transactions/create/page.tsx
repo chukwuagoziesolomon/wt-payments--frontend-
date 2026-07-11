@@ -1,164 +1,273 @@
-"use client"
+﻿"use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Info, DollarSign, ArrowDownLeft, Percent, Network, Clock, Copy, Shield } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ChevronDown, Info, ArrowDownLeft, Percent, Network, Clock } from "lucide-react";
 import { useToast } from "@/components/ui/ToastProvider";
-import { WaitingForPaymentModal } from "@/components/WaitingForPaymentModal";
-import { EmailVerificationModal } from "@/src/components/EmailVerificationModal";
+import { WaitingForPaymentModal, type PaymentIntentData } from "@/components/WaitingForPaymentModal";
+import { authFetch } from "@/lib/auth-fetch";
+
+const API = "/backend";
+
+function getToken() {
+  return localStorage.getItem("authToken") || localStorage.getItem("token") || "";
+}
+
+function authHeaders() {
+  return { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` };
+}
+
+function generateReferenceId() {
+  return `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const ASSETS = [
+  { label: "CKB", value: "CKB", icon: "/images/ckb.png" },
+  { label: "RUSD", value: "RUSD", icon: "/images/rusd.png" },
+];
 
 export default function CreateTransactionPage() {
   const router = useRouter();
-
-  // Modal state
-  const [modalOpen, setModalOpen] = React.useState(false);
-  // Email verification modal state
-  const [showEmailModal, setShowEmailModal] = React.useState(false);
-  // Use global toast
   const { notify } = useToast();
-  // Waiting modal state
-  const [waitingOpen, setWaitingOpen] = React.useState(false);
 
-  function onSubmit(e: React.FormEvent) {
+  const [asset, setAsset] = React.useState<string>("CKB");
+  const [assetDropdownOpen, setAssetDropdownOpen] = React.useState(false);
+  const [availableAssets, setAvailableAssets] = React.useState<Array<{ symbol: string; name: string; amount: number }>>([]);
+  const [fiatAmount, setFiatAmount] = React.useState<number | "">("");
+  const [fiatCurrency, setFiatCurrency] = React.useState("NGN");
+  const [referenceId, setReferenceId] = React.useState(() => generateReferenceId());
+  const [creating, setCreating] = React.useState(false);
+  const [step, setStep] = React.useState<1 | 2 | null>(null);
+
+  const [waitingOpen, setWaitingOpen] = React.useState(false);
+  const [paymentData, setPaymentData] = React.useState<PaymentIntentData | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setShowEmailModal(true);
+    if (!referenceId.trim()) { notify("Reference ID is required"); return; }
+    if (!fiatAmount || Number(fiatAmount) <= 0) { notify("Enter a valid fiat amount"); return; }
+
+    setCreating(true);
+    try {
+      // ── Step 1: Create payment intent ──────────────────────────────
+      setStep(1);
+      const intentRes = await authFetch(`${API}/api/user/payment-intent`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          fiat_amount: Number(fiatAmount),
+          fiat_currency: fiatCurrency,
+          reference_id: referenceId.trim(),
+        }),
+      });
+      const intentJson = await intentRes.json().catch(() => null);
+      if (!intentRes.ok || intentJson?.error) {
+        notify(intentJson?.message || "Failed to create payment intent");
+        return;
+      }
+
+      // Populate asset list from response if available
+      const assetsFromServer: Array<{ symbol: string; name: string; amount: number }> =
+        (intentJson.data?.assets ?? []).map((a: { symbol: string; name: string; amount: number }) => ({
+          symbol: a.symbol,
+          name: a.name,
+          amount: a.amount,
+        }));
+      const chosenAsset =
+        assetsFromServer.length > 0 ? assetsFromServer[0].symbol : asset;
+      if (assetsFromServer.length > 0) {
+        setAvailableAssets(assetsFromServer);
+        setAsset(chosenAsset);
+      }
+
+      // ── Step 2: Generate wallet address ────────────────────────────
+      setStep(2);
+      const walletRes = await authFetch(`${API}/api/user/payment-intent/create-wallet`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          crypto_currency_id: chosenAsset,
+          reference_id: referenceId.trim(),
+        }),
+      });
+      const walletJson = await walletRes.json().catch(() => null);
+      if (!walletRes.ok || walletJson?.error) {
+        notify(walletJson?.message || "Failed to generate wallet address");
+        return;
+      }
+
+      const d = walletJson.data;
+      // Normalize crypto.network — API may return an object { name, logo } or a plain string
+      const cryptoNetwork: string =
+        typeof d.crypto?.network === "object"
+          ? (d.crypto.network?.name ?? "")
+          : (d.crypto?.network ?? "");
+      setPaymentData({
+        payment_intent_id: d.payment_intent_id,
+        transaction_id: d.transaction_id,
+        expiration_time: d.expiration_time,
+        fee_in_crypto: d.fee_in_crypto,
+        wallet: d.wallet,
+        fiat: d.fiat ?? { amount: Number(fiatAmount), currency: fiatCurrency },
+        crypto: { ...d.crypto, network: cryptoNetwork },
+      });
+      setWaitingOpen(true);
+    } finally {
+      setCreating(false);
+      setStep(null);
+    }
   }
 
-  // Demo state for selects and amount
-  const [blockchain, setBlockchain] = React.useState("Asset Chain");
-  const [asset, setAsset] = React.useState("USDT");
-  const [amount, setAmount] = React.useState(20);
-  const balance = 130;
-  const min = 0;
-  const max = 130;
+  function handlePaymentComplete() {
+    setWaitingOpen(false);
+    notify("Payment received!");
+    router.push("/transactions/confirmed");
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-2xl">
-        <div className="mx-auto">
-          <div className="border-2 border-blue-600 rounded-lg p-0 shadow-xl" style={{boxShadow: '0 0 0 1.5px #4f4f8f'}}>
-            <div className="px-0 pt-0">
-              <div className="text-center text-lg font-semibold py-6 border-b border-[#23243a] tracking-wide">Create Transaction</div>
+        <div className="border-2 border-blue-600 rounded-lg p-0 shadow-xl" style={{ boxShadow: "0 0 0 1.5px #4f4f8f" }}>
+          <div className="px-0 pt-0">
+            <div className="text-center text-lg font-semibold py-6 border-b border-[#23243a] tracking-wide">Create Transaction</div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="bg-[#17171a] px-8 py-8 space-y-6 rounded-b-lg">
+
+            {/* Fiat amount */}
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">Amount ({fiatCurrency})</label>
+              <div className="rounded-md border border-border bg-[#19191d] flex items-center px-4 py-3">
+                <span className="text-muted-foreground mr-2">$</span>
+                <input
+                  type="number"
+                  min={0.01}
+                  step="0.01"
+                  value={fiatAmount}
+                  onChange={e => setFiatAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="flex-1 bg-transparent text-white text-lg font-semibold focus:outline-none"
+                  placeholder="100.00"
+                  required
+                />
+                <select
+                  value={fiatCurrency}
+                  onChange={e => setFiatCurrency(e.target.value)}
+                  className="bg-transparent text-muted-foreground text-sm ml-2 focus:outline-none cursor-pointer"
+                >
+                  <option value="NGN">NGN</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
             </div>
-            <form onSubmit={onSubmit} className="bg-[#17171a] px-8 py-8 space-y-6 rounded-b-lg">
-              {/* Blockchain select */}
-              <div>
-                <label className="block text-sm text-muted-foreground mb-2">Blockchain</label>
-                <div className="rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d]">
-                  <div className="flex items-center gap-2">
-                    <img src="/images/assetchain.png" alt="Asset Chain" className="w-6 h-6 rounded-full" />
-                    <span className="font-medium">{blockchain}</span>
-                  </div>
-                  <button type="button" className="text-primary flex items-center"><ChevronDown className="w-5 h-5" /></button>
-                </div>
-              </div>
 
-              {/* Asset select */}
-              <div>
-                <label className="block text-sm text-muted-foreground mb-2">Asset</label>
-                <div className="rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d]">
-                  <div className="flex items-center gap-2">
-                    <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />
-                    <span className="font-medium">{asset}</span>
-                  </div>
-                  <button type="button" className="text-primary flex items-center"><ChevronDown className="w-5 h-5" /></button>
-                </div>
+            {/* Blockchain — fixed to Fiber Network */}
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">Blockchain</label>
+              <div className="rounded-md border border-border p-4 flex items-center gap-2 bg-[#19191d]">
+                <img src="/images/ckb.png" alt="CKB Fiber" className="w-6 h-6 rounded-full" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <span className="font-medium">Fiber Network (CKB)</span>
               </div>
+            </div>
 
-              {/* Amount input */}
-              <div>
-                <label className="block text-sm text-muted-foreground mb-2">Enter amount</label>
-                <div className="rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d]">
-                  {/* Amount input left */}
-                  <input
-                    type="number"
-                    min={min}
-                    max={max}
-                    value={amount}
-                    onChange={e => setAmount(Number(e.target.value))}
-                    className="border-0 bg-transparent px-0 text-lg font-semibold w-24 focus:outline-none text-white text-left"
-                  />
-                  {/* Balance and asset right, stacked */}
-                  <div className="flex flex-col items-end gap-1 min-w-[70px]">
-                    <span className="text-xs text-muted-foreground">Bal: {balance} USDT</span>
-                    <div className="flex items-center gap-2">
-                      <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />
-                      <span className="font-medium text-white">USDT</span>
-                    </div>
-                  </div>
+            {/* Asset selector */}
+            <div className="relative">
+              <label className="block text-sm text-muted-foreground mb-2">Cryptocurrency</label>
+              <div
+                className="rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d] cursor-pointer"
+                onClick={() => setAssetDropdownOpen(o => !o)}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex w-6 h-6 rounded-full bg-[#6c5dd3] items-center justify-center text-white text-[9px] font-bold">
+                    {asset.slice(0, 3)}
+                  </span>
+                  <span className="font-medium">{asset}</span>
+                  {availableAssets.find(a => a.symbol === asset) && (
+                    <span className="text-muted-foreground text-xs">
+                      ≈ {availableAssets.find(a => a.symbol === asset)!.amount.toLocaleString()} {asset}
+                    </span>
+                  )}
                 </div>
-                {/* Custom progress/slider bar with 4 circles and 3 lines */}
-                <div className="flex items-center gap-0 mt-4 w-full">
-                  {[0,1,2,3].map((i) => (
-                    <React.Fragment key={i}>
-                      <span className="w-4 h-4 rounded-full bg-[#23243a] border-2 border-[#bcbcff] flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full bg-[#bcbcff] block"></span>
+                <ChevronDown className="w-5 h-5 text-primary" />
+              </div>
+              {assetDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 rounded-md border border-border bg-[#19191d] shadow-lg">
+                  {(availableAssets.length > 0
+                    ? availableAssets.map(a => ({ label: a.name || a.symbol, value: a.symbol, sub: `${a.amount.toLocaleString()} ${a.symbol}` }))
+                    : ASSETS.map(a => ({ label: a.label, value: a.value, sub: "" }))
+                  ).map(a => (
+                    <button
+                      key={a.value}
+                      type="button"
+                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[#23243a] transition-colors text-left"
+                      onClick={() => { setAsset(a.value); setAssetDropdownOpen(false); }}
+                    >
+                      <span className="inline-flex w-5 h-5 rounded-full bg-[#6c5dd3] items-center justify-center text-white text-[8px] font-bold">
+                        {a.value.slice(0, 3)}
                       </span>
-                      {i < 3 && <span className="flex-1 h-1 bg-[#23243a]" />}
-                    </React.Fragment>
+                      <span className="text-white font-medium flex-1">{a.label}</span>
+                      {a.sub && <span className="text-muted-foreground text-xs">{a.sub}</span>}
+                    </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>Min</span>
-                  <span>Max</span>
-                </div>
-              </div>
+              )}
+            </div>
 
-              {/* Gold alert/info box */}
-              <div className="rounded-md border border-yellow-700 bg-yellow-900/20 p-4 flex items-center gap-3 mb-2">
-                <Info className="w-5 h-5 text-yellow-400" />
-                <span className="text-yellow-200 text-sm">This is a demo info box. You can add instructions or warnings here.</span>
+            {/* Reference ID */}
+            <div>
+              <label className="block text-sm text-muted-foreground mb-2">Reference / Order ID</label>
+              <div className="rounded-md border border-border bg-[#19191d] flex items-center">
+                <input
+                  type="text"
+                  value={referenceId}
+                  onChange={e => setReferenceId(e.target.value)}
+                  className="flex-1 bg-transparent px-4 py-3 text-sm text-white focus:outline-none"
+                  placeholder="e.g. order_abc123"
+                  required
+                />
+                <button
+                  type="button"
+                  className="px-3 text-xs text-primary hover:text-white border-l border-border py-3"
+                  onClick={() => setReferenceId(generateReferenceId())}
+                >
+                  Generate
+                </button>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">Used to track this payment in your records.</p>
+            </div>
 
-              {/* Summary section with icons */}
-              <div className="space-y-2 text-sm text-muted-foreground bg-[#19191d] rounded-md border border-border p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2"><ArrowDownLeft className="w-4 h-4 text-primary" />Amount to receive</span>
-                  <span className="text-white font-semibold">17 USDT</span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" />Transaction fee</span>
-                  <span className="text-white font-semibold">1 USDT</span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2"><Network className="w-4 h-4 text-primary" />Estimated network fee</span>
-                  <span className="text-white font-semibold">3 USDT</span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />Expected arrival time</span>
-                  <span className="text-white font-semibold">≈1 min</span>
-                </div>
-              </div>
+            {/* Info box */}
+            <div className="rounded-md border border-yellow-700 bg-yellow-900/20 p-4 flex items-start gap-3">
+              <Info className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <span className="text-yellow-200 text-sm">
+                The exact crypto amount will be calculated by the server based on current rates.
+                You will see the amount to send after creating the payment.
+              </span>
+            </div>
 
-              <div className="pt-4">
-                <Button type="submit" className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-md">Create payment of $130</Button>
-              </div>
-            </form>
-          </div>
+            <Button
+              type="submit"
+              disabled={creating || !referenceId.trim() || !fiatAmount || Number(fiatAmount) <= 0}
+              className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-md disabled:opacity-50"
+            >
+              {creating
+                ? step === 1
+                  ? "Step 1/2: Creating intent…"
+                  : "Step 2/2: Generating address…"
+                : `Create ${asset} Payment`}
+            </Button>
+          </form>
         </div>
       </div>
-      {/* Email verification modal */}
-      <EmailVerificationModal
-        open={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-        email="ezeemma....@gmail.com"
-        onVerify={code => {
-          setShowEmailModal(false);
-          setWaitingOpen(true);
-          setTimeout(() => {
-            setWaitingOpen(false);
-            router.push('/transactions');
-          }, 3000);
-        }}
-        onResend={() => notify('Verification code resent!')}
+
+      <WaitingForPaymentModal
+        open={waitingOpen}
+        onClose={() => setWaitingOpen(false)}
+        paymentData={paymentData}
+        onPaymentComplete={handlePaymentComplete}
       />
-      {/* Waiting for payment modal */}
-      <WaitingForPaymentModal open={waitingOpen} onClose={() => setWaitingOpen(false)} />
     </div>
   );
 }

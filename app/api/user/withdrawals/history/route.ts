@@ -5,7 +5,7 @@ export async function GET(req: Request) {
 
   try {
     const url = new URL(req.url);
-    const backendUrl = `${apiBase}/user/withdrawals/history${url.search}`;
+    const backendUrl = `${apiBase}/api/user/withdrawals/history${url.search}`;
 
     const headers = new Headers();
     const auth = req.headers.get("authorization");

@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const backendUrl = `${apiBase}/user/stream`;
+    const backendUrl = `${apiBase}/api/user/stream`;
     const backendRes = await fetch(backendUrl, {
       headers: {
         Authorization: `Bearer ${token}`,

@@ -39,13 +39,100 @@ type WalletEntry = { wallet_id: string; balance_usd: number; symbol: string };
 function UsdtIcon() {
   return <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />;
 }
-function AssetChainIcon() {
+function CkbIcon() {
   return (
-    <span className="inline-block w-6 h-6 bg-[#23242A] rounded-full flex items-center justify-center">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="#6C5DD3"/><path d="M6.5 10h7M10 6.5v7" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg>
-    </span>
+    <span className="inline-flex w-6 h-6 bg-[#3dba9e] rounded-full items-center justify-center text-white text-[10px] font-bold">CKB</span>
   );
 }
+function EthIcon() {
+  return (
+    <span className="inline-flex w-6 h-6 bg-[#627eea] rounded-full items-center justify-center text-white text-[10px] font-bold">ETH</span>
+  );
+}
+function MaticIcon() {
+  return (
+    <span className="inline-flex w-6 h-6 bg-[#8247e5] rounded-full items-center justify-center text-white text-[9px] font-bold">POL</span>
+  );
+}
+
+type AssetConfig = { id: string; label: string; sudtTypeScript: string | null };
+type NetworkConfig = {
+  id: string;
+  label: string;
+  networkType: "ckb" | "evm";
+  icon: React.ReactNode;
+  addressPlaceholder: string;
+  assets: AssetConfig[];
+  disabled?: boolean;
+  badge?: string;
+};
+
+const NETWORKS: NetworkConfig[] = [
+  {
+    id: "net_ckb_testnet",
+    label: "CKB (Fiber)",
+    networkType: "ckb",
+    icon: <CkbIcon />,
+    addressPlaceholder: "ckt1q...",
+    assets: [
+      { id: "CKB", label: "CKB", sudtTypeScript: null },
+      {
+        id: "RUSD",
+        label: "RUSD",
+        sudtTypeScript:
+          '{"code_hash":"0x1142755a044bf2ee358cba9f2da187ce928c91cd4dc8692ded0337efa677d21a","hash_type":"type","args":"0x878fcc6f1f08d48e87bb1c3b3d5083f23f8a39c5d5c764f253b55b998526439b"}',
+      },
+      {
+        id: "FIBB",
+        label: "FIBB",
+        sudtTypeScript:
+          '{"code_hash":"0x50bd8d6680b8b9cf98b73f3c08faf8b2a21914311954118ad6609be6e78a1b95","hash_type":"data1","args":"0x"}',
+      },
+    ],
+  },
+  {
+    id: "net_ethereum",
+    label: "Ethereum",
+    networkType: "evm",
+    icon: <EthIcon />,
+    addressPlaceholder: "0x...",
+    assets: [
+      { id: "USDT", label: "USDT", sudtTypeScript: null },
+      { id: "ETH", label: "ETH", sudtTypeScript: null },
+    ],
+  },
+  {
+    id: "net_polygon",
+    label: "Polygon",
+    networkType: "evm",
+    icon: <MaticIcon />,
+    addressPlaceholder: "0x...",
+    assets: [
+      { id: "USDT", label: "USDT", sudtTypeScript: null },
+      { id: "MATIC", label: "MATIC", sudtTypeScript: null },
+    ],
+  },
+  {
+    id: "net_solana",
+    label: "Solana",
+    networkType: "evm",
+    icon: <span className="inline-flex w-6 h-6 bg-[#9945ff] rounded-full items-center justify-center text-white text-[9px] font-bold">SOL</span>,
+    addressPlaceholder: "",
+    assets: [],
+    disabled: true,
+    badge: "Soon",
+  },
+  {
+    id: "net_bitcoin",
+    label: "Bitcoin (BB)",
+    networkType: "evm",
+    icon: <span className="inline-flex w-6 h-6 bg-[#f7931a] rounded-full items-center justify-center text-white text-[9px] font-bold">BTC</span>,
+    addressPlaceholder: "",
+    assets: [],
+    disabled: true,
+    badge: "Soon",
+  },
+];
 
 export default function WithdrawPage() {
   const router = useRouter();
@@ -61,10 +148,8 @@ export default function WithdrawPage() {
   const [recipientAddress, setRecipientAddress] = React.useState("");
   const [blockchainSheetOpen, setBlockchainSheetOpen] = React.useState(false);
   const [assetSheetOpen, setAssetSheetOpen] = React.useState(false);
-  const [selectedNetworkId, setSelectedNetworkId] = React.useState("");
-  const [selectedNetworkLabel, setSelectedNetworkLabel] = React.useState("Select network");
-  const [selectedCurrencyId, setSelectedCurrencyId] = React.useState("");
-  const [selectedCurrencyLabel, setSelectedCurrencyLabel] = React.useState("USDT");
+  const [selectedNetwork, setSelectedNetwork] = React.useState<NetworkConfig | null>(null);
+  const [selectedAsset, setSelectedAsset] = React.useState<AssetConfig | null>(null);
 
   // Fiat fields
   // Bank details are now saved in settings, so no form fields needed here
@@ -77,6 +162,7 @@ export default function WithdrawPage() {
   // Flow state
   const [initiating, setInitiating] = React.useState(false);
   const [otpId, setOtpId] = React.useState("");
+  const [pendingTransactionId, setPendingTransactionId] = React.useState<string | null>(null);
   const [showOtpModal, setShowOtpModal] = React.useState(false);
   const [otpLoading, setOtpLoading] = React.useState(false);
 
@@ -104,6 +190,7 @@ export default function WithdrawPage() {
         );
         const json = await res.json().catch(() => null);
         if (json?.status && json?.result) setQuote(json.result);
+        else if (json?.result) setQuote(json.result);
         else setQuote(null);
       } finally {
         setQuoteLoading(false);
@@ -123,10 +210,13 @@ export default function WithdrawPage() {
           ? {
               type: "crypto",
               user_wallet_id: selectedWallet.wallet_id,
-              crypto_currency_id: selectedCurrencyId,
-              network_id: selectedNetworkId,
+              crypto_currency_id: selectedAsset?.id ?? "",
+              network_id: selectedNetwork?.id ?? "",
               amount: Number(amount),
               recipient_address: recipientAddress,
+              ...(selectedAsset?.sudtTypeScript
+                ? { sudt_type_script: selectedAsset.sudtTypeScript }
+                : {}),
             }
           : {
               type: "fiat",
@@ -141,8 +231,8 @@ export default function WithdrawPage() {
       });
       const json = await res.json().catch(() => null);
 
-      if (!res.ok || !json?.status) {
-        const message = json?.message || "Failed to initiate withdrawal";
+      if (!res.ok || json?.error) {
+        const message = json?.data || json?.message || "Failed to initiate withdrawal";
         notify(message);
 
         // If it's a no bank account error, suggest going to settings
@@ -159,7 +249,8 @@ export default function WithdrawPage() {
         return;
       }
 
-      setOtpId(json.result.otp_id);
+      setOtpId(json.result?.otp_id ?? json.data?.otp_id ?? "");
+      setPendingTransactionId(json.result?.transaction_id ?? json.data?.transaction_id ?? null);
       setShowOtpModal(true);
     } finally {
       setInitiating(false);
@@ -176,14 +267,21 @@ export default function WithdrawPage() {
       });
       const json = await res.json().catch(() => null);
 
-      if (!res.ok || !json?.status) {
-        notify(json?.message || "OTP verification failed");
+      if (!res.ok || (json?.error !== false && !json?.result)) {
+        notify(json?.data || json?.message || "OTP verification failed");
         return;
       }
 
+      const txId = json.result?.transaction_id ?? json.data?.transaction_id ?? pendingTransactionId;
+      const txHash = json.result?.txHash ?? json.data?.txHash;
+
       setShowOtpModal(false);
-      notify(json.message || "Withdrawal submitted!");
-      router.push("/dashboard/wallet");
+      notify(
+        txId
+          ? `Withdrawal submitted! Transaction ID: ${txId}${txHash ? ` · TX: ${txHash}` : ""}`
+          : json.message || "Withdrawal submitted!"
+      );
+      router.push("/dashboard/transactions");
     } finally {
       setOtpLoading(false);
     }
@@ -231,8 +329,8 @@ export default function WithdrawPage() {
                     <label className="block text-sm text-muted-foreground mb-2">Network</label>
                     <div className="rounded-lg border border-border p-3 flex items-center justify-between bg-[#19191d]">
                       <div className="flex items-center gap-2">
-                        <AssetChainIcon />
-                        <span className="font-medium">{selectedNetworkLabel}</span>
+                        {selectedNetwork ? selectedNetwork.icon : <CkbIcon />}
+                        <span className="font-medium">{selectedNetwork?.label ?? "Select network"}</span>
                       </div>
                       <button type="button" onClick={() => setBlockchainSheetOpen(true)}><ChevronDown className="w-5 h-5 text-primary" /></button>
                     </div>
@@ -241,12 +339,20 @@ export default function WithdrawPage() {
                   {/* Asset */}
                   <div>
                     <label className="block text-sm text-muted-foreground mb-2">Asset</label>
-                    <div className="rounded-lg border border-border p-3 flex items-center justify-between bg-[#19191d]">
+                    <div
+                      className={`rounded-lg border border-border p-3 flex items-center justify-between bg-[#19191d] ${!selectedNetwork ? "opacity-50" : ""}`}
+                    >
                       <div className="flex items-center gap-2">
                         <UsdtIcon />
-                        <span className="font-medium">{selectedCurrencyLabel}</span>
+                        <span className="font-medium">{selectedAsset?.label ?? "Select asset"}</span>
                       </div>
-                      <button type="button" onClick={() => setAssetSheetOpen(true)}><ChevronDown className="w-5 h-5 text-primary" /></button>
+                      <button
+                        type="button"
+                        disabled={!selectedNetwork}
+                        onClick={() => selectedNetwork && setAssetSheetOpen(true)}
+                      >
+                        <ChevronDown className="w-5 h-5 text-primary" />
+                      </button>
                     </div>
                   </div>
 
@@ -255,7 +361,7 @@ export default function WithdrawPage() {
                     <label className="block text-sm text-muted-foreground mb-2">Recipient wallet address</label>
                     <input
                       className="w-full rounded-lg border border-border bg-[#19191d] px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
-                      placeholder="0x..."
+                      placeholder={selectedNetwork?.addressPlaceholder ?? "0x..."}
                       value={recipientAddress}
                       onChange={e => setRecipientAddress(e.target.value)}
                     />
@@ -365,14 +471,24 @@ export default function WithdrawPage() {
       <SelectBlockchainSheet
         open={blockchainSheetOpen}
         onClose={() => setBlockchainSheetOpen(false)}
-        options={[{ label: "Asset Chain", value: "assetchain", icon: <AssetChainIcon /> }]}
-        onSelect={val => { setSelectedNetworkId(val); setSelectedNetworkLabel("Asset Chain"); setBlockchainSheetOpen(false); }}
+        options={NETWORKS.map(n => ({ label: n.label, value: n.id, icon: n.icon, disabled: n.disabled, badge: n.badge }))}
+        onSelect={val => {
+          const net = NETWORKS.find(n => n.id === val);
+          if (!net) return;
+          setSelectedNetwork(net);
+          setSelectedAsset(net.assets[0] ?? null);
+          setBlockchainSheetOpen(false);
+        }}
       />
       <SelectAssetSheet
         open={assetSheetOpen}
         onClose={() => setAssetSheetOpen(false)}
-        options={[{ label: "USDT", value: "usdt", icon: <UsdtIcon /> }]}
-        onSelect={val => { setSelectedCurrencyId(val); setSelectedCurrencyLabel("USDT"); setAssetSheetOpen(false); }}
+        options={(selectedNetwork?.assets ?? []).map(a => ({ label: a.label, value: a.id, icon: <UsdtIcon /> }))}
+        onSelect={val => {
+          const asset = selectedNetwork?.assets.find(a => a.id === val) ?? null;
+          setSelectedAsset(asset);
+          setAssetSheetOpen(false);
+        }}
       />
 
       {/* OTP modal */}

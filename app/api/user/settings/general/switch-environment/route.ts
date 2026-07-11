@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const auth = req.headers.get("authorization");
     if (auth) headers.set("authorization", auth);
 
-    const backendUrl = `${apiBase}/user/settings/general/switch-environment`;
+    const backendUrl = `${apiBase}/api/user/settings/general/switch-environment`;
     const res = await fetch(backendUrl, {
       method: "POST",
       headers,

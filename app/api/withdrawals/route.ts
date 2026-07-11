@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const query = url.search; // preserves query string
-    const backendUrl = `${apiBase}/withdrawals${query}`;
+    const backendUrl = `${apiBase}/api/withdrawals${query}`;
 
     const headers = new Headers();
     const auth = req.headers.get("authorization");
