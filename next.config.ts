@@ -4,7 +4,7 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
 
 const csp = [
   "default-src 'self'",
-  `connect-src 'self' ${apiBase}`,
+  "connect-src 'self'",
   "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
