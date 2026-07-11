@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { geistMono, mulishSans } from "@/lib/fonts";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/ToastProvider";
+import { RouteLoaderWrapper } from "@/components/layouts.tsx/route-loader-wrapper";
+import { AuthGuard } from "@/components/layouts.tsx/auth-guard";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -17,7 +20,11 @@ export default function RootLayout({
       <body
         className={`${mulishSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <RouteLoaderWrapper />
+        <ToastProvider>
+          <AuthGuard />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

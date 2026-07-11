@@ -1,0 +1,9 @@
+{
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_API_BASE_URL": "@wt-backend-url"
+    }
+  },
+  "framework": "nextjs",
+  "regions": ["iad1"]
+}

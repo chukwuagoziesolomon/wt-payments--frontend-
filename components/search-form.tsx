@@ -6,11 +6,11 @@ import {
   SidebarInput,
 } from "@/components/ui/sidebar";
 
-export function SearchForm({ ...props }: React.ComponentProps<"form">) {
+export function SearchForm({ ...props }: React.ComponentProps<"div">) {
   const id = useId();
 
   return (
-    <form {...props}>
+    <div {...props}>
       <SidebarGroup className="py-0">
         <SidebarGroupContent className="relative">
           <div className="relative">
@@ -26,6 +26,6 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
-    </form>
+    </div>
   );
 }
