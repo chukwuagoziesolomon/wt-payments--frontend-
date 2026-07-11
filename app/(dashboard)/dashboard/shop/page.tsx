@@ -33,6 +33,25 @@ function authHeaders(extra?: Record<string, string>) {
   return { Authorization: `Bearer ${getToken()}`, ...extra };
 }
 
+function sanitizeShopUrls(shop: Record<string, any>): Record<string, any> {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const replaceLocalhost = (url: string | null | undefined): string | null | undefined => {
+    if (!url || typeof url !== "string") return url;
+    if (/https?:\/\/localhost(:\d+)?\//i.test(url)) {
+      return url.replace(/https?:\/\/[^\/]+/, origin);
+    }
+    return url;
+  };
+
+  const sanitized = { ...shop };
+  if (sanitized.shop_url) sanitized.shop_url = replaceLocalhost(sanitized.shop_url);
+  if (sanitized.storefront_url) sanitized.storefront_url = replaceLocalhost(sanitized.storefront_url);
+  if (sanitized.preview?.url) sanitized.preview = { ...sanitized.preview, url: replaceLocalhost(sanitized.preview.url) };
+  if (sanitized.preview?.iframe_src) sanitized.preview = { ...sanitized.preview, iframe_src: replaceLocalhost(sanitized.preview.iframe_src) };
+
+  return sanitized;
+}
+
 type Shop = {
   id: string;
   business_name: string;
@@ -445,7 +464,7 @@ export default function ShopBuilderPage() {
       const res = await authFetch(`${API}/user/shop`, { headers: authHeaders() });
       const json = await res.json().catch(() => ({}));
       if (res.ok && json.result) {
-        setShop(json.result);
+        setShop(sanitizeShopUrls(json.result) as Shop);
         loadConversationHistory();
       } else {
         setShop(null);
@@ -685,11 +704,22 @@ export default function ShopBuilderPage() {
   const chatLocked = isAiCustomShop && customizationRequired && !isCustomizingPaid;
   // Use best available URL; fall back to constructing from subdomain for shops
   // created before the backend URL-generation fix
-  const shopPreviewUrl =
-    shop.preview?.url ||
-    shop.storefront_url ||
-    shop.shop_url ||
-    (shop.subdomain ? `${typeof window !== "undefined" ? window.location.origin : ""}/shop/${shop.subdomain}` : "");
+  const resolveShopUrl = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const candidates = [
+      shop.preview?.url,
+      shop.storefront_url,
+      shop.shop_url,
+      shop.subdomain ? `${origin}/shop/${shop.subdomain}` : "",
+    ].filter(Boolean);
+
+    for (const url of candidates) {
+      if (!/https?:\/\/localhost(:\d+)?\//i.test(url || "")) return url;
+    }
+    return candidates[candidates.length - 1] || "";
+  };
+
+  const shopPreviewUrl = resolveShopUrl();
   const shopPreviewIframe = shop.preview?.iframe_src || shop.preview?.url || shop.storefront_url || shopPreviewUrl;
   const isPreviewLive = Boolean(shop.preview?.is_live) || Boolean(shop.storefront_url) || Boolean(shop.shop_url) || Boolean(shop.subdomain);
   const openCreateModalLabel = shop ? "Launch New Shop" : "Create Shop";
