@@ -4,8 +4,9 @@ export default function SettingsNav({ active, onChange }: { active: string; onCh
   const tabs = [
     { key: "account", label: "Account info" },
     { key: "payout", label: "Payout" },
-    { key: "webhook", label: "Webhook Configuration" },
-    { key: "widget", label: "Widget Configuration" },
+    { key: "api", label: "API Keys" },
+    { key: "webhooks", label: "Webhooks" },
+    { key: "widget", label: "Widget" },
   ];
 
   return (

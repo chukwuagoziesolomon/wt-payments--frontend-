@@ -2,9 +2,10 @@
 
 import WidgetConfigurationContent from "@/src/components/settings/WidgetConfigurationContent";
 import PayoutSettingsSection from "@/src/components/settings/PayoutSettingsSection";
+import ApiKeysSection from "@/src/components/settings/ApiKeysSection";
+import WebhooksSection from "@/src/components/settings/WebhooksSection";
 import * as React from "react";
 import SettingsNav from "@/src/components/settings/SettingsNav";
-import ApiConfigurationSection from "@/src/components/settings/ApiConfigurationSection";
 import { useToast } from "@/components/ui/ToastProvider";
 import { authFetch } from "@/lib/auth-fetch";
 import { Edit2, X, Check } from "lucide-react";
@@ -347,11 +348,13 @@ function PayoutSettingsContent() {
 export default function SettingsPage() {
   // Read the `tab` query parameter if present to set the initial tab
   const getInitialTab = () => {
-    if (typeof window === "undefined") return "webhook";
+    if (typeof window === "undefined") return "account";
     const params = new URLSearchParams(window.location.search);
     if (params.get("tab") === "payout") return "payout";
-    if (params.get("tab") === "account") return "account";
-    return "webhook";
+    if (params.get("tab") === "api") return "api";
+    if (params.get("tab") === "webhooks") return "webhooks";
+    if (params.get("tab") === "widget") return "widget";
+    return "account";
   };
 
   const [tab, setTab] = React.useState(getInitialTab);
@@ -365,32 +368,19 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen p-4 sm:p-8 bg-background">
       <h1 className="text-xl font-semibold text-white mb-6">
-        Setting{'>>'}{tab === "account" ? "Account Info" : tab === "payout" ? "Payout" : tab === "webhook" ? "Webhook Configuration" : ""}
+        Setting{'>>'}{tab === "account" ? "Account Info" : tab === "payout" ? "Payout" : tab === "api" ? "API Keys" : tab === "webhooks" ? "Webhooks" : tab === "widget" ? "Widget" : ""}
       </h1>
       <SettingsNav active={tab} onChange={setTab} />
 
       {tab === "account" && <AccountInfoSettingsContent />}
-      {tab === "webhook" && (
+      {tab === "payout" && <PayoutSettingsContent />}
+      {tab === "api" && (
         <>
-          {/* Mobile: render headings and sections full-bleed so they can stretch */}
-          <>
-            <h2 className="text-lg font-semibold text-white mb-3 px-2">API Configuration (Live)</h2>
-            <div className="px-0">
-              <ApiConfigurationSection mode="live" />
-            </div>
-
-            <h2 className="text-lg font-semibold text-white mb-3 mt-6 px-2">API Configuration (Test)</h2>
-            <div className="px-0">
-              <ApiConfigurationSection mode="test" />
-            </div>
-          </>
-          <div className="hidden sm:block">
-            <ApiConfigurationSection mode="live" />
-            <ApiConfigurationSection mode="test" />
-          </div>
+          <ApiKeysSection environment="test" />
+          <ApiKeysSection environment="live" />
         </>
       )}
-      {tab === "payout" && <PayoutSettingsContent />}
+      {tab === "webhooks" && <WebhooksSection />}
       {tab === "widget" && <WidgetConfigurationContent />}
     </div>
   );
