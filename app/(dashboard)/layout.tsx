@@ -1,9 +1,9 @@
-import DashboardLayout from '@/components/layouts.tsx/dashboard-layout';
+import DashboardLayout from "@/components/layouts.tsx/dashboard-layout";
 
 export default function DashboardRootLayout({
-	children,
+  children,
 }: Readonly<{
-	children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-	return <DashboardLayout>{children}</DashboardLayout>;
+  return <DashboardLayout>{children}</DashboardLayout>;
 }
