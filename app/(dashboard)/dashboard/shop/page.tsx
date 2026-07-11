@@ -689,7 +689,7 @@ export default function ShopBuilderPage() {
     shop.preview?.url ||
     shop.storefront_url ||
     shop.shop_url ||
-    (shop.subdomain ? `http://localhost:3000/shop/${shop.subdomain}` : "");
+    (shop.subdomain ? `${typeof window !== "undefined" ? window.location.origin : ""}/shop/${shop.subdomain}` : "");
   const shopPreviewIframe = shop.preview?.iframe_src || shop.preview?.url || shop.storefront_url || shopPreviewUrl;
   const isPreviewLive = Boolean(shop.preview?.is_live) || Boolean(shop.storefront_url) || Boolean(shop.shop_url) || Boolean(shop.subdomain);
   const openCreateModalLabel = shop ? "Launch New Shop" : "Create Shop";
