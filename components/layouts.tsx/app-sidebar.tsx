@@ -13,6 +13,7 @@ export default function AppSidebar() {
     { label: "Wallet", icon: RiWalletLine, href: "/dashboard/wallet" },
     { label: "Currency", icon: RiCoinsLine, href: "/dashboard/currency" },
     { label: "Shop Builder", icon: RiStoreLine, href: "/dashboard/shop" },
+    { label: "My Shops", icon: RiStoreLine, href: "/dashboard/shops" },
     { label: "Products", icon: RiArchiveLine, href: "/dashboard/shop/products" },
     { label: "Payments", icon: RiFileHistoryLine, href: "/dashboard/payments" },
   ];
