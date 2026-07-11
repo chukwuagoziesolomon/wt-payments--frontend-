@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Copy, Search, Loader2, AlertCircle } from "lucide-react";
 import type { AssetItem } from "@/app/(dashboard)/dashboard/currency/page";
 import { useToast } from "@/components/ui/ToastProvider";
+import { usePrices } from "@/lib/usePrices";
 
 const PAGE_SIZE = 10;
 
@@ -13,6 +14,13 @@ function truncateAddress(addr?: string) {
   if (!addr) return "—";
   if (addr.length <= 16) return addr;
   return `${addr.slice(0, 8)}…${addr.slice(-6)}`;
+}
+
+function formatRate(value: number | undefined): string {
+  if (value == null) return "—";
+  if (value >= 1) return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (value >= 0.01) return `$${value.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 })}`;
 }
 
 type Props = {
@@ -26,6 +34,7 @@ type Props = {
 export function CurrencyTable({ assets, loading, error, search, onSearchChange }: Props) {
   const { notify } = useToast();
   const [page, setPage] = useState(1);
+  const { getPrice, loading: pricesLoading } = usePrices();
 
   const totalPages = Math.max(1, Math.ceil(assets.length / PAGE_SIZE));
   const paged = assets.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -95,6 +104,8 @@ export function CurrencyTable({ assets, loading, error, search, onSearchChange }
                 {!loading && !error && paged.map((asset) => {
                   const address = asset.network?.contract_address;
                   const active = asset.is_active !== false;
+                  const livePrice = getPrice(asset.crypto.symbol);
+                  const displayRate = livePrice ?? asset.crypto.ratePerUsd;
                   return (
                     <TableRow key={asset.currency_id}>
                       <TableCell className="py-4 pl-4">
@@ -138,9 +149,7 @@ export function CurrencyTable({ assets, loading, error, search, onSearchChange }
                       </TableCell>
                       <TableCell className="py-4">
                         <span className="text-sm text-white">
-                          {asset.crypto.ratePerUsd != null
-                            ? `$${asset.crypto.ratePerUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
-                            : "—"}
+                          {pricesLoading ? "..." : formatRate(displayRate)}
                         </span>
                       </TableCell>
                       <TableCell className="py-4">
@@ -178,7 +187,7 @@ export function CurrencyTable({ assets, loading, error, search, onSearchChange }
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
+                  disabled={page >= totalPages}
                   className="px-2 py-1 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors"
                 >
                   ›
@@ -191,4 +200,3 @@ export function CurrencyTable({ assets, loading, error, search, onSearchChange }
     </div>
   );
 }
-
