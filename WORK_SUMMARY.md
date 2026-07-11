@@ -159,3 +159,57 @@ Replaced all plain `"Loading..."` text strings across the app with the appropria
 - **Real-time:** Server-Sent Events (native `EventSource`)
 - **Auth:** JWT via `localStorage` + `Authorization: Bearer` header
 - **State:** React hooks (`useState`, `useEffect`, `useRef`)
+
+---
+
+## 12. Shop Builder — Empty State Modal Fix & API Routing Corrections
+
+**Date:** July 12, 2026  
+**Files Modified:**
+- `app/(dashboard)/dashboard/shop/page.tsx`
+- `app/shop/[subdomain]/page.tsx`
+- `next.config.ts`
+- `app/api/user/withdrawal/quote/route.ts`
+- `app/api/user/withdrawal/initiate/route.ts`
+- `app/api/user/settings/general/switch-environment/route.ts`
+- `app/api/user/payment-intent/history/route.ts`
+- `app/api/user/withdrawals/history/route.ts`
+- `app/api/dashboard/analytical-transactions/route.ts`
+- `app/api/transactions/route.ts`
+- `app/api/withdrawals/route.ts`
+
+---
+
+### 12.1 CreateShopModal Not Opening (Empty State Bug)
+
+**Problem:** When visiting `/dashboard/shop` with no existing shop, clicking "Create Your Shop" button did nothing. The component had an early `return` inside the `if (!shop)` block that exited before the `CreateShopModal` could render.
+
+**Fix:** Moved the `CreateShopModal` JSX inside the `if (!shop)` empty state block so the modal renders and can be triggered even when no shop has been created yet.
+
+---
+
+### 12.2 Backend API Prefix Correction (`E_ROUTE_NOT_FOUND`)
+
+**Problem:** All `fetch()` calls from page components used `/backend/user/shop` etc., and the Next.js rewrite in `next.config.ts` was mapping `/backend/:path*` → `${apiBase}/:path*`. This caused requests like `POST /backend/user/shop` to hit the backend as `POST /user/shop`, missing the `/api/` prefix. Backend returned `E_ROUTE_NOT_FOUND: Cannot POST:/user/shop`.
+
+**Fix:**
+1. Updated `next.config.ts` rewrite destination to `${apiBase}/api/:path*` so `/backend/*` correctly proxies to `/api/*` on the backend.
+2. Updated all `app/api/` Next.js proxy routes to include `/api/` when calling the backend directly (e.g., `${apiBase}/api/user/shop` instead of `${apiBase}/user/shop`).
+
+---
+
+### 12.3 Public Storefront Double-`/api` Bug (`E_ROUTE_NOT_FOUND: /api/api/shop/:subdomain`)
+
+**Problem:** After fixing the rewrite, the public storefront page at `app/shop/[subdomain]/page.tsx` was calling `${API}/api/shop/${subdomain}` which combined with the rewrite to produce `/api/api/shop/:subdomain` on the backend — a non-existent route. The backend only registers `/api/storefront/:subdomain`, not `/api/shop/:subdomain`.
+
+**Fix:** Changed fetch URLs to `${API}/storefront/${subdomain}` and `${API}/storefront/${subdomain}/products`. With the corrected rewrite, these now resolve to the correct backend paths `/api/storefront/:subdomain` and `/api/storefront/:subdomain/products`.
+
+**Regression check:** No breaking changes to authenticated `/dashboard/shop` flows — those already correctly call `/backend/user/shop` (now rewriting to `/api/user/shop`) and were untouched.
+
+---
+
+### 12.4 Removed Redundant Products Fetch
+
+**Observation:** The `storefront()` controller method already embeds `products` directly in its response payload. The frontend was making a second request to `/api/storefront/:subdomain/products` for data that was already present.
+
+**Fix:** Removed the second `fetch()` call. Products are now extracted from the first storefront response via `json.data.products` and passed directly to the component state. This eliminates an unnecessary round-trip and potential 404.

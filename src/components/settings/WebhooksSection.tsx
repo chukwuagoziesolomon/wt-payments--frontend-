@@ -41,7 +41,7 @@ export default function WebhooksSection() {
   const loadWebhookConfig = async () => {
     setLoading(true);
     try {
-      const res = await authFetch(`${API}/api/user/settings/webhook`, {
+      const res = await authFetch(`${API}/user/settings/webhook`, {
         headers: authHeaders(),
       });
       const json = await res.json().catch(() => ({}));
@@ -77,7 +77,7 @@ export default function WebhooksSection() {
 
     setSaving(true);
     try {
-      const res = await authFetch(`${API}/api/user/settings/webhook`, {
+      const res = await authFetch(`${API}/user/settings/webhook`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ url, environment }),
@@ -101,7 +101,7 @@ export default function WebhooksSection() {
   const handleTestWebhook = async (environment: "LIVE" | "TEST") => {
     setTesting(true);
     try {
-      const res = await authFetch(`${API}/api/user/settings/webhook/verify`, {
+      const res = await authFetch(`${API}/user/settings/webhook/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ environment }),
@@ -132,7 +132,7 @@ export default function WebhooksSection() {
 
     setGenerating(true);
     try {
-      const res = await authFetch(`${API}/api/user/settings/webhook/secret/generate`, {
+      const res = await authFetch(`${API}/user/settings/webhook/secret/generate`, {
         method: "POST",
         headers: authHeaders(),
       });
