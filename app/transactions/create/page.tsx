@@ -52,7 +52,7 @@ export default function CreateTransactionPage() {
     try {
       // ── Step 1: Create payment intent ──────────────────────────────
       setStep(1);
-      const intentRes = await authFetch(`${API}/api/user/payment-intent`, {
+      const intentRes = await authFetch(`${API}/user/payment-intent`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
@@ -83,7 +83,7 @@ export default function CreateTransactionPage() {
 
       // ── Step 2: Generate wallet address ────────────────────────────
       setStep(2);
-      const walletRes = await authFetch(`${API}/api/user/payment-intent/create-wallet`, {
+      const walletRes = await authFetch(`${API}/user/payment-intent/create-wallet`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
