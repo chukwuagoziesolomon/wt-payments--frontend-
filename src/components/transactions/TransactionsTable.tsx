@@ -1,73 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Copy } from "lucide-react";
 import { DetailsModal } from "../DetailsModal";
 import { DetailsData } from "@/types";
-import Image from "next/image";
-
-const rows: DetailsData[] = [
-  {
-    type: "transaction",
-    amountPaid: "200$",
-    equivalent: "≈ 199.99 USDT",
-    receiver: "Eze Emmanuella",
-    paidOn: "May 31, 2020, 3:00 AM UTC",
-    paymentMethod: "Crypto",
-    id: "0x23bhs99992ss3e2wsq",
-    token: "USDT",
-    blockchain: "Asset",
-    networkFee: "1.99 USDC ($2)",
-    receiverAddress: "usdt..e72364847",
-    senderAddress: "usdt..e72364847",
-    qrCode: "https://example.com/qr", // Placeholder
-    status: "Completed",
-    activityLog: [
-      { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-      { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the deposit" },
-      { icon: "download", title: "Deposit received", description: "Deposit of 1.0 USDT was successfully received.", time: "21 July, 2025" },
-    ],
-    deviceType: "Desktop",
-    attempts: 0,
-    error: "Second",
-  },
-  {
-    type: "transaction",
-    amountPaid: "200$",
-    equivalent: "≈ 199.99 USDT",
-    receiver: "Ebube Kelvin",
-    paidOn: "May 31, 2020, 3:00 AM UTC",
-    paymentMethod: "Crypto",
-    id: "0x23bhs99992ss3e2wsq",
-    token: "USDT",
-    blockchain: "Asset",
-    networkFee: "1.99 USDC ($2)",
-    receiverAddress: "usdt..e72364847",
-    senderAddress: "usdt..e72364847",
-    qrCode: "https://example.com/qr",
-    status: "Completed",
-    activityLog: [
-      { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-      { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the deposit" },
-      { icon: "download", title: "Deposit received", description: "Deposit of 1.0 USDT was successfully received.", time: "21 July, 2025" },
-    ],
-  },
-  // Add more rows similarly
-];
-
-const statusClass = {
-  Pending: "bg-yellow-900 text-yellow-200",
-  Completed: "bg-green-900 text-green-200",
-} as const;
+import { getPaymentIntentHistory, type HistoryListItem } from "@/lib/payment-intent-history";
+import { SectionLoader } from "@/components/ui/LoadingAnimator";
 
 export function TransactionsTable() {
   const [open, setOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<DetailsData | null>(null);
+  const [rows, setRows] = useState<HistoryListItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleRowClick = (row: DetailsData) => {
-    setSelectedData(row);
+  useEffect(() => {
+    let mounted = true;
+    async function loadHistory() {
+      setLoading(true);
+      try {
+        const { items } = await getPaymentIntentHistory();
+        if (mounted) setRows(items);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadHistory();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleRowClick = (row: HistoryListItem) => {
+    setSelectedData(row.details);
     setOpen(true);
   };
 
@@ -103,32 +70,36 @@ export function TransactionsTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row, i) => (
-                  <TableRow key={i} className="cursor-pointer hover:bg-gray-800" onClick={() => handleRowClick(row)}>
-                      <TableCell className="py-4 px-3">{row.paidOn}</TableCell>
-                      <TableCell className="py-4 px-3">{row.receiver}</TableCell>
-                      <TableCell className="py-4 px-3">
-                        <div className="flex items-center gap-2">
-                          {row.token === 'USDT' && (
-                            <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />
-                          )}
-                          {row.token === 'USDC' && (
-                            <img src="/images/usdcbase.png" alt="USDC" className="w-6 h-6 rounded-full" />
-                          )}
-                          <span>{row.token}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-3">
-                        <div className="flex items-center gap-1">
-                          <span className="text-blue-300 cursor-pointer">{row.receiverAddress}</span>
-                          <Copy className="w-3 h-3" />
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-3">{row.amountPaid}</TableCell>
-                      <TableCell className="py-4 px-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass[row.status as keyof typeof statusClass]}`}>{row.status}</span>
-                      </TableCell>
-                    </TableRow>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      Loading transactions...
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && rows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      No additional transactions to display.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && rows.map((row) => (
+                  <TableRow key={row.id} className="cursor-pointer hover:bg-gray-800" onClick={() => handleRowClick(row)}>
+                    <TableCell className="py-4 px-3">{row.paidOn}</TableCell>
+                    <TableCell className="py-4 px-3">{row.customer}</TableCell>
+                    <TableCell className="py-4 px-3">{row.currencyDisplay}</TableCell>
+                    <TableCell className="py-4 px-3">
+                      <div className="flex items-center gap-1">
+                        <span className="text-blue-300 cursor-pointer">{row.walletAddress}</span>
+                        <Copy className="w-3 h-3" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 px-3">{row.amountDisplay}</TableCell>
+                    <TableCell className="py-4 px-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${row.statusClass}`}>{row.statusLabel}</span>
+                    </TableCell>
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>

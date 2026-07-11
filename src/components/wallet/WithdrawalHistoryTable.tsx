@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,122 +9,37 @@ import { Copy, Filter, Search } from "lucide-react";
 import { DetailsModal } from "../DetailsModal";
 import { DetailsData } from "@/types";
 
-const rows: DetailsData[] = [
-  {
-    type: "withdrawal",
-    amountPaid: "200$",
-    equivalent: "≈ 199.99 USDC",
-    receiver: "Eze Emmanuella",
-    paidOn: "04 Sept. 2025",
-    paymentMethod: "Crypto",
-    id: "0x23bhs99992ss3e2wsq",
-    token: "USDC",
-    blockchain: "BASE",
-    networkFee: "1.99 USDC ($2)",
-    receiverAddress: "usdt..e723648475",
-    senderAddress: "usdt..e723648475",
-    qrCode: "https://example.com/qr",
-    status: "Pending",
-    activityLog: [
-      { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-      { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the withdrawal" },
-    ],
-  },
-  {
-    type: "withdrawal",
-    amountPaid: "200$",
-    equivalent: "≈ 199.99 USDT",
-    receiver: "Ebube Kelvin",
-    paidOn: "04 Sept. 2025",
-    paymentMethod: "Fiat",
-    id: "0x23bhs99992ss3e2wsq",
-    token: "USDT",
-    blockchain: "ASSET",
-    networkFee: "1.99 USDC ($2)",
-    receiverAddress: "usdt..e723648475",
-    senderAddress: "usdt..e723648475",
-    qrCode: "https://example.com/qr",
-    status: "Completed",
-    activityLog: [
-      { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-      { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the withdrawal" },
-    ],
-  },
-  {
-    type: "withdrawal",
-    amountPaid: "200$",
-    equivalent: "≈ 199.99 USDC",
-    receiver: "John Doe",
-    paidOn: "04 Sept. 2025",
-    paymentMethod: "Crypto",
-    id: "0x23bhs99992ss3e2wsq",
-    token: "USDC",
-    blockchain: "BASE",
-    networkFee: "1.99 USDC ($2)",
-    receiverAddress: "72364847565",
-    senderAddress: "72364847565",
-    qrCode: "https://example.com/qr",
-    status: "Completed",
-    activityLog: [
-      { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-      { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the withdrawal" },
-    ],
-  },
-  {
-    type: "withdrawal",
-    amountPaid: "200$",
-    equivalent: "≈ 199.99 USDT",
-    receiver: "Jane Smith",
-    paidOn: "04 Sept. 2025",
-    paymentMethod: "Fiat",
-    id: "0x23bhs99992ss3e2wsq",
-    token: "USDT",
-    blockchain: "ASSET",
-    networkFee: "1.99 USDC ($2)",
-    receiverAddress: "72364847565",
-    senderAddress: "72364847565",
-    qrCode: "https://example.com/qr",
-    status: "Completed",
-    activityLog: [
-      { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-      { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the withdrawal" },
-    ],
-  },
-  {
-    type: "withdrawal",
-    amountPaid: "200$",
-    equivalent: "≈ 199.99 USDC",
-    receiver: "Mike Johnson",
-    paidOn: "04 Sept. 2025",
-    paymentMethod: "Crypto",
-    id: "0x23bhs99992ss3e2wsq",
-    token: "USDC",
-    blockchain: "BASE",
-    networkFee: "1.99 USDC ($2)",
-    receiverAddress: "usdt..e723648475",
-    senderAddress: "usdt..e723648475",
-    qrCode: "https://example.com/qr",
-    status: "Completed",
-    activityLog: [
-      { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-      { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the withdrawal" },
-    ],
-  },
-];
+interface HistoryItem {
+  id: number | string;
+  uniqueId?: string;
+  recipientType?: string;
+  recipientName?: string;
+  recipientAccountNumber?: string;
+  usdtAmount?: number;
+  nairaAmount?: number;
+  fee?: number;
+  status?: string;
+  initiatedAt?: string;
+  processedAt?: string | null;
+  completedAt?: string | null;
+}
 
 const statusClass = {
   Pending: "bg-yellow-900 text-yellow-200",
   Completed: "bg-green-900 text-green-200",
+  Processing: "bg-blue-900 text-blue-200",
+  Failed: "bg-red-900 text-red-200",
+  Cancelled: "bg-gray-800 text-gray-200",
 } as const;
 
-function DesktopTable() {
+function DesktopTable({ rows }: { rows: HistoryItem[] }) {
   const [open, setOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<DetailsData | null>(null);
   const [filter, setFilter] = useState<'All' | 'Crypto' | 'Fiat'>('All');
 
-  const cryptoCount = rows.filter(r => r.paymentMethod === 'Crypto').length;
-  const fiatCount = rows.filter(r => r.paymentMethod === 'Fiat').length;
-  const filteredRows = filter === 'All' ? rows : rows.filter(r => r.paymentMethod === filter);
+  const cryptoCount = rows.filter((r) => !(r.recipientType || '').toLowerCase().includes('bank')).length;
+  const fiatCount = rows.filter((r) => (r.recipientType || '').toLowerCase().includes('bank')).length;
+  const filteredRows = filter === 'All' ? rows : rows.filter((r) => filter === 'Crypto' ? !(r.recipientType || '').toLowerCase().includes('bank') : (r.recipientType || '').toLowerCase().includes('bank'));
 
   const handleRowClick = (row: DetailsData) => {
     setSelectedData(row);
@@ -178,30 +93,41 @@ function DesktopTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRows.map((row, i) => (
-                <TableRow key={i} className="cursor-pointer hover:bg-gray-800" onClick={() => handleRowClick(row)}>
-                  <TableCell className="py-4 px-3">{row.paidOn}</TableCell>
-                  <TableCell className="py-4 px-3">{row.paymentMethod}</TableCell>
+              {filteredRows.map((row) => (
+                <TableRow key={row.id} className="cursor-pointer hover:bg-gray-800" onClick={() => handleRowClick({
+                  type: 'withdrawal',
+                  amountPaid: `${row.usdtAmount ?? 0} USDT`,
+                  equivalent: `${row.nairaAmount ?? 0} NGN`,
+                  receiver: row.recipientName || 'Recipient',
+                  paidOn: row.initiatedAt ? new Date(row.initiatedAt).toLocaleDateString() : '-',
+                  paymentMethod: row.recipientType || 'Withdrawal',
+                  id: String(row.id),
+                  token: 'USDT',
+                  blockchain: 'BASE',
+                  networkFee: `${row.fee ?? 0} USDT`,
+                  receiverAddress: row.recipientAccountNumber || row.recipientName || '-',
+                  senderAddress: '-',
+                  qrCode: '',
+                  status: row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Pending',
+                  activityLog: [],
+                } as DetailsData)}>
+                  <TableCell className="py-4 px-3">{row.initiatedAt ? new Date(row.initiatedAt).toLocaleDateString() : '-'}</TableCell>
+                  <TableCell className="py-4 px-3">{row.recipientType || 'Withdrawal'}</TableCell>
                   <TableCell className="py-4 px-3">
                     <div className="flex items-center gap-2">
-                      {row.token === 'USDT' && (
-                        <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />
-                      )}
-                      {row.token === 'USDC' && (
-                        <img src="/images/usdcbase.png" alt="USDC" className="w-6 h-6 rounded-full" />
-                      )}
-                      <span>{row.token}</span>
+                      <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />
+                      <span>USDT</span>
                     </div>
                   </TableCell>
                   <TableCell className="py-4 px-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-blue-300 cursor-pointer">{row.receiverAddress}</span>
+                      <span className="text-blue-300 cursor-pointer">{row.recipientAccountNumber || row.recipientName || '-'}</span>
                       <Copy className="w-3 h-3" />
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-3">{row.amountPaid}</TableCell>
+                  <TableCell className="py-4 px-3">{row.usdtAmount ? `${row.usdtAmount} USDT` : '-'}</TableCell>
                   <TableCell className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass[row.status as keyof typeof statusClass]}`}>{row.status}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass[(row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Pending') as keyof typeof statusClass] || 'bg-gray-800 text-gray-200'}`}>{row.status || 'Pending'}</span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -225,15 +151,15 @@ function DesktopTable() {
   );
 }
 
-function MobileList() {
+function MobileList({ rows }: { rows: HistoryItem[] }) {
   const [open, setOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<DetailsData | null>(null);
   const [filter, setFilter] = useState<'All' | 'Crypto' | 'Fiat'>('All');
   const router = useRouter();
 
-  const cryptoCount = rows.filter(r => r.paymentMethod === 'Crypto').length;
-  const fiatCount = rows.filter(r => r.paymentMethod === 'Fiat').length;
-  const filteredRows = filter === 'All' ? rows : rows.filter(r => r.paymentMethod === filter);
+  const cryptoCount = rows.filter((r) => !(r.recipientType || '').toLowerCase().includes('bank')).length;
+  const fiatCount = rows.filter((r) => (r.recipientType || '').toLowerCase().includes('bank')).length;
+  const filteredRows = filter === 'All' ? rows : rows.filter((r) => filter === 'Crypto' ? !(r.recipientType || '').toLowerCase().includes('bank') : (r.recipientType || '').toLowerCase().includes('bank'));
 
   const handleRowClick = (row: DetailsData) => {
     setSelectedData(row);
@@ -242,16 +168,10 @@ function MobileList() {
 
   const months = [
     {
-      month: "Sept 2025",
-      inTotal: "$100",
-      outTotal: "$200",
+      month: "Recent",
+      inTotal: "-",
+      outTotal: "-",
       items: filteredRows,
-    },
-    {
-      month: "Aug 2025",
-      inTotal: "$100",
-      outTotal: "$200",
-      items: filteredRows.slice(0, 1),
     },
   ];
 
@@ -290,20 +210,36 @@ function MobileList() {
           <CardContent className="pt-0">
             <ul className="flex flex-col">
               {m.items.map((tx, idx) => (
-                <li key={idx} className={`flex items-start justify-between py-4 px-3 ${idx !== m.items.length - 1 ? 'border-b border-border' : ''} cursor-pointer hover:bg-gray-800`} onClick={() => handleRowClick(tx)}>
+                <li key={tx.id} className={`flex items-start justify-between py-4 px-3 ${idx !== m.items.length - 1 ? 'border-b border-border' : ''} cursor-pointer hover:bg-gray-800`} onClick={() => handleRowClick({
+                  type: 'withdrawal',
+                  amountPaid: `${tx.usdtAmount ?? 0} USDT`,
+                  equivalent: `${tx.nairaAmount ?? 0} NGN`,
+                  receiver: tx.recipientName || 'Recipient',
+                  paidOn: tx.initiatedAt ? new Date(tx.initiatedAt).toLocaleDateString() : '-',
+                  paymentMethod: tx.recipientType || 'Withdrawal',
+                  id: String(tx.id),
+                  token: 'USDT',
+                  blockchain: 'BASE',
+                  networkFee: `${tx.fee ?? 0} USDT`,
+                  receiverAddress: tx.recipientAccountNumber || tx.recipientName || '-',
+                  senderAddress: '-',
+                  qrCode: '',
+                  status: tx.status ? tx.status.charAt(0).toUpperCase() + tx.status.slice(1) : 'Pending',
+                  activityLog: [],
+                } as DetailsData)}>
                   <div className="flex-1 pr-3">
-                    <div className="text-base font-medium">{tx.paymentMethod}</div>
+                    <div className="text-base font-medium">{tx.recipientType || 'Withdrawal'}</div>
                     <div className="mt-1 flex items-center gap-1 text-[13px] text-blue-300">
-                      <span>{tx.receiverAddress}</span>
+                      <span>{tx.recipientAccountNumber || tx.recipientName || '-'}</span>
                       <Copy className="h-3.5 w-3.5" />
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{tx.paidOn}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{tx.initiatedAt ? new Date(tx.initiatedAt).toLocaleDateString() : '-'}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-base font-semibold">{tx.amountPaid}</div>
+                    <div className="text-base font-semibold">{tx.usdtAmount ? `${tx.usdtAmount} USDT` : '-'}</div>
                     <div className="mt-2">
-                      <Badge className={`${statusClass[tx.status as keyof typeof statusClass]} px-2 py-0.5 text-xs`}>
-                        {tx.status}
+                      <Badge className={`${statusClass[(tx.status ? tx.status.charAt(0).toUpperCase() + tx.status.slice(1) : 'Pending') as keyof typeof statusClass] || 'bg-gray-800 text-gray-200'} px-2 py-0.5 text-xs`}>
+                        {tx.status || 'Pending'}
                       </Badge>
                     </div>
                   </div>
@@ -332,12 +268,48 @@ function MobileList() {
 }
 
 export function WithdrawalHistoryTable() {
+  const [rows, setRows] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+        const token = localStorage.getItem("authToken") || localStorage.getItem("token") || "";
+        const res = await fetch(`${apiBase}/user/withdrawals/history?page=1&limit=20`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+          credentials: "include",
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.message || "Failed to load withdrawal history");
+        if (active) setRows(json?.data?.data || []);
+      } catch (err: any) {
+        if (active) setError(err.message || "Failed to load withdrawal history");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div>
+      {loading && <div className="text-sm text-muted-foreground mb-3">Loading withdrawal history…</div>}
+      {error && <div className="text-sm text-destructive mb-3">{error}</div>}
       <div className="hidden md:block">
-        <DesktopTable />
+        <DesktopTable rows={rows} />
       </div>
-      <MobileList />
+      <MobileList rows={rows} />
     </div>
   );
 }

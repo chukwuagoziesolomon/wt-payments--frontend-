@@ -105,4 +105,14 @@ h1 {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Equalizer bar animation */
+  .animate-loader-bar {
+    animation: loader-bar 0.9s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes loader-bar {
+  0%   { transform: scaleY(0.2); opacity: 0.4; }
+  100% { transform: scaleY(1);   opacity: 1; }
 }

@@ -3,6 +3,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ButtonSpinner } from "@/components/ui/LoadingAnimator";
 
 type WithdrawalOtpModalProps = {
   open: boolean;
@@ -10,9 +11,10 @@ type WithdrawalOtpModalProps = {
   email: string;
   onVerify: (code: string) => void;
   onResend: () => void;
+  loading?: boolean;
 };
 
-export function WithdrawalOtpModal({ open, onClose, email, onVerify, onResend }: WithdrawalOtpModalProps) {
+export function WithdrawalOtpModal({ open, onClose, email, onVerify, onResend, loading = false }: WithdrawalOtpModalProps) {
   const [code, setCode] = React.useState(["", "", "", "", "", ""]);
   const inputs = React.useRef<(HTMLInputElement | null)[]>([]);
 
@@ -77,9 +79,14 @@ export function WithdrawalOtpModal({ open, onClose, email, onVerify, onResend }:
                   Resend code
                 </button>
               </div>
-              <Button type="submit" className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-md mt-2">
+              <ButtonSpinner
+                loading={loading}
+                variant="primary"
+                style={{ width: "100%", borderRadius: 6, padding: "12px 0", fontSize: 16 }}
+                onClick={handleVerify}
+              >
                 Verify
-              </Button>
+              </ButtonSpinner>
             </form>
           </CardContent>
         </Card>

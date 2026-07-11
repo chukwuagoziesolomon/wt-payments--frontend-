@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy, Shield, Zap, Download, Monitor, Clock, AlertCircle } from "lucide-react";
 import { DetailsData } from "@/types";
+import { OverlayLoader } from "@/components/ui/LoadingAnimator";
 
 interface DetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: DetailsData | null;
+  loading?: boolean;
 }
 
 const iconMap: Record<string, React.ComponentType<any>> = {
@@ -21,7 +23,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   alert: AlertCircle,
 };
 
-export function DetailsModal({ open, onOpenChange, data }: DetailsModalProps) {
+export function DetailsModal({ open, onOpenChange, data, loading = false }: DetailsModalProps) {
   if (!data) return null;
 
   const copyToClipboard = (text: string) => {
@@ -30,7 +32,8 @@ export function DetailsModal({ open, onOpenChange, data }: DetailsModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-full h-[85vh] p-0 bg-[#17171A] rounded-lg border border-[#282A33] flex flex-col [&::-webkit-scrollbar]:hidden [&_*::-webkit-scrollbar]:w-2 [&_*::-webkit-scrollbar-track]:bg-transparent [&_*::-webkit-scrollbar-thumb]:bg-gray-700 [&_*::-webkit-scrollbar-thumb]:rounded-full">
+      <DialogContent className="max-w-5xl w-full h-[85vh] p-0 bg-[#17171A] rounded-lg border border-[#282A33] flex flex-col relative [&::-webkit-scrollbar]:hidden [&_*::-webkit-scrollbar]:w-2 [&_*::-webkit-scrollbar-track]:bg-transparent [&_*::-webkit-scrollbar-thumb]:bg-gray-700 [&_*::-webkit-scrollbar-thumb]:rounded-full">
+        <OverlayLoader visible={loading} message="Loading details…" />
         {/* Mobile Receipt Style Table (shown below md) */}
         <div className="block md:hidden flex-1 overflow-y-auto p-4 space-y-4">
             <div className="text-lg font-semibold text-white">Transaction Receipt</div>

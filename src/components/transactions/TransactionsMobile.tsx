@@ -1,124 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Filter, Search } from "lucide-react";
 import { DetailsSheet } from "../DetailsSheet";
 import { DetailsData } from "@/types";
-
-const months: Array<{
-  month: string;
-  inTotal: string;
-  outTotal: string;
-  items: DetailsData[];
-}> = [
-  {
-    month: "Sept 2025",
-    inTotal: "$100",
-    outTotal: "$200",
-    items: [
-      {
-        type: "transaction",
-        amountPaid: "200 USDC",
-        equivalent: "≈ 199.99 USDT",
-        receiver: "Eze Emmanuella",
-        paidOn: "4th Sept, 18:09pm",
-        paymentMethod: "Crypto",
-        id: "0x23bhs99992ss3e2wsq",
-        token: "USDC",
-        blockchain: "BASE",
-        networkFee: "1.99 USDC ($2)",
-        receiverAddress: "usdt..e72364847",
-        senderAddress: "usdt..e72364847",
-        qrCode: "https://example.com/qr",
-        status: "Completed",
-        activityLog: [
-          { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-          { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the deposit" },
-          { icon: "download", title: "Deposit received", description: "Deposit of 1.0 USDT was successfully received.", time: "21 July, 2025" },
-        ],
-      },
-      {
-        type: "transaction",
-        amountPaid: "200 USDC",
-        equivalent: "≈ 199.99 USDT",
-        receiver: "Eze Emmanuella",
-        paidOn: "4th Sept, 18:09pm",
-        paymentMethod: "Crypto",
-        id: "0x23bhs99992ss3e2wsq",
-        token: "USDC",
-        blockchain: "BASE",
-        networkFee: "1.99 USDC ($2)",
-        receiverAddress: "usdt..e72364847",
-        senderAddress: "usdt..e72364847",
-        qrCode: "https://example.com/qr",
-        status: "Completed",
-        activityLog: [
-          { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-          { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the deposit" },
-          { icon: "download", title: "Deposit received", description: "Deposit of 1.0 USDT was successfully received.", time: "21 July, 2025" },
-        ],
-      },
-      {
-        type: "transaction",
-        amountPaid: "200 USDC",
-        equivalent: "≈ 199.99 USDT",
-        receiver: "Eze Emmanuella",
-        paidOn: "4th Sept, 18:09pm",
-        paymentMethod: "Crypto",
-        id: "0x23bhs99992ss3e2wsq",
-        token: "USDC",
-        blockchain: "BASE",
-        networkFee: "1.99 USDC ($2)",
-        receiverAddress: "usdt..e72364847",
-        senderAddress: "usdt..e72364847",
-        qrCode: "https://example.com/qr",
-        status: "Completed",
-        activityLog: [
-          { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-          { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the deposit" },
-          { icon: "download", title: "Deposit received", description: "Deposit of 1.0 USDT was successfully received.", time: "21 July, 2025" },
-        ],
-      },
-    ],
-  },
-  {
-    month: "Aug 2025",
-    inTotal: "$100",
-    outTotal: "$200",
-    items: [
-      {
-        type: "transaction",
-        amountPaid: "200 USDC",
-        equivalent: "≈ 199.99 USDT",
-        receiver: "Eze Emmanuella",
-        paidOn: "4th Sept, 18:09pm",
-        paymentMethod: "Crypto",
-        id: "0x23bhs99992ss3e2wsq",
-        token: "USDC",
-        blockchain: "BASE",
-        networkFee: "1.99 USDC ($2)",
-        receiverAddress: "usdt..e72364847",
-        senderAddress: "usdt..e72364847",
-        qrCode: "https://example.com/qr",
-        status: "Completed",
-        activityLog: [
-          { icon: "shield", title: "AML Screening", description: "Tool: OFAC protocol", status: "Cleared", date: "21 July, 2025", time: "2:59 AM UTC" },
-          { icon: "zap", title: "Network Fee", description: "A fee of 1.99 USDC ($2) was successfully deducted to process the deposit" },
-          { icon: "download", title: "Deposit received", description: "Deposit of 1.0 USDT was successfully received.", time: "21 July, 2025" },
-        ],
-      },
-    ],
-  },
-];
+import { getPaymentIntentHistory, type HistoryListItem } from "@/lib/payment-intent-history";
+import { SectionLoader } from "@/components/ui/LoadingAnimator";
 
 export function TransactionsMobile() {
   const [open, setOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<DetailsData | null>(null);
+  const [items, setItems] = useState<HistoryListItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleItemClick = (tx: DetailsData) => {
-    setSelectedData(tx);
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadHistory() {
+      setLoading(true);
+      try {
+        const { items: historyItems } = await getPaymentIntentHistory();
+        if (mounted) {
+          setItems(historyItems);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadHistory();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const months = useMemo(() => {
+    const grouped: Record<string, HistoryListItem[]> = {};
+
+    for (const item of items) {
+      const rawDate = new Date(item.createdAt);
+      const monthKey = Number.isNaN(rawDate.getTime())
+        ? "Unknown"
+        : rawDate.toLocaleDateString(undefined, {
+            month: "short",
+            year: "numeric",
+          });
+      if (!grouped[monthKey]) grouped[monthKey] = [];
+      grouped[monthKey].push(item);
+    }
+
+    return Object.entries(grouped).map(([month, monthItems]) => ({
+      month,
+      items: monthItems,
+    }));
+  }, [items]);
+
+  const handleItemClick = (tx: HistoryListItem) => {
+    setSelectedData(tx.details);
     setOpen(true);
   };
 
@@ -139,35 +79,34 @@ export function TransactionsMobile() {
         </button>
       </div>
 
-      {months.map((m) => (
+      {loading && <SectionLoader variant="bars" message="Loading transactions…" height={120} />}
+      {!loading && months.length === 0 && (
+        <div className="text-sm text-muted-foreground py-6">No additional transactions to display.</div>
+      )}
+
+      {!loading && months.map((m) => (
         <Card key={m.month} className="mb-4">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">{m.month}</CardTitle>
             </div>
-            <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-              <span>In: {m.inTotal}</span>
-              <span>Out: {m.outTotal}</span>
-            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <ul className="flex flex-col gap-4">
-              {m.items.map((tx, idx) => (
-                <li key={idx} className="flex items-start justify-between cursor-pointer hover:bg-gray-800 py-4 px-3 rounded" onClick={() => handleItemClick(tx)}>
+              {m.items.map((tx) => (
+                <li key={tx.id} className="flex items-start justify-between cursor-pointer hover:bg-gray-800 py-4 px-3 rounded" onClick={() => handleItemClick(tx)}>
                   <div className="flex-1 pr-3">
-                    <div className="text-base font-medium">{tx.receiver}</div>
+                    <div className="text-base font-medium">{tx.customer}</div>
                     <div className="mt-1 flex items-center gap-1 text-[13px] text-blue-300">
-                      <span>{tx.receiverAddress}</span>
+                      <span>{tx.walletAddress}</span>
                       <Copy className="h-3.5 w-3.5" />
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">{tx.paidOn}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-base font-semibold">{tx.amountPaid}</div>
+                    <div className="text-base font-semibold">{tx.amountDisplay}</div>
                     <div className="mt-2">
-                      <Badge className="bg-green-900 text-green-200 px-2 py-0.5 text-xs">
-                        {tx.status}
-                      </Badge>
+                      <Badge className={`${tx.statusClass} px-2 py-0.5 text-xs`}>{tx.statusLabel}</Badge>
                     </div>
                   </div>
                 </li>

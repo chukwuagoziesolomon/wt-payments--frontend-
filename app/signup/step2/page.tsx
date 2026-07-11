@@ -22,6 +22,40 @@ export default function SignupStep2() {
   const [phoneNumber, setPhoneNumber] = React.useState("");
   const [password, setPassword] = React.useState("");
 
+  // load saved draft if present
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("signupDraft");
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.businessName) setBusinessName(draft.businessName);
+      if (draft.firstName) setFirstName(draft.firstName);
+      if (draft.email) setEmail(draft.email);
+      if (draft.phoneCode) setPhoneCode(draft.phoneCode);
+      if (draft.phoneNumber) setPhoneNumber(draft.phoneNumber);
+      if (draft.password) setPassword(draft.password);
+    } catch (err) {
+      // ignore parse errors
+    }
+  }, []);
+
+  // persist draft on change (do NOT persist sensitive fields such as password)
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("signupDraft");
+      const draft = raw ? JSON.parse(raw) : {};
+      draft.businessName = businessName;
+      draft.firstName = firstName;
+      draft.email = email;
+      draft.phoneCode = phoneCode;
+      draft.phoneNumber = phoneNumber;
+      // intentionally do NOT store password in localStorage for security
+      localStorage.setItem("signupDraft", JSON.stringify(draft));
+    } catch (err) {
+      // ignore storage errors
+    }
+  }, [businessName, firstName, email, phoneCode, phoneNumber]);
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     // For now, navigate to root/dashboard after submit
@@ -52,28 +86,28 @@ export default function SignupStep2() {
             <CardContent>
               <form onSubmit={onSubmit} className="bg-card mx-auto max-w-xl">
                 <div className="mb-4">
-                  <label className="block text-sm text-muted-foreground mb-2">Business name</label>
+                  <label className="block text-base text-muted-foreground mb-2">Business name</label>
                   <div className="rounded-md border border-border p-3">
                     <Input className="border-0 bg-transparent px-0" placeholder="Enter business name" value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-muted-foreground mb-2">First name</label>
+                  <label className="block text-base text-muted-foreground mb-2">First name</label>
                   <div className="rounded-md border border-border p-3">
                     <Input className="border-0 bg-transparent px-0" placeholder="Enter first name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-muted-foreground mb-2">Email address</label>
+                  <label className="block text-base text-muted-foreground mb-2">Email address</label>
                   <div className="rounded-md border border-border p-3">
                     <Input className="border-0 bg-transparent px-0" placeholder="Enter email address" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-muted-foreground mb-2">Phone Number</label>
+                  <label className="block text-base text-muted-foreground mb-2">Phone Number</label>
                   <div className="rounded-md border border-border p-3">
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0">
@@ -96,7 +130,7 @@ export default function SignupStep2() {
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-muted-foreground mb-2">Password</label>
+                  <label className="block text-base text-muted-foreground mb-2">Password</label>
                   <div className="rounded-md border border-border p-3">
                     <Input className="border-0 bg-transparent px-0" type="password" placeholder="••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
