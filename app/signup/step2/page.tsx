@@ -25,8 +25,8 @@ export default function SignupStep2() {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     // For now, navigate to root/dashboard after submit
-     console.log({ businessName, firstName, email, phoneCode, phoneNumber });
-     router.push("/signup/step3");
+    console.log({ businessName, firstName, email, phoneCode, phoneNumber });
+    router.push("/signup/step3");
   }
 
   return (

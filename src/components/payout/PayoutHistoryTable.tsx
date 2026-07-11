@@ -79,18 +79,20 @@ export function PayoutHistoryTable() {
           <CardTitle className="text-base font-semibold text-left">Payout History</CardTitle>
 
           {/* Tab Filters */}
-          <div className="flex items-center gap-6">
-            <button onClick={() => setFilter('All')} className={`text-sm font-medium ${filter === 'All' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'} pb-1`}>All ({rows.length})</button>
-            <button onClick={() => setFilter('Crypto')} className={`text-sm ${filter === 'Crypto' ? 'text-primary border-b-2 border-primary font-medium' : 'text-muted-foreground hover:text-foreground'} pb-1`}>Crypto ({cryptoCount})</button>
-            <button onClick={() => setFilter('Fiat')} className={`text-sm ${filter === 'Fiat' ? 'text-primary border-b-2 border-primary font-medium' : 'text-muted-foreground hover:text-foreground'} pb-1`}>Fiat ({fiatCount})</button>
+          <div className="text-sm text-muted-foreground mb-2">
+            <div className="w-full flex items-center">
+              <button onClick={() => setFilter('All')} className={`flex-1 text-left ${filter === 'All' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>All ({rows.length})</button>
+              <button onClick={() => setFilter('Crypto')} className={`flex-1 text-center ${filter === 'Crypto' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Crypto ({cryptoCount})</button>
+              <button onClick={() => setFilter('Fiat')} className={`flex-1 text-right ${filter === 'Fiat' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Fiat ({fiatCount})</button>
+            </div>
           </div>
         </div>
 
         {/* Horizontal Line */}
-        <div className="border-t border-border"></div>
+        <div className="border-t border-border" />
 
-        {/* Controls Row */}
-        <div className="flex justify-between items-center gap-2">
+        {/* Controls Row - desktop */}
+        <div className="hidden md:flex justify-between items-center gap-2">
           <div className="flex gap-2">
             <input className="bg-background border border-border rounded px-3 py-1 text-sm" placeholder="Search" />
             <button className="bg-background border border-border rounded px-3 py-1 text-sm flex items-center gap-2">
@@ -99,6 +101,21 @@ export function PayoutHistoryTable() {
             </button>
           </div>
           <button className="bg-background border border-border rounded px-3 py-1 text-sm">Export CSV ↗</button>
+        </div>
+
+        {/* Mobile: only icons + divider */}
+        <div className="md:hidden">
+          <div className="flex items-center gap-3 py-3">
+            <button aria-label="Search" className="h-10 w-10 flex items-center justify-center rounded-md border border-border bg-background">
+              <svg className="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="11" cy="11" r="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <button aria-label="Filter" className="h-10 w-10 flex items-center justify-center rounded-md border border-border bg-background">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <div className="flex-1" />
+            <button className="ml-2 bg-background border border-border rounded px-3 py-2 text-xs">Export CSV ↗</button>
+          </div>
+          <div className="border-t border-border mb-4" />
         </div>
       </div>
 

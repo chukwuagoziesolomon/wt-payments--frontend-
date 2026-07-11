@@ -79,7 +79,7 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
                   className="flex-1 bg-[#13131a] text-white px-4 py-3 rounded-lg border border-[#2a2a35] text-sm focus:outline-none focus:border-[#3a3a45]"
                 />
                 <button
-                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#13131a] border border-[#2a2a35] hover:bg-[#1a1a22] transition-colors flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[#3a3a40] border border-[#3a3a40] hover:bg-[#44444a] transition-colors flex-shrink-0"
                   onClick={() => setShowSecret((v) => !v)}
                   type="button"
                   aria-label={showSecret ? "Hide" : "Show"}
@@ -104,7 +104,7 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
                   className="flex-1 bg-[#13131a] text-white px-4 py-3 rounded-lg border border-[#2a2a35] text-sm focus:outline-none focus:border-[#3a3a45]"
                 />
                 <button
-                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#13131a] border border-[#2a2a35] hover:bg-[#1a1a22] transition-colors flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[#3a3a40] border border-[#3a3a40] hover:bg-[#44444a] transition-colors flex-shrink-0"
                   onClick={() => handleCopy(realSecret)}
                   type="button"
                   aria-label="Copy"
@@ -125,7 +125,7 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
                   className="flex-1 bg-[#13131a] text-white px-4 py-3 rounded-lg border border-[#2a2a35] text-sm focus:outline-none focus:border-[#3a3a45]"
                 />
                 <button
-                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#13131a] border border-[#2a2a35] hover:bg-[#1a1a22] transition-colors flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[#3a3a40] border border-[#3a3a40] hover:bg-[#44444a] transition-colors flex-shrink-0"
                   onClick={() => handleCopy(realSecret)}
                   type="button"
                   aria-label="Copy"
@@ -146,7 +146,7 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
                   className="flex-1 bg-[#13131a] text-white px-4 py-3 rounded-lg border border-[#2a2a35] text-sm focus:outline-none focus:border-[#3a3a45]"
                 />
                 <button
-                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#13131a] border border-[#2a2a35] hover:bg-[#1a1a22] transition-colors flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[#3a3a40] border border-[#3a3a40] hover:bg-[#44444a] transition-colors flex-shrink-0"
                   onClick={() => handleCopy(realSecret)}
                   type="button"
                   aria-label="Copy"
@@ -158,19 +158,19 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
           </div>
 
           {/* Mobile: Full-width fields without card wrapper, more spacious */}
-          <div className="flex flex-col gap-8 md:hidden">
+          <div className="flex flex-col gap-6 md:hidden w-full px-2 sm:px-0">
             {/* API Secret Key */}
             <div className="flex flex-col gap-3 w-full">
               <label className="block text-sm text-gray-400">API Secret Key</label>
-              <div className="flex items-center w-full gap-2 bg-[#0f0f13] rounded-xl px-4 py-3">
+              <div className="flex items-center w-[364px] max-w-full h-[70px] gap-4 bg-[#0f0f13] rounded-[12px] border border-[#2a2a35] pl-4 pr-3">
                 <input
                   type={showSecret ? "text" : "password"}
                   value={showSecret ? realSecret : secretValue}
                   readOnly
-                  className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                  className="flex-1 bg-transparent text-white text-sm focus:outline-none truncate"
                 />
                 <button
-                  className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
                   onClick={() => setShowSecret((v) => !v)}
                   type="button"
                   aria-label={showSecret ? "Hide" : "Show"}
@@ -187,15 +187,15 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
             {/* API Public Key */}
             <div className="flex flex-col gap-3 w-full">
               <label className="block text-sm text-gray-400">API Public Key</label>
-              <div className="flex items-center w-full gap-2 bg-[#0f0f13] rounded-xl px-4 py-3">
+              <div className="flex items-center w-[364px] max-w-full h-[70px] gap-4 bg-[#0f0f13] rounded-[12px] border border-[#2a2a35] pl-4 pr-3">
                 <input
                   type="text"
                   value={realSecret}
                   readOnly
-                  className="flex-1 bg-transparent text-white text-sm focus:outline-none break-all"
+                  className="flex-1 bg-transparent text-white text-sm focus:outline-none break-words"
                 />
                 <button
-                  className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
                   onClick={() => handleCopy(realSecret)}
                   type="button"
                   aria-label="Copy"
@@ -208,15 +208,15 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
             {/* IP Whitelisted */}
             <div className="flex flex-col gap-3 w-full">
               <label className="block text-sm text-gray-400">IP Whitelisted</label>
-              <div className="flex items-center w-full gap-2 bg-[#0f0f13] rounded-xl px-4 py-3">
+              <div className="flex items-center w-[364px] max-w-full h-[70px] gap-4 bg-[#0f0f13] rounded-[12px] border border-[#2a2a35] pl-4 pr-3">
                 <input
                   type="text"
                   value={realSecret}
                   readOnly
-                  className="flex-1 bg-transparent text-white text-sm focus:outline-none break-all"
+                  className="flex-1 bg-transparent text-white text-sm focus:outline-none break-words"
                 />
                 <button
-                  className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
                   onClick={() => handleCopy(realSecret)}
                   type="button"
                   aria-label="Copy"
@@ -229,15 +229,15 @@ export default function ApiConfigurationSection({ mode }: { mode: "live" | "test
             {/* Webhook Live URL */}
             <div className="flex flex-col gap-3 w-full">
               <label className="block text-sm text-gray-400">Webhook Live URL</label>
-              <div className="flex items-center w-full gap-2 bg-[#0f0f13] rounded-xl px-4 py-3">
+              <div className="flex items-center w-[364px] max-w-full h-[70px] gap-4 bg-[#0f0f13] rounded-[12px] border border-[#2a2a35] pl-4 pr-3">
                 <input
                   type="text"
                   value={realSecret}
                   readOnly
-                  className="flex-1 bg-transparent text-white text-sm focus:outline-none break-all"
+                  className="flex-1 bg-transparent text-white text-sm focus:outline-none break-words"
                 />
                 <button
-                  className="flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0"
+                  className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
                   onClick={() => handleCopy(realSecret)}
                   type="button"
                   aria-label="Copy"

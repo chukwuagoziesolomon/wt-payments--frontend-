@@ -47,6 +47,8 @@ export function PayoutSummaryCards() {
 
       {/* Mobile Scrollable Layout */}
       <div className="md:hidden relative">
+        {/* Straight divider line above mobile cards */}
+        <div className="border-t border-border my-4" />
         {/* Navigation Buttons */}
         <button
           onClick={() => scroll('left')}
@@ -66,7 +68,7 @@ export function PayoutSummaryCards() {
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
         >
-          <Card className="flex-shrink-0 w-80">
+          <Card className="flex-shrink-0 w-80 rounded-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Payout</CardTitle>
             </CardHeader>
@@ -74,7 +76,7 @@ export function PayoutSummaryCards() {
               <div className="text-2xl font-bold">$205</div>
             </CardContent>
           </Card>
-          <Card className="flex-shrink-0 w-80">
+          <Card className="flex-shrink-0 w-80 rounded-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Pending Payout</CardTitle>
             </CardHeader>
@@ -82,7 +84,7 @@ export function PayoutSummaryCards() {
               <div className="text-2xl font-bold">$105</div>
             </CardContent>
           </Card>
-          <Card className="flex-shrink-0 w-80">
+          <Card className="flex-shrink-0 w-80 rounded-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Current Pending Interval</CardTitle>
             </CardHeader>

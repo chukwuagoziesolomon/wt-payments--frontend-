@@ -258,28 +258,25 @@ function MobileList() {
   return (
     <div className="md:hidden relative pb-24">
       {/* Tabs */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setFilter('All')} className={`font-medium ${filter === 'All' ? 'text-foreground' : 'text-muted-foreground'}`}>All ({rows.length})</button>
-          <button onClick={() => setFilter('Crypto')} className={`${filter === 'Crypto' ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>Crypto ({cryptoCount})</button>
-          <button onClick={() => setFilter('Fiat')} className={`${filter === 'Fiat' ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>Fiat ({fiatCount})</button>
+      <div className="text-xs text-muted-foreground mb-2">
+        <div className="w-full flex items-center">
+          <button onClick={() => setFilter('All')} className={`flex-1 text-left ${filter === 'All' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>All ({rows.length})</button>
+          <button onClick={() => setFilter('Crypto')} className={`flex-1 text-center ${filter === 'Crypto' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Crypto ({cryptoCount})</button>
+          <button onClick={() => setFilter('Fiat')} className={`flex-1 text-right ${filter === 'Fiat' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Fiat ({fiatCount})</button>
         </div>
       </div>
-      {/* Search + Filter + Export */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search"
-            className="w-full bg-background border border-border rounded pl-9 pr-3 py-2 text-sm"
-          />
-        </div>
-        <button className="h-10 w-10 flex items-center justify-center rounded-md border border-border">
-          <Filter className="h-4 w-4" />
+      {/* Mobile: only show search + filter icons, then a divider */}
+      <div className="flex items-center gap-3 mb-3 border-t border-border pt-3 pb-3">
+        <button aria-label="Search" className="h-10 w-10 flex items-center justify-center rounded-md border border-border bg-background">
+          <Search className="h-4 w-4 text-muted-foreground" />
         </button>
-        <button className="ml-auto bg-background border border-border rounded px-3 py-2 text-xs">Export CSV ↗</button>
+        <button aria-label="Filter" className="h-10 w-10 flex items-center justify-center rounded-md border border-border bg-background">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <div className="flex-1" />
       </div>
+
+      <div className="border-t border-border mb-4" />
 
       {months.map((m) => (
         <Card key={m.month} className="mb-4">
