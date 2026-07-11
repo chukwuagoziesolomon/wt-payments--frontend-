@@ -3,7 +3,13 @@ import * as React from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-export function NoBankAccountModal({ open, onClose, onManage }) {
+type NoBankAccountModalProps = {
+  open: boolean;
+  onClose: () => void;
+  onManage: () => void;
+};
+
+export function NoBankAccountModal({ open, onClose, onManage }: NoBankAccountModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-xl w-[540px] bg-[#19191d] border-0 p-0 rounded-2xl shadow-2xl flex flex-col items-center">
