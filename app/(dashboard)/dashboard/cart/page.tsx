@@ -1,14 +1,34 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Loader2 } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Loader2, CreditCard, Wallet, ChevronDown } from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/components/ui/ToastProvider";
+import { WaitingForPaymentModal, type PaymentIntentData } from "@/components/WaitingForPaymentModal";
+import { useCartStream } from "@/lib/useCartStream";
 
 const API = "/backend";
+
+type CheckoutAsset = {
+  currency_id: string;
+  name: string;
+  symbol: string;
+  logo?: string;
+  network?: { name: string; logo?: string };
+  amount: number;
+};
+
+type CheckoutResult = {
+  payment_method: "crypto" | "paystack";
+  reference_id: string;
+  fiat_amount?: number;
+  fiat_currency?: string;
+  authorization_url?: string;
+  assets?: CheckoutAsset[];
+};
 
 function getToken() {
   return typeof window !== "undefined" ? (localStorage.getItem("authToken") || localStorage.getItem("token") || "") : "";
@@ -37,10 +57,18 @@ type CartData = {
 
 export default function CartPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { notify } = useToast();
   const [cart, setCart] = useState<CartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"crypto" | "paystack">("crypto");
+  const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [assetDropdownOpen, setAssetDropdownOpen] = useState(false);
+  const [loadingWallet, setLoadingWallet] = useState(false);
+  const [paymentData, setPaymentData] = useState<PaymentIntentData | null>(null);
+  const [waitingOpen, setWaitingOpen] = useState(false);
 
   const loadCart = async () => {
     setLoading(true);
@@ -64,6 +92,10 @@ export default function CartPage() {
   useEffect(() => {
     loadCart();
   }, []);
+
+  useCartStream((_event, _payload) => {
+    loadCart();
+  });
 
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity < 1) return;
@@ -125,6 +157,7 @@ export default function CartPage() {
   const handleCheckout = async () => {
     if (!cart || cart.items.length === 0) return;
     setCheckingOut(true);
+    setCheckoutResult(null);
     try {
       const res = await authFetch(`${API}/user/cart/checkout`, {
         method: "POST",
@@ -134,12 +167,17 @@ export default function CartPage() {
         },
         body: JSON.stringify({
           fiat_currency: cart.currency || "NGN",
-          payment_method: "crypto",
+          payment_method: paymentMethod,
         }),
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok && json.result) {
-        router.push(`/transactions/create?reference_id=${json.result.reference_id}`);
+        setCheckoutResult(json.result);
+        if (json.result.payment_method === "paystack" && json.result.authorization_url) {
+          setCheckoutResult(json.result);
+        } else if (json.result.assets && json.result.assets.length > 0) {
+          setSelectedAsset(json.result.assets[0].symbol);
+        }
       } else {
         notify(json.data || json.message || "Failed to start checkout");
       }
@@ -148,6 +186,54 @@ export default function CartPage() {
     } finally {
       setCheckingOut(false);
     }
+  };
+
+  const handleCreateWallet = async () => {
+    if (!checkoutResult || !selectedAsset) return;
+    setLoadingWallet(true);
+    try {
+      const res = await authFetch(`${API}/user/payment-intent/create-wallet`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          crypto_currency_id: selectedAsset,
+          reference_id: checkoutResult.reference_id,
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok && json.data) {
+        const d = json.data;
+        const cryptoNetwork: string =
+          typeof d.crypto?.network === "object"
+            ? (d.crypto.network?.name ?? "")
+            : (d.crypto?.network ?? "");
+        setPaymentData({
+          payment_intent_id: d.payment_intent_id,
+          transaction_id: d.transaction_id,
+          expiration_time: d.expiration_time,
+          fee_in_crypto: d.fee_in_crypto,
+          wallet: d.wallet,
+          fiat: d.fiat ?? { amount: checkoutResult.fiat_amount || 0, currency: cart?.currency || "NGN" },
+          crypto: { ...d.crypto, network: cryptoNetwork },
+        });
+        setWaitingOpen(true);
+      } else {
+        notify(json?.message || "Failed to generate wallet address");
+      }
+    } catch (err: any) {
+      if (err.name !== "AuthExpiredError") notify("Error generating wallet");
+    } finally {
+      setLoadingWallet(false);
+    }
+  };
+
+  const handlePaymentComplete = () => {
+    setWaitingOpen(false);
+    notify("Payment received!");
+    router.push("/transactions/confirmed");
   };
 
   const formatCurrency = (amount: number, currency: string) => {
@@ -290,6 +376,97 @@ export default function CartPage() {
                   </div>
                 </div>
 
+                {/* Payment Method Selector */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment Method</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("crypto")}
+                      className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                        paymentMethod === "crypto"
+                          ? "border-[#9d8df1] bg-[#9d8df1]/10 text-[#c7bfff]"
+                          : "border-white/[0.08] bg-white/[0.03] text-white/70 hover:border-white/[0.18]"
+                      }`}
+                    >
+                      <Wallet className="w-4 h-4" />
+                      Crypto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("paystack")}
+                      className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                        paymentMethod === "paystack"
+                          ? "border-[#9d8df1] bg-[#9d8df1]/10 text-[#c7bfff]"
+                          : "border-white/[0.08] bg-white/[0.03] text-white/70 hover:border-white/[0.18]"
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Paystack
+                    </button>
+                  </div>
+                  <p className="text-xs text-white/25">
+                    {paymentMethod === "crypto"
+                      ? "Pay with crypto assets like USDT, USDC, CKB"
+                      : "Pay with card or bank transfer via Paystack"}
+                  </p>
+                </div>
+
+                {/* Crypto Asset Selector */}
+                {checkoutResult && checkoutResult.assets && checkoutResult.assets.length > 0 && paymentMethod === "crypto" && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Select Asset</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setAssetDropdownOpen((o) => !o)}
+                        className="w-full rounded-md border border-border bg-[#19191d] px-4 py-3 flex items-center justify-between text-sm text-white"
+                      >
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={checkoutResult.assets.find((a) => a.symbol === selectedAsset)?.logo || "/images/usdcbase.png"}
+                            alt={selectedAsset ?? ""}
+                            className="w-5 h-5 rounded-full"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <span className="font-medium">{selectedAsset}</span>
+                          <span className="text-muted-foreground text-xs">
+                            ≈ {checkoutResult.assets.find((a) => a.symbol === selectedAsset)?.amount.toLocaleString()} {selectedAsset}
+                          </span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      {assetDropdownOpen && (
+                        <div className="absolute z-10 w-full mt-1 rounded-md border border-border bg-[#19191d] shadow-lg">
+                          {checkoutResult.assets.map((a) => (
+                            <button
+                              key={a.symbol}
+                              type="button"
+                              className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[#23243a] transition-colors text-left"
+                              onClick={() => { setSelectedAsset(a.symbol); setAssetDropdownOpen(false); }}
+                            >
+                              <img src={a.logo || "/images/usdcbase.png"} alt={a.symbol} className="w-5 h-5 rounded-full" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                              <span className="text-white font-medium flex-1">{a.name || a.symbol}</span>
+                              <span className="text-muted-foreground text-xs">{a.amount.toLocaleString()} {a.symbol}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      onClick={handleCreateWallet}
+                      disabled={!selectedAsset || loadingWallet}
+                      className="w-full bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+                    >
+                      {loadingWallet ? (
+                        <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating wallet...</>
+                      ) : (
+                        <>Pay with {selectedAsset || "crypto"}</>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-white">Total</span>
@@ -311,7 +488,7 @@ export default function CartPage() {
                     </>
                   ) : (
                     <>
-                      Checkout <ArrowRight className="w-4 h-4 ml-2" />
+                      {paymentMethod === "crypto" ? "Pay with Crypto" : "Pay with Paystack"} <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
@@ -327,6 +504,8 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      <WaitingForPaymentModal open={waitingOpen} onClose={() => setWaitingOpen(false)} paymentData={paymentData} onPaymentComplete={handlePaymentComplete} />
     </div>
   );
 }
