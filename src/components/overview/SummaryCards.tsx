@@ -31,8 +31,8 @@ export function SummaryCards() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$150</div>
-              <div className="text-xs text-muted-foreground">= 0.00000183 BTC</div>
+              <div className="text-3xl font-bold">$150</div>
+              <div className="text-sm text-muted-foreground">= 0.00000183 BTC</div>
               <div className="flex items-center gap-1 mt-2">
                 <Badge variant="secondary">↑ 2%</Badge>
               </div>
@@ -46,8 +46,8 @@ export function SummaryCards() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$120</div>
-              <div className="text-xs text-muted-foreground">= 0.00000183 BTC</div>
+              <div className="text-3xl font-bold">$120</div>
+              <div className="text-sm text-muted-foreground">= 0.00000183 BTC</div>
               <div className="flex items-center gap-1 mt-2">
                 <Badge variant="secondary">↑ 2%</Badge>
               </div>
@@ -60,14 +60,14 @@ export function SummaryCards() {
       <div className="hidden md:grid md:grid-cols-3 md:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
               <Wallet className="w-4 h-4 text-purple-400" />
               Total Wallet Balance
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$205</div>
-            <div className="text-xs text-muted-foreground">= 0.00008193 BTC</div>
+            <div className="text-3xl font-bold">$205</div>
+            <div className="text-sm text-muted-foreground">= 0.00008193 BTC</div>
             <div className="flex items-center gap-1 mt-2">
               <Badge variant="secondary">↑ 2%</Badge>
             </div>

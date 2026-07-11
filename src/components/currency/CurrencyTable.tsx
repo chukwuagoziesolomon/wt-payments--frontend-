@@ -1,16 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Copy } from "lucide-react";
+import { Copy, Filter } from "lucide-react";
 
 const rows = [
-  { token: "USDT", icon: "/usdt-icon.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
-  { token: "USDC", icon: "/usdc-icon.png", chain: "BASE", address: "usdt..e72364847", status: "Inactive" },
-  { token: "USDC", icon: "/usdc-icon.png", chain: "BASE", address: "usdt..e72364847", status: "Active" },
-  { token: "USDC", icon: "/usdc-icon.png", chain: "BASE", address: "usdt..e72364847", status: "Inactive" },
-  { token: "USDC", icon: "/usdc-icon.png", chain: "BASE", address: "usdt..e72364847", status: "Inactive" },
-  { token: "USDT", icon: "/usdt-icon.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
-  { token: "USDT", icon: "/usdt-icon.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
-  { token: "USDT", icon: "/usdt-icon.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
+  { token: "USDT", icon: "/images/usdtasset.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
+  { token: "USDC", icon: "/images/usdcbase.png", chain: "BASE", address: "usdt..e72364847", status: "Inactive" },
+  { token: "USDC", icon: "/images/usdcbase.png", chain: "BASE", address: "usdt..e72364847", status: "Active" },
+  { token: "USDC", icon: "/images/usdcbase.png", chain: "BASE", address: "usdt..e72364847", status: "Inactive" },
+  { token: "USDC", icon: "/images/usdcbase.png", chain: "BASE", address: "usdt..e72364847", status: "Inactive" },
+  { token: "USDT", icon: "/images/usdtasset.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
+  { token: "USDT", icon: "/images/usdtasset.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
+  { token: "USDT", icon: "/images/usdtasset.png", chain: "ASSET", address: "usdt..e72364847", status: "Active" },
 ];
 
 const statusDot = (status: string) => (
@@ -23,25 +23,26 @@ const statusDot = (status: string) => (
 
 export function CurrencyTable() {
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-2">
-        <CardTitle className="text-base font-semibold">Currency</CardTitle>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <input
-            type="text"
-            placeholder="Search"
-            className="bg-background border border-border rounded px-3 py-1 text-sm w-full md:w-56"
-          />
-          <button className="bg-background border border-border rounded px-3 py-1 text-sm">Filter</button>
-          <span className="ml-auto text-xs text-muted-foreground hidden md:inline">
-            Toggle currencies you want to accept
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-4">
+      {/* Search and Filter Section - Outside Card */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Search"
+          className="bg-background border border-border rounded px-3 py-1 text-sm"
+        />
+        <button className="bg-background border border-border rounded px-3 py-1 text-sm flex items-center gap-2">
+          <Filter className="w-4 h-4" />
+          Filter
+        </button>
+      </div>
+
+      <Card>
+        <CardContent>
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-[#0C0E10]
+">
               <TableRow>
                 <TableHead>Token</TableHead>
                 <TableHead>Blockchain</TableHead>
@@ -86,7 +87,9 @@ export function CurrencyTable() {
             <button className="px-2 py-1 bg-background border border-border rounded">&gt;</button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
+

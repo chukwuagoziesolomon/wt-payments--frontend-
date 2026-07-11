@@ -3,13 +3,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Copy } from "lucide-react";
 
 const rows = [
-  { date: "4th Sept, 2025", customer: "Eze Emmanuella", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e72364847", amount: 200, status: "Pending" },
-  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
-  { date: "4th Sept, 2025", customer: "Eze Emmanuella", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
-  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
-  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
-  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
-  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
+  { date: "4th Sept, 2025", customer: "Eze Emmanuella", currency: "USDC/BASE", icon: "/images/usdcbase.png", wallet: "usdt..e72364847", amount: 200, status: "Pending" },
+  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDT/ASSET", icon: "/images/usdtasset.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
+  { date: "4th Sept, 2025", customer: "Eze Emmanuella", currency: "USDC/BASE", icon: "/images/usdcbase.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
+  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDT/ASSET", icon: "/images/usdtasset.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
+  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDC/BASE", icon: "/images/usdcbase.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
+  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDT/ASSET", icon: "/images/usdtasset.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
+  { date: "4th Sept, 2025", customer: "Ebube Kelvin", currency: "USDC/BASE", icon: "/images/usdcbase.png", wallet: "usdt..e72364847", amount: 200, status: "Completed" },
 ];
 
 const statusClass = {
@@ -20,23 +20,26 @@ const statusClass = {
 export function TransactionsTable() {
   return (
     <div className="relative">
+      {/* Header section outside the card */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <input
+            type="text"
+            placeholder="Search"
+            className="bg-background border border-border rounded px-3 py-1 text-sm w-full md:w-56"
+          />
+          <button className="bg-background border border-border rounded px-3 py-1 text-sm">Filter</button>
+        </div>
+        <div className="flex items-center justify-end w-full md:w-auto">
+          <button className="hidden md:inline-flex bg-primary text-primary-foreground rounded px-3 py-1 text-sm">Create Transaction</button>
+        </div>
+      </div>
+
       <Card>
-        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-2">
-          <CardTitle className="text-base font-semibold">Transaction</CardTitle>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <input
-              type="text"
-              placeholder="Search"
-              className="bg-background border border-border rounded px-3 py-1 text-sm w-full md:w-56"
-            />
-            <button className="bg-background border border-border rounded px-3 py-1 text-sm">Filter</button>
-            <button className="hidden md:inline-flex bg-primary text-primary-foreground rounded px-3 py-1 text-sm">Create Transaction</button>
-          </div>
-        </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-[#0C0E10]">
                 <TableRow>
                   <TableHead>Paid on</TableHead>
                   <TableHead>Customer</TableHead>

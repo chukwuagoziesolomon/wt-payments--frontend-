@@ -4,11 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, Filter, Search } from "lucide-react";
 
 const rows = [
-  { date: "04 Sept. 2025", method: "Crypto", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e723648475", amount: 200, status: "Pending" },
-  { date: "04 Sept. 2025", method: "Fiat", currency: "USDT", icon: "/usdt-icon.png", wallet: "usdt..e723648475", amount: 200, status: "Completed" },
-  { date: "04 Sept. 2025", method: "Crypto", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "72364847565", amount: 200, status: "Completed" },
-  { date: "04 Sept. 2025", method: "Fiat", currency: "USDT", icon: "/usdt-icon.png", wallet: "72364847565", amount: 200, status: "Completed" },
-  { date: "04 Sept. 2025", method: "Crypto", currency: "USDC/ASSET", icon: "/usdc-icon.png", wallet: "usdt..e723648475", amount: 200, status: "Completed" },
+  { date: "04 Sept. 2025", method: "Crypto", currency: "USDC/BASE", icon: "/images/usdcbase.png", wallet: "usdt..e723648475", amount: 200, status: "Pending" },
+  { date: "04 Sept. 2025", method: "Fiat", currency: "USDT/ASSET", icon: "/images/usdtasset.png", wallet: "usdt..e723648475", amount: 200, status: "Completed" },
+  { date: "04 Sept. 2025", method: "Crypto", currency: "USDC/BASE", icon: "/images/usdcbase.png", wallet: "72364847565", amount: 200, status: "Completed" },
+  { date: "04 Sept. 2025", method: "Fiat", currency: "USDT/ASSET", icon: "/images/usdtasset.png", wallet: "72364847565", amount: 200, status: "Completed" },
+  { date: "04 Sept. 2025", method: "Crypto", currency: "USDC/BASE", icon: "/images/usdcbase.png", wallet: "usdt..e723648475", amount: 200, status: "Completed" },
 ];
 
 const statusClass = {
@@ -18,16 +18,39 @@ const statusClass = {
 
 function DesktopTable() {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold">Withdrawal History</CardTitle>
-        <div className="flex gap-2">
-          <input className="bg-background border border-border rounded px-3 py-1 text-sm" placeholder="Search" />
-          <button className="bg-background border border-border rounded px-3 py-1 text-sm">Filter</button>
+    <div className="space-y-4">
+      {/* Header Section */}
+      <div className="flex flex-col space-y-4">
+        {/* Title and Tabs Row */}
+        <div className="flex flex-col space-y-3">
+          <CardTitle className="text-base font-semibold text-left">Withdrawal History</CardTitle>
+
+          {/* Tab Filters */}
+          <div className="flex items-center gap-6">
+            <button className="text-sm font-medium text-primary border-b-2 border-primary pb-1">All (5)</button>
+            <button className="text-sm text-muted-foreground hover:text-foreground pb-1">Crypto (3)</button>
+            <button className="text-sm text-muted-foreground hover:text-foreground pb-1">Fiat (2)</button>
+          </div>
+        </div>
+
+        {/* Horizontal Line */}
+        <div className="border-t border-border"></div>
+
+        {/* Controls Row */}
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex gap-2">
+            <input className="bg-background border border-border rounded px-3 py-1 text-sm" placeholder="Search" />
+            <button className="bg-background border border-border rounded px-3 py-1 text-sm flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              Filter
+            </button>
+          </div>
           <button className="bg-background border border-border rounded px-3 py-1 text-sm">Export CSV ↗</button>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+
+      <Card>
+        <CardContent>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -76,8 +99,9 @@ function DesktopTable() {
             <button className="px-2 py-1 bg-background border border-border rounded">&gt;</button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

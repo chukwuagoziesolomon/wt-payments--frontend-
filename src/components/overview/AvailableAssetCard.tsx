@@ -2,25 +2,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const assets = [
   {
-    icon: "/usdc-icon.png", // Replace with your asset icon path or use an <img> or SVG
-    symbol: "USDC",
-    label: "Aseest",
+    icon: "/images/usdcbase.png",
+    symbol: "USDC/BASE",
+    label: "Asset",
     amount: "40 USDC",
     value: "$41",
   },
   {
-    icon: "/usdc-icon.png",
-    symbol: "USDC",
-    label: "Aseest",
-    amount: "40 USDC",
-    value: "$41",
+    icon: "/images/usdtasset.png",
+    symbol: "USDT/ASSET",
+    label: "Asset",
+    amount: "25 USDT",
+    value: "$25",
   },
   {
-    icon: "/usdc-icon.png",
-    symbol: "USDC",
-    label: "Aseest",
-    amount: "40 USDC",
-    value: "$41",
+    icon: "/images/usdcbase.png",
+    symbol: "USDC/BASE",
+    label: "Asset",
+    amount: "100 USDC",
+    value: "$100",
   },
 ];
 
