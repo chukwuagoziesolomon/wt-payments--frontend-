@@ -41,6 +41,20 @@ type Product = {
   images: Array<{ url: string; publicId: string }>;
 };
 
+function normalizeProduct(product: any): Product {
+  return {
+    id: product.id ?? product.uniqueId ?? "",
+    name: product.name ?? "",
+    price: Number(product.price ?? 0),
+    currency: product.currency ?? "NGN",
+    description: product.description ?? "",
+    category: product.category ?? "",
+    stock: Number(product.stock ?? 0),
+    is_active: Boolean(product.is_active ?? product.isActive ?? false),
+    images: Array.isArray(product.images) ? product.images : [],
+  };
+}
+
 type CartItem = {
   id: string;
   product_id: string;
@@ -84,7 +98,7 @@ export default function StorefrontPage() {
 
         if (!cancelled) setShop(json.data);
 
-        if (!cancelled) setProducts(Array.isArray(json.data.products) ? json.data.products : []);
+        if (!cancelled) setProducts(Array.isArray(json.data.products) ? json.data.products.map(normalizeProduct) : []);
       } catch {
         if (!cancelled) setError("Failed to load storefront");
       } finally {

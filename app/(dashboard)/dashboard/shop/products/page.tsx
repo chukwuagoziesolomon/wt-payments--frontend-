@@ -446,35 +446,33 @@ export default function ProductsPage() {
                     </div>
 
                     {/* Image thumbnails */}
-                    {product.images.length > 0 && (
-                      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                        {product.images.map((img) => (
-                          <div key={img.publicId} className="relative flex-shrink-0">
-                            <img src={img.url} alt="" className="h-12 w-12 rounded-lg object-cover border border-white/[0.08]" />
-                            <button
-                              onClick={() => handleDeleteImage(product.uniqueId, img.publicId)}
-                              className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center"
-                              title="Delete image"
-                            >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                          </div>
-                        ))}
-                        <label className="h-12 w-12 rounded-lg border border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-[#9d8df1] transition-colors flex-shrink-0">
-                          <Upload className="h-4 w-4 text-white/40" />
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="hidden"
-                            onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (f) handleImageUpload(product.uniqueId, f);
-                              e.target.value = "";
-                            }}
-                          />
-                        </label>
-                      </div>
-                    )}
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+                      {product.images.map((img) => (
+                        <div key={img.publicId} className="relative flex-shrink-0">
+                          <img src={img.url} alt="" className="h-12 w-12 rounded-lg object-cover border border-white/[0.08]" />
+                          <button
+                            onClick={() => handleDeleteImage(product.uniqueId, img.publicId)}
+                            className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center"
+                            title="Delete image"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="h-12 w-12 rounded-lg border border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-[#9d8df1] transition-colors flex-shrink-0">
+                        <Upload className="h-4 w-4 text-white/40" />
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) handleImageUpload(product.uniqueId, f);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
 
                     {/* Status Badge */}
                     <div className="mb-4">
