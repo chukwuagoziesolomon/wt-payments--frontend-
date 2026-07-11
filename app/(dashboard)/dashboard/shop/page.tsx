@@ -35,16 +35,28 @@ function authHeaders(extra?: Record<string, string>) {
 
 function sanitizeShopUrls(shop: Record<string, any>): Record<string, any> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const replaceLocalhost = (url: string | null | undefined): string | null | undefined => {
-    if (!url || typeof url !== "string") return url;
+  const replaceLocalhost = (url: string | null | undefined): string | undefined => {
+    if (!url || typeof url !== "string") return undefined;
     if (/https?:\/\/localhost(:\d+)?\//i.test(url)) {
       return url.replace(/https?:\/\/[^\/]+/, origin);
     }
     return url;
   };
+  const ensureShopPath = (url: string | null | undefined, subdomain?: string | null): string | undefined => {
+    if (!url || typeof url !== "string" || !subdomain) return undefined;
+    const trimmed = url.replace(/\/+$/, "");
+    const path = `/shop/${subdomain}`;
+    if (trimmed === origin || trimmed === `${origin}/` || trimmed.endsWith("/")) {
+      return `${origin}${path}`;
+    }
+    if (!trimmed.includes(path)) {
+      return `${trimmed}${path}`;
+    }
+    return url;
+  };
 
   const sanitized = { ...shop };
-  if (sanitized.shop_url) sanitized.shop_url = replaceLocalhost(sanitized.shop_url);
+  if (sanitized.shop_url) sanitized.shop_url = ensureShopPath(replaceLocalhost(sanitized.shop_url), sanitized.subdomain);
   if (sanitized.storefront_url) sanitized.storefront_url = replaceLocalhost(sanitized.storefront_url);
   if (sanitized.preview?.url) sanitized.preview = { ...sanitized.preview, url: replaceLocalhost(sanitized.preview.url) };
   if (sanitized.preview?.iframe_src) sanitized.preview = { ...sanitized.preview, iframe_src: replaceLocalhost(sanitized.preview.iframe_src) };
@@ -706,10 +718,30 @@ export default function ShopBuilderPage() {
   // created before the backend URL-generation fix
   const resolveShopUrl = () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const replaceLocalhost = (url: string | null | undefined): string | undefined => {
+      if (!url || typeof url !== "string") return undefined;
+      if (/https?:\/\/localhost(:\d+)?\//i.test(url)) {
+        return url.replace(/https?:\/\/[^\/]+/, origin);
+      }
+      return url;
+    };
+    const ensureShopPath = (url: string | null | undefined, subdomain?: string | null): string | undefined => {
+      if (!url || typeof url !== "string" || !subdomain) return undefined;
+      const trimmed = url.replace(/\/+$/, "");
+      const path = `/shop/${subdomain}`;
+      if (trimmed === origin || trimmed === `${origin}/` || trimmed.endsWith("/")) {
+        return `${origin}${path}`;
+      }
+      if (!trimmed.includes(path)) {
+        return `${trimmed}${path}`;
+      }
+      return url;
+    };
+
     const candidates = [
-      shop.preview?.url,
-      shop.storefront_url,
-      shop.shop_url,
+      ensureShopPath(replaceLocalhost(shop.preview?.url ?? null), shop.subdomain),
+      replaceLocalhost(shop.storefront_url ?? null),
+      ensureShopPath(replaceLocalhost(shop.shop_url ?? null), shop.subdomain),
       shop.subdomain ? `${origin}/shop/${shop.subdomain}` : "",
     ].filter(Boolean);
 
