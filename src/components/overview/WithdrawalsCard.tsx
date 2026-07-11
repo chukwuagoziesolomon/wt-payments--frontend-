@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Copy } from "lucide-react";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface HistoryItem {
   id: number | string;
@@ -29,12 +30,11 @@ export function WithdrawalsCard() {
       setLoading(true);
       setError(null);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+        const apiBase = "/backend";
         const token = localStorage.getItem("authToken") || localStorage.getItem("token") || "";
-        const res = await fetch(`${apiBase}/user/withdrawals/history?page=1&limit=5`, {
+        const res = await authFetch(`${apiBase}/user/withdrawals/history?page=1&limit=5`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
-          credentials: "include",
         });
         const json = await res.json();
 

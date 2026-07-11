@@ -325,9 +325,12 @@ export function SkeletonCard({ variant = "dashboard", count = 1 }: { variant?: S
   const Component = maps[variant] || Dashboard;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {Array.from({ length: count }).map((_, i) => <Component key={i} />)}
-    </div>
+    <>
+      <StyleInjector />
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {Array.from({ length: count }).map((_, i) => <Component key={i} />)}
+      </div>
+    </>
   );
 }
 
@@ -360,34 +363,37 @@ export function ButtonSpinner({
   };
 
   return (
-    <button
-      onClick={onClick}
-      disabled={loading || disabled}
-      className={className}
-      style={{
-        position: "relative", overflow: "hidden",
-        ...base[variant],
-        borderRadius: 10, padding: "12px 28px",
-        fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-        transition: "all 0.25s", opacity: loading ? 0.85 : 1,
-        minWidth: 140,
-        ...style,
-      }}
-    >
-      {loading && (
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)", backgroundSize: "200% 100%", animation: "wt-shimmer 1.2s linear infinite" }} />
-      )}
-      {loading && (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ animation: "wt-spin 0.8s linear infinite", flexShrink: 0 }}>
-          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
-          <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      )}
-      <span style={{ opacity: loading ? 0.7 : 1, transition: "opacity 0.2s" }}>
-        {loading ? "Processing…" : children}
-      </span>
-    </button>
+    <>
+      <StyleInjector />
+      <button
+        onClick={onClick}
+        disabled={loading || disabled}
+        className={className}
+        style={{
+          position: "relative", overflow: "hidden",
+          ...base[variant],
+          borderRadius: 10, padding: "12px 28px",
+          fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
+          transition: "all 0.25s", opacity: loading ? 0.85 : 1,
+          minWidth: 140,
+          ...style,
+        }}
+      >
+        {loading && (
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)", backgroundSize: "200% 100%", animation: "wt-shimmer 1.2s linear infinite" }} />
+        )}
+        {loading && (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ animation: "wt-spin 0.8s linear infinite", flexShrink: 0 }}>
+            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+            <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        )}
+        <span style={{ opacity: loading ? 0.7 : 1, transition: "opacity 0.2s" }}>
+          {loading ? "Processing…" : children}
+        </span>
+      </button>
+    </>
   );
 }
 
@@ -514,3 +520,8 @@ export function usePageLoader(initialState = true) {
     stopLoading:  () => setIsLoading(false),
   };
 }
+
+// ─────────────────────────────────────────────
+// 8. STYLE INJECTOR (export for manual usage)
+// ─────────────────────────────────────────────
+export { StyleInjector };

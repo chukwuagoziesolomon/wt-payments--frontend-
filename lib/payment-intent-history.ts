@@ -1,4 +1,5 @@
 import type { DetailsData } from "@/types";
+import { authFetch } from "@/lib/auth-fetch";
 
 export type PaymentIntentHistoryMeta = {
   total: number;
@@ -76,14 +77,11 @@ export async function getPaymentIntentHistory(params?: {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const apiBase = typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335")
-    : (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335");
+  const apiBase = "/backend";
 
-  const res = await fetch(`${apiBase}/user/payment-intent/history`, {
+  const res = await authFetch(`${apiBase}/user/payment-intent/history`, {
     method: "GET",
     headers,
-    credentials: "include",
     cache: "no-store",
   });
 

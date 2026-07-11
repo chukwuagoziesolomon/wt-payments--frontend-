@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
+import { authFetch } from "@/lib/auth-fetch";
 
 type BreakdownItem = {
   label: string;
@@ -43,11 +44,10 @@ export function PayoutPieChart() {
         const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;
 
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
-        const res = await fetch(`${apiBase}/dashboard/payout-chart`, {
+        const apiBase = "/backend";
+        const res = await authFetch(`${apiBase}/dashboard/payout-chart`, {
           method: "GET",
           headers,
-          credentials: "include",
           cache: "no-store",
         });
 

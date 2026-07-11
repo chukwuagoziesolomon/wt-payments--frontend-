@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
+import { authFetch } from "@/lib/auth-fetch";
 
 type Period = "week" | "month";
 
@@ -62,10 +63,9 @@ export function AnalyticalTransactionChart() {
         ? localStorage.getItem("authToken") || localStorage.getItem("token")
         : null;
 
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
-    fetch(`${apiBase}/dashboard/analytical-transactions?${params}`, {
+    const apiBase = "/backend";
+    authFetch(`${apiBase}/dashboard/analytical-transactions?${params}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-      credentials: "include",
       cache: "no-store",
     })
       .then((r) => r.json() as Promise<ApiResponse>)

@@ -26,7 +26,6 @@ export default function HeaderModeToggle() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        credentials: "include",
         body: JSON.stringify({ environment: targetEnv }),
       });
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
+import { authFetch } from "@/lib/auth-fetch";
 
 type AssetItem = {
   currency_id: string;
@@ -29,12 +30,12 @@ export function AvailableAssetCard() {
       setLoading(true);
       setError(null);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+        const apiBase = "/backend";
         const token = localStorage.getItem("authToken") || localStorage.getItem("token") || null;
         const headers: Record<string,string> = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const res = await fetch(`${apiBase}/available-assets`, { headers, credentials: "include" });
+        const res = await authFetch(`${apiBase}/available-assets`, { headers });
         const data = await res.json().catch(() => null);
         if (!res.ok) throw new Error((data && data.message) || `Status ${res.status}`);
         if (mounted) setAssets(data.data || []);

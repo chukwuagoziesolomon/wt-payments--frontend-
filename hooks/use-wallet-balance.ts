@@ -26,7 +26,7 @@ export function useWalletBalance(): WalletBalance | null {
       localStorage.getItem("authToken") || localStorage.getItem("token");
     if (!token) return;
 
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+    const apiBase = "/backend";
     const url = `${apiBase}/user/stream?token=${encodeURIComponent(token)}`;
     const es = new EventSource(url);
     esRef.current = es;

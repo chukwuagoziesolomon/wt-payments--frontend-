@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Filter, Search } from "lucide-react";
+import { authFetch } from "@/lib/auth-fetch";
 import { DetailsModal } from "../DetailsModal";
 import { DetailsData } from "@/types";
 
@@ -279,12 +280,11 @@ export function WithdrawalHistoryTable() {
       setLoading(true);
       setError(null);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+        const apiBase = "/backend";
         const token = localStorage.getItem("authToken") || localStorage.getItem("token") || "";
-        const res = await fetch(`${apiBase}/user/withdrawals/history?page=1&limit=20`, {
+        const res = await authFetch(`${apiBase}/user/withdrawals/history?page=1&limit=20`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
-          credentials: "include",
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json?.message || "Failed to load withdrawal history");
