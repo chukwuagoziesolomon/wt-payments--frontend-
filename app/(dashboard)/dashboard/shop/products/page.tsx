@@ -32,6 +32,20 @@ type PaginationMeta = {
   total: number;
 };
 
+function normalizeProduct(product: any): Product {
+  return {
+    uniqueId: product.uniqueId ?? product.id ?? "",
+    name: product.name ?? "",
+    price: Number(product.price ?? 0),
+    currency: product.currency ?? "NGN",
+    description: product.description ?? "",
+    category: product.category ?? "",
+    stock: Number(product.stock ?? 0),
+    images: Array.isArray(product.images) ? product.images : [],
+    isActive: Boolean(product.isActive ?? product.is_active ?? false),
+  };
+}
+
 export default function ProductsPage() {
   const { notify } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
@@ -60,11 +74,18 @@ export default function ProductsPage() {
       });
       const json = await res.json().catch(() => ({}));
 
-      if (res.ok && json.result) {
-        setProducts(json.result.data);
-        setMeta(json.result.meta);
+      const payload = json.result ?? json.data ?? {};
+      const items = Array.isArray(payload.data) ? payload.data : Array.isArray(payload) ? payload : [];
+      const metaData = payload.meta ?? payload;
+
+      if (res.ok) {
+        setProducts(items.map(normalizeProduct));
+        setMeta({
+          currentPage: metaData.current_page ?? metaData.currentPage ?? page,
+          total: metaData.total ?? items.length ?? 0,
+        });
       } else {
-        notify(json.data || "Failed to load products");
+        notify(json.data || json.message || "Failed to load products");
       }
     } catch (err: any) {
       if (err.name !== "AuthExpiredError") {
@@ -107,7 +128,7 @@ export default function ProductsPage() {
         setFormData({ name: "", price: "", description: "", category: "", stock: "" });
         loadProducts();
       } else {
-        notify(json.data || "Failed to save product");
+        notify(json.data || json.message || "Failed to save product");
       }
     } catch (err: any) {
       if (err.name !== "AuthExpiredError") {

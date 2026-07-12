@@ -38,18 +38,96 @@ type Shop = {
   business_name: string;
   subdomain: string;
   shop_url: string;
+  storefront_url?: string;
   description: string;
   logo_url: string | null;
   banner_url: string | null;
   theme_config: Record<string, any>;
   status: "draft" | "published";
   currency: string;
+  shop_type?: string;
+  template?: string;
+  customization_access?: {
+    required: boolean;
+    paid: boolean;
+    paid_at: string | null;
+    payment_reference_id: string | null;
+  };
+  payment_gateway?: {
+    enabled: boolean;
+    payment_link_id: string | null;
+    checkout_url: string | null;
+  };
+  preview?: {
+    url: string;
+    iframe_src: string;
+    is_live: boolean;
+  };
 };
 
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
+
+function ShopPreviewModal({
+  shop,
+  onClose,
+}: {
+  shop: Shop;
+  onClose: () => void;
+}) {
+  const preview = shop.preview;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
+      <div className="w-full max-w-6xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden bg-[#111119] flex flex-col">
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-4 border-b border-white/[0.06]">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Shop Preview</h3>
+            <p className="text-xs text-white/40">Preview your storefront before sharing it publicly.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {preview?.url && (
+              <a
+                href={preview.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-white/[0.05] hover:bg-white/[0.08] transition-all"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open in new tab
+              </a>
+            )}
+            <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.06] transition-all">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-[360px] bg-[#0c0c12]">
+          {preview?.is_live && preview.iframe_src ? (
+            <iframe
+              src={preview.iframe_src}
+              title={`${shop.business_name || "Shop"} preview`}
+              className="w-full h-[70vh] min-h-[360px] border-0"
+            />
+          ) : (
+            <div className="h-full min-h-[360px] flex flex-col items-center justify-center px-6 text-center">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-white/[0.04] border border-white/[0.06]">
+                <Globe className="w-7 h-7 text-white/45" />
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-2">Publish your shop to preview it</h4>
+              <p className="text-sm text-white/45 max-w-md leading-relaxed">
+                This shop preview is not live yet. Once the shop is published, the live storefront will appear here inside the modal.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ─── Create Shop Modal ─── */
 
@@ -62,11 +140,16 @@ function CreateShopModal({
 }) {
   const { notify } = useToast();
   const [creating, setCreating] = useState(false);
+  const [selection, setSelection] = useState<"default" | "customized">("default");
   const [form, setForm] = useState({
     business_name: "",
     subdomain: "",
     description: "",
     currency: "NGN",
+    primaryColor: "#9d8df1",
+    accentColor: "#f59e0b",
+    shop_type: "default",
+    template: "yanga-default",
   });
 
   const autoSlug = (name: string) =>
@@ -99,14 +182,22 @@ function CreateShopModal({
       const res = await authFetch(`${API}/user/shop`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          shop_type: selection === "customized" ? "ai_custom" : "default",
+          template: selection === "customized" ? "yanga-premium" : "yanga-default",
+          theme_config: {
+            primaryColor: form.primaryColor,
+            accentColor: form.accentColor,
+          },
+        }),
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok && json.result) {
         notify("Shop created successfully!");
         onCreate(json.result);
       } else {
-        notify(json.data || "Failed to create shop");
+        notify(json.data || json.message || "Failed to create shop");
       }
     } catch (err: any) {
       if (err.name !== "AuthExpiredError") notify("Error creating shop");
@@ -116,15 +207,15 @@ function CreateShopModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
       <div
-        className="w-full max-w-md rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden"
+        className="w-full max-w-5xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] rounded-3xl border border-white/[0.08] shadow-2xl overflow-y-auto overscroll-contain"
         style={{ background: "linear-gradient(145deg,#1a1a24 0%,#15151f 100%)" }}
       >
         <div className="h-1 w-full" style={{ background: "linear-gradient(90deg,#9d8df1,#5b4dd4,#7c3aed)" }} />
 
-        <div className="flex items-center justify-between px-6 pt-6 pb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 sm:px-6 pt-5 sm:pt-6 pb-4">
+          <div className="flex items-start sm:items-center gap-3">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
               <Store className="w-5 h-5 text-white" />
             </div>
@@ -133,12 +224,68 @@ function CreateShopModal({
               <p className="text-xs text-white/40">Set up your online storefront</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.06] transition-all">
+          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.06] transition-all self-end sm:self-auto">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+        <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-5 sm:pb-6 space-y-4">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Choose Shop Mode</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSelection("default")}
+                className={`relative overflow-hidden rounded-2xl border p-4 text-left transition-all ${selection === "default"
+                  ? "border-[#9d8df1]/70 bg-[#9d8df1]/10 shadow-[0_0_0_1px_rgba(157,141,241,0.25)]"
+                  : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.18] hover:bg-white/[0.05]"}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#9d8df1]/15 text-[#c7bfff] font-semibold text-xs">01</span>
+                      <h3 className="text-sm font-semibold text-white">Default Shop</h3>
+                    </div>
+                    <p className="text-xs text-white/45 leading-relaxed">Launch fast with the base storefront template and standard settings.</p>
+                  </div>
+                  <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                    Free
+                  </span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelection("customized")}
+                className={`relative overflow-hidden rounded-2xl border p-4 text-left transition-all ${selection === "customized"
+                  ? "border-amber-400/70 bg-amber-400/10 shadow-[0_0_0_1px_rgba(251,191,36,0.22)]"
+                  : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.18] hover:bg-white/[0.05]"}`}
+              >
+                <div className="absolute right-3 top-3 rounded-full border border-amber-400/30 bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                  Paid
+                </div>
+                <div className="flex items-start justify-between gap-3 pr-14">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-400/15 text-amber-200 font-semibold text-xs">02</span>
+                      <h3 className="text-sm font-semibold text-white">Customized Shop</h3>
+                    </div>
+                    <p className="text-xs text-white/45 leading-relaxed">Unlock AI styling, premium layout control, and branded customization.</p>
+                  </div>
+                </div>
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[10px] font-medium text-amber-200">
+                  <Sparkles className="w-3 h-3" />
+                  Requires payment to unlock
+                </div>
+              </button>
+            </div>
+            <p className="text-xs text-white/25">
+              {selection === "customized"
+                ? "AI custom mode is premium and requires payment unlock before AI customization features are used."
+                : "Default mode launches the standard shop experience immediately."}
+            </p>
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Business Name *</label>
             <input
@@ -190,6 +337,43 @@ function CreateShopModal({
             </select>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Brand Colors</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                <span className="w-8 h-8 rounded-lg border border-white/10" style={{ background: form.primaryColor }} />
+                <div className="flex-1">
+                  <p className="text-[11px] uppercase tracking-wider text-white/40">Primary</p>
+                  <input
+                    type="color"
+                    value={form.primaryColor}
+                    onChange={(e) => setForm((p) => ({ ...p, primaryColor: e.target.value }))}
+                    className="mt-1 h-8 w-full bg-transparent cursor-pointer"
+                  />
+                </div>
+              </label>
+              <label className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                <span className="w-8 h-8 rounded-lg border border-white/10" style={{ background: form.accentColor }} />
+                <div className="flex-1">
+                  <p className="text-[11px] uppercase tracking-wider text-white/40">Accent</p>
+                  <input
+                    type="color"
+                    value={form.accentColor}
+                    onChange={(e) => setForm((p) => ({ ...p, accentColor: e.target.value }))}
+                    className="mt-1 h-8 w-full bg-transparent cursor-pointer"
+                  />
+                </div>
+              </label>
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl" style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.accentColor})` }} />
+              <div>
+                <p className="text-sm text-white font-medium">Live brand preview</p>
+                <p className="text-xs text-white/35">Your shop button, highlight, and theme accents will use these colors.</p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm font-medium text-white/50 border border-white/[0.08] hover:text-white hover:border-white/20 transition-all">
               Cancel
@@ -198,9 +382,9 @@ function CreateShopModal({
               type="submit"
               disabled={creating}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: creating ? "rgba(91,77,212,0.4)" : "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}
+              style={{ background: creating ? "rgba(91,77,212,0.4)" : selection === "customized" ? "linear-gradient(135deg,#f59e0b,#d97706)" : "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}
             >
-              {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Sparkles className="w-4 h-4" /> Launch Shop</>}
+              {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Sparkles className="w-4 h-4" /> Launch {selection === "customized" ? "AI Custom" : "Default"} Shop</>}
             </button>
           </div>
         </form>
@@ -221,8 +405,14 @@ export default function ShopBuilderPage() {
   const [sending, setSending] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [savingTheme, setSavingTheme] = useState(false);
+  const [themeDraft, setThemeDraft] = useState({
+    primaryColor: "#9d8df1",
+    accentColor: "#f59e0b",
+  });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -231,6 +421,13 @@ export default function ShopBuilderPage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingReply]);
+  useEffect(() => {
+    if (!shop) return;
+    setThemeDraft({
+      primaryColor: shop.theme_config?.primaryColor || "#9d8df1",
+      accentColor: shop.theme_config?.accentColor || "#f59e0b",
+    });
+  }, [shop]);
 
   const loadShopData = async () => {
     setLoading(true);
@@ -278,7 +475,7 @@ export default function ShopBuilderPage() {
       });
       if (!res.ok || !res.body) {
         const json = await res.json().catch(() => ({}));
-        notify(json.data || "Failed to chat with AI");
+        notify(json.data || json.message || "Failed to chat with AI");
         setMessages((prev) => prev.slice(0, -1));
         setSending(false);
         return;
@@ -330,6 +527,35 @@ export default function ShopBuilderPage() {
     }
   };
 
+  const handleSaveTheme = async () => {
+    if (!shop) return;
+    setSavingTheme(true);
+    try {
+      const res = await authFetch(`${API}/user/shop`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          theme_config: {
+            ...(shop.theme_config || {}),
+            primaryColor: themeDraft.primaryColor,
+            accentColor: themeDraft.accentColor,
+          },
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.result) {
+        setShop((prev) => (prev ? { ...prev, ...json.result } : prev));
+        notify("Theme updated");
+      } else {
+        notify(json.data || json.message || "Failed to update theme");
+      }
+    } catch (err: any) {
+      if (err.name !== "AuthExpiredError") notify("Error updating theme");
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
   const handleImageUpload = async (file: File, type: "logo" | "banner", setUploading: (v: boolean) => void) => {
     const maxMB = type === "banner" ? 10 : 5;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { notify("Please upload a JPG, PNG, or WebP image"); return; }
@@ -343,7 +569,7 @@ export default function ShopBuilderPage() {
       if (res.ok && json.result) {
         setShop((prev) => (prev ? { ...prev, ...json.result } : prev));
         notify(`${type === "logo" ? "Logo" : "Banner"} updated!`);
-      } else { notify(json.data || `Failed to upload ${type}`); }
+      } else { notify(json.data || json.message || `Failed to upload ${type}`); }
     } catch (err: any) {
       if (err.name !== "AuthExpiredError") notify(`Error uploading ${type}`);
     } finally {
@@ -377,12 +603,6 @@ export default function ShopBuilderPage() {
   if (!shop) {
     return (
       <div className="min-h-screen bg-[#0e0e10] p-4 sm:p-8">
-        {showCreateModal && (
-          <CreateShopModal
-            onClose={() => setShowCreateModal(false)}
-            onCreate={(newShop) => { setShop(newShop); setShowCreateModal(false); }}
-          />
-        )}
         <div className="max-w-5xl mx-auto pt-8">
           <div className="flex items-center gap-3 mb-12">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
@@ -435,12 +655,34 @@ export default function ShopBuilderPage() {
             </div>
           </div>
         </div>
+
+        {showCreateModal && (
+          <CreateShopModal
+            onClose={() => setShowCreateModal(false)}
+            onCreate={(newShop) => { setShop(newShop); setShowCreateModal(false); }}
+          />
+        )}
       </div>
     );
   }
 
   /* Shop page */
   const themeColor = shop.theme_config?.primaryColor || "#9d8df1";
+  const isCustomizingPaid = Boolean(shop.customization_access?.paid);
+  const customizationRequired = Boolean(shop.customization_access?.required);
+  const hasThemeConfig = Object.keys(shop.theme_config || {}).length > 0;
+  const isAiCustomShop = shop.shop_type === "ai_custom";
+  const chatLocked = isAiCustomShop && customizationRequired && !isCustomizingPaid;
+  // Use best available URL; fall back to constructing from subdomain for shops
+  // created before the backend URL-generation fix
+  const shopPreviewUrl =
+    shop.preview?.url ||
+    shop.storefront_url ||
+    shop.shop_url ||
+    (shop.subdomain ? `http://localhost:3000/shop/${shop.subdomain}` : "");
+  const shopPreviewIframe = shop.preview?.iframe_src || shop.preview?.url || shop.storefront_url || shopPreviewUrl;
+  const isPreviewLive = Boolean(shop.preview?.is_live) || Boolean(shop.storefront_url) || Boolean(shop.shop_url) || Boolean(shop.subdomain);
+  const openCreateModalLabel = shop ? "Launch New Shop" : "Create Shop";
   const suggestions = [
     "Make it look modern and minimal",
     "Use dark blue and gold theme",
@@ -451,6 +693,19 @@ export default function ShopBuilderPage() {
 
   return (
     <div className="min-h-screen bg-[#0e0e10]">
+      {showCreateModal && (
+        <CreateShopModal
+          onClose={() => setShowCreateModal(false)}
+          onCreate={(newShop) => { setShop(newShop); setShowCreateModal(false); }}
+        />
+      )}
+      {showPreviewModal && shop && (
+        <ShopPreviewModal
+          shop={shop}
+          onClose={() => setShowPreviewModal(false)}
+        />
+      )}
+
       <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f, "logo", setUploadingLogo); e.target.value = ""; }} />
       <input ref={bannerInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
@@ -470,7 +725,7 @@ export default function ShopBuilderPage() {
                 >
                   {shop.logo_url
                     ? <img src={shop.logo_url} alt="Logo" className="w-full h-full object-cover" />
-                    : <span className="text-2xl font-black" style={{ color: themeColor }}>{shop.business_name[0]}</span>
+                    : <span className="text-2xl font-black" style={{ color: themeColor }}>{(shop.business_name || "S").charAt(0)}</span>
                   }
                 </div>
                 <button onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}
@@ -492,10 +747,17 @@ export default function ShopBuilderPage() {
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <Globe className="w-3.5 h-3.5 text-white/30" />
-                  <a href={shop.shop_url} target="_blank" rel="noopener noreferrer" className="text-sm text-white/40 hover:text-[#9d8df1] transition-colors flex items-center gap-1 group">
-                    {shop.subdomain}
-                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </a>
+                  {shopPreviewUrl ? (
+                    <a href={shopPreviewUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-white/55 hover:text-[#9d8df1] transition-colors flex items-center gap-1 group break-all">
+                      {shopPreviewUrl}
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </a>
+                  ) : (
+                    <button onClick={loadShopData} className="flex items-center gap-1.5 text-sm text-amber-400/70 hover:text-amber-300 transition-colors">
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Click to refresh shop URL
+                    </button>
+                  )}
                   <span className="text-white/20">·</span>
                   <span className="text-xs text-white/30">{shop.currency}</span>
                 </div>
@@ -518,6 +780,100 @@ export default function ShopBuilderPage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">Shop Builder</p>
+            <h2 className="text-xl font-semibold text-white">Build the default or custom version of your storefront</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href={shopPreviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${isPreviewLive ? "text-white bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20" : "text-white/40 bg-white/[0.04] border border-white/[0.06] pointer-events-none"}`}
+            >
+              <ExternalLink className="w-4 h-4" />
+              {isPreviewLive ? "Open Live Shop" : "Shop Not Live Yet"}
+            </a>
+            <button
+              onClick={() => setShowPreviewModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/[0.05] hover:bg-white/[0.08] transition-all"
+            >
+              <Globe className="w-4 h-4" />
+              Preview Shop
+            </button>
+            <button
+              onClick={loadShopData}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/[0.05] hover:bg-white/[0.08] transition-all"
+              title="Re-fetch shop data to get the latest URL"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02]"
+              style={{ background: `linear-gradient(135deg, ${themeColor}, ${shop.theme_config?.accentColor || "#f59e0b"})`, boxShadow: "0 8px 28px rgba(0,0,0,0.28)" }}
+            >
+              <Plus className="w-4 h-4" />
+              {openCreateModalLabel}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+          <div className="rounded-2xl border border-white/[0.06] p-5 overflow-hidden relative" style={{ background: "linear-gradient(145deg, rgba(157,141,241,0.14), rgba(91,77,212,0.08))" }}>
+            <div className="absolute -right-10 -top-10 w-24 h-24 rounded-full bg-[#9d8df1]/20 blur-2xl" />
+            <p className="text-[10px] uppercase tracking-[0.22em] text-white/45 mb-2">Default Shop</p>
+            <h3 className="text-lg font-semibold text-white mb-1">Base storefront setup</h3>
+            <p className="text-sm text-white/55 leading-relaxed">Uses the default template and launch settings before AI styling is applied.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="px-2.5 py-1 rounded-full text-[11px] bg-white/8 text-white/75 border border-white/10">{shop.shop_type || "default"}</span>
+              <span className="px-2.5 py-1 rounded-full text-[11px] bg-white/8 text-white/75 border border-white/10">{shop.template || "yanga-default"}</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.06] p-5 overflow-hidden relative" style={{ background: "linear-gradient(145deg, rgba(16,185,129,0.12), rgba(15,23,42,0.12))" }}>
+            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-emerald-400/15 blur-2xl" />
+            <p className="text-[10px] uppercase tracking-[0.22em] text-white/45 mb-2">Customized Shop</p>
+            <h3 className="text-lg font-semibold text-white mb-1">AI-shaped storefront</h3>
+            <p className="text-sm text-white/55 leading-relaxed">Theme configuration, banner, and logo updates appear here in real time.</p>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: hasThemeConfig ? "#10b981" : "#f59e0b" }} />
+              <span className="text-xs text-white/70">{hasThemeConfig ? "Customization applied" : "No customization yet"}</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.06] p-5 overflow-hidden relative" style={{ background: "linear-gradient(145deg, rgba(245,158,11,0.14), rgba(239,68,68,0.06))" }}>
+            <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-amber-400/15 blur-2xl" />
+            <p className="text-[10px] uppercase tracking-[0.22em] text-white/45 mb-2">Shop Access</p>
+            <h3 className="text-lg font-semibold text-white mb-1">View your storefront</h3>
+            <p className="text-sm text-white/55 leading-relaxed">Open the public shop URL directly or preview it inside the dashboard modal.</p>
+            <div className="mt-4 flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${isPreviewLive ? "bg-emerald-400" : "bg-amber-400"}`} />
+              <span className="text-xs text-white/70">
+                {isPreviewLive ? "Live and accessible" : "Draft - preview only"}
+              </span>
+            </div>
+            <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-white/35 mb-2">Storefront URL</p>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-white">{shop.subdomain || shop.business_name}</p>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                  <a href={shopPreviewUrl || undefined} target="_blank" rel="noopener noreferrer" className="text-sm text-white/80 hover:text-white break-all font-mono">
+                    {shopPreviewUrl}
+                  </a>
+                  {!shopPreviewUrl && (
+                    <button onClick={loadShopData} className="mt-2 flex items-center gap-2 text-xs text-amber-400 hover:text-amber-300 transition-colors">
+                      <RefreshCw className="w-3.5 h-3.5" /> Click to refresh URL
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
           {/* Left Panel */}
@@ -570,11 +926,56 @@ export default function ShopBuilderPage() {
               }
             </div>
 
+            <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: "#19191d" }}>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(16,185,129,0.12)" }}>
+                  <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-white">Shop Link</h3>
+              </div>
+              <p className="text-xs text-white/35 mb-3">Storefront URL from <code>GET /user/shop</code></p>
+              <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
+                <p className="text-xs text-white/35 mb-2">Your Storefront</p>
+                <p className="text-sm font-semibold text-white mb-1">{shop.subdomain || shop.business_name}</p>
+                <a
+                  href={shopPreviewUrl || undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-sm text-white/80 break-all hover:text-white font-mono"
+                >
+                  {shopPreviewUrl}
+                </a>
+                {!shopPreviewUrl && (
+                  <button onClick={loadShopData} className="mt-2 flex items-center gap-2 text-xs text-amber-400 hover:text-amber-300 transition-colors">
+                    <RefreshCw className="w-3.5 h-3.5" /> Click to refresh URL
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setShowPreviewModal(true)}
+                  className="flex-1 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-white/[0.05] hover:bg-white/[0.08] transition-all"
+                >
+                  Preview in Modal
+                </button>
+                <a
+                  href={shopPreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold text-center transition-all ${isPreviewLive ? "text-white bg-emerald-500/10 hover:bg-emerald-500/15" : "text-white/40 bg-white/[0.04] pointer-events-none"}`}
+                >
+                  Open Shop
+                </a>
+              </div>
+            </div>
+
             {/* Quick stats */}
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: "Messages", value: messages.length, icon: Bot, color: "#9d8df1" },
                 { label: "Currency", value: shop.currency, icon: CreditCard, color: "#10b981" },
+                { label: "Mode", value: shop.status, icon: Store, color: "#f59e0b" },
+                { label: "Gate", value: isCustomizingPaid ? "Unlocked" : "Locked", icon: Zap, color: isCustomizingPaid ? "#10b981" : "#f59e0b" },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div key={label} className="rounded-2xl border border-white/[0.06] p-4" style={{ background: "#19191d" }}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ background: `${color}15` }}>
@@ -587,130 +988,222 @@ export default function ShopBuilderPage() {
             </div>
           </div>
 
-          {/* AI Chat Panel */}
+          {/* Right Panel */}
           <div className="lg:col-span-3">
             <div className="rounded-2xl border border-white/[0.06] flex flex-col overflow-hidden" style={{ background: "#19191d", minHeight: 580 }}>
               {/* Chat header */}
               <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-2xl flex items-center justify-center relative" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)", boxShadow: "0 0 20px rgba(157,141,241,0.3)" }}>
-                    <Sparkles className="w-4 h-4 text-white" />
+                    {isAiCustomShop ? <Sparkles className="w-4 h-4 text-white" /> : <Palette className="w-4 h-4 text-white" />}
                     <div className="absolute -right-0.5 -bottom-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#19191d]" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-white">Shop Assistant</h2>
-                    <p className="text-xs text-white/35">Streaming · Remembers context</p>
+                    <h2 className="text-sm font-semibold text-white">{isAiCustomShop ? "Shop Assistant" : "Theme Editor"}</h2>
+                    <p className="text-xs text-white/35">
+                      {!isAiCustomShop
+                        ? "Update your storefront colors manually"
+                        : chatLocked
+                        ? "Locked until customization payment is completed"
+                        : `Streaming · Remembers context · ${shop.status === "published" ? "Published shop" : "Draft shop"}`}
+                    </p>
                   </div>
                 </div>
-                <button onClick={handleResetMemory} disabled={messages.length === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/[0.05] disabled:opacity-25 disabled:cursor-not-allowed transition-all">
-                  <RefreshCw className="w-3.5 h-3.5" /> Reset
-                </button>
+                {isAiCustomShop ? (
+                  <button onClick={handleResetMemory} disabled={messages.length === 0}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/[0.05] disabled:opacity-25 disabled:cursor-not-allowed transition-all">
+                    <RefreshCw className="w-3.5 h-3.5" /> Reset
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSaveTheme}
+                    disabled={savingTheme}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-25 transition-all"
+                  >
+                    {savingTheme ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Palette className="w-3.5 h-3.5" />} Save Theme
+                  </button>
+                )}
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4" style={{ maxHeight: 420 }}>
-                {messages.length === 0 && !loadingHistory && !streamingReply && (
-                  <div className="text-center py-8 space-y-5">
-                    <div className="w-14 h-14 rounded-3xl mx-auto flex items-center justify-center" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)", boxShadow: "0 0 30px rgba(157,141,241,0.25)" }}>
-                      <Sparkles className="w-7 h-7 text-white" />
+              {!isAiCustomShop ? (
+                <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/35 mb-3">Primary Color</p>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="color"
+                          value={themeDraft.primaryColor}
+                          onChange={(e) => setThemeDraft((prev) => ({ ...prev, primaryColor: e.target.value }))}
+                          className="h-14 w-16 rounded-xl bg-transparent cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-white font-medium">Main brand color</p>
+                          <p className="text-xs text-white/40 font-mono">{themeDraft.primaryColor}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-white font-semibold text-sm mb-1">AI Shop Assistant</p>
-                      <p className="text-white/40 text-xs max-w-xs mx-auto leading-relaxed">
-                        Describe how you want your shop to look and feel. I'll update your theme in real time.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {suggestions.map((s) => (
-                        <button key={s} onClick={() => setInput(s)}
-                          className="text-xs px-3 py-1.5 rounded-full border border-white/[0.07] text-white/40 hover:text-white/80 hover:border-[#9d8df1]/40 hover:bg-[#9d8df1]/[0.06] transition-all">
-                          {s}
-                        </button>
-                      ))}
+                    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/35 mb-3">Accent Color</p>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="color"
+                          value={themeDraft.accentColor}
+                          onChange={(e) => setThemeDraft((prev) => ({ ...prev, accentColor: e.target.value }))}
+                          className="h-14 w-16 rounded-xl bg-transparent cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-white font-medium">Highlight color</p>
+                          <p className="text-xs text-white/40 font-mono">{themeDraft.accentColor}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
 
-                {loadingHistory && (
-                  <div className="flex items-center justify-center gap-2 py-6 text-white/30 text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Loading conversation...
+                  <div className="rounded-3xl border border-white/[0.08] bg-[#12121a] p-6 overflow-hidden relative">
+                    <div className="absolute inset-0 opacity-70" style={{ background: `linear-gradient(135deg, ${themeDraft.primaryColor}22, ${themeDraft.accentColor}14)` }} />
+                    <div className="relative z-10">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/35 mb-4">Live Theme Preview</p>
+                      <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-5">
+                        <div className="flex items-center justify-between mb-5">
+                          <div>
+                            <h3 className="text-lg font-semibold text-white">{shop.business_name || "Your Store"}</h3>
+                            <p className="text-sm text-white/45">A quick look at your storefront styling</p>
+                          </div>
+                          <div className="h-10 w-10 rounded-2xl" style={{ background: `linear-gradient(135deg, ${themeDraft.primaryColor}, ${themeDraft.accentColor})` }} />
+                        </div>
+                        <div className="h-28 rounded-2xl mb-4" style={{ background: `linear-gradient(135deg, ${themeDraft.primaryColor}, ${themeDraft.accentColor})` }} />
+                        <div className="flex gap-3">
+                          <button className="px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: themeDraft.primaryColor }}>Primary Button</button>
+                          <button className="px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: themeDraft.accentColor }}>Accent Button</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-
-                {messages.map((msg, i) => (
-                  <div key={i} className={`flex items-end gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    {msg.role === "assistant" && (
-                      <div className="w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center mb-0.5" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
-                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                </div>
+              ) : chatLocked ? (
+                <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
+                  <div className="w-16 h-16 rounded-3xl mb-5 flex items-center justify-center border border-amber-400/20 bg-amber-400/10">
+                    <Sparkles className="w-7 h-7 text-amber-300" />
+                  </div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-amber-300/80 mb-3">AI Custom Locked</p>
+                  <h3 className="text-2xl font-semibold text-white mb-3">Unlock customization to use the shop assistant</h3>
+                  <p className="text-sm text-white/45 max-w-md leading-relaxed mb-6">
+                    This shop was created in AI custom mode. Complete the customization payment first, then the assistant will unlock for theme generation, layout changes, and brand styling.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+                    <span className="px-3 py-1.5 rounded-full text-xs font-medium border border-amber-400/25 bg-amber-400/10 text-amber-200">Paid feature</span>
+                    <span className="px-3 py-1.5 rounded-full text-xs font-medium border border-white/10 bg-white/[0.04] text-white/60">Shop type: AI custom</span>
+                  </div>
+                  <p className="text-xs text-white/30">AI chat becomes available immediately after unlock is confirmed.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4" style={{ maxHeight: 420 }}>
+                    {messages.length === 0 && !loadingHistory && !streamingReply && (
+                      <div className="text-center py-8 space-y-5">
+                        <div className="w-14 h-14 rounded-3xl mx-auto flex items-center justify-center" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)", boxShadow: "0 0 30px rgba(157,141,241,0.25)" }}>
+                          <Sparkles className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white font-semibold text-sm mb-1">AI Shop Assistant</p>
+                          <p className="text-white/40 text-xs max-w-xs mx-auto leading-relaxed">
+                            Describe how you want your shop to look and feel. I'll update your theme in real time.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {suggestions.map((s) => (
+                            <button key={s} onClick={() => setInput(s)}
+                              className="text-xs px-3 py-1.5 rounded-full border border-white/[0.07] text-white/40 hover:text-white/80 hover:border-[#9d8df1]/40 hover:bg-[#9d8df1]/[0.06] transition-all">
+                              {s}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    <div
-                      className={`max-w-xs sm:max-w-sm text-sm px-4 py-3 rounded-2xl leading-relaxed ${msg.role === "user" ? "rounded-br-sm text-white" : "rounded-bl-sm text-white/85"}`}
-                      style={msg.role === "user"
-                        ? { background: "linear-gradient(135deg,#6d5de8,#4f3dc4)", boxShadow: "0 4px 16px rgba(91,77,212,0.3)" }
-                        : { background: "rgba(255,255,255,0.05)" }}
-                    >
-                      {msg.content}
+
+                    {loadingHistory && (
+                      <div className="flex items-center justify-center gap-2 py-6 text-white/30 text-xs">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Loading conversation...
+                      </div>
+                    )}
+
+                    {messages.map((msg, i) => (
+                      <div key={i} className={`flex items-end gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                        {msg.role === "assistant" && (
+                          <div className="w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center mb-0.5" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
+                            <Sparkles className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        )}
+                        <div
+                          className={`max-w-xs sm:max-w-sm text-sm px-4 py-3 rounded-2xl leading-relaxed ${msg.role === "user" ? "rounded-br-sm text-white" : "rounded-bl-sm text-white/85"}`}
+                          style={msg.role === "user"
+                            ? { background: "linear-gradient(135deg,#6d5de8,#4f3dc4)", boxShadow: "0 4px 16px rgba(91,77,212,0.3)" }
+                            : { background: "rgba(255,255,255,0.05)" }}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
+
+                    {streamingReply && (
+                      <div className="flex items-end gap-2.5 justify-start">
+                        <div className="w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center mb-0.5" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
+                          <Sparkles className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div className="max-w-xs sm:max-w-sm text-sm px-4 py-3 rounded-2xl rounded-bl-sm text-white/85 leading-relaxed" style={{ background: "rgba(255,255,255,0.05)" }}>
+                          {streamingReply}
+                          <span className="inline-block w-1.5 h-[14px] ml-0.5 rounded-sm align-middle animate-pulse" style={{ background: "#9d8df1" }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {sending && !streamingReply && (
+                      <div className="flex items-end gap-2.5 justify-start">
+                        <div className="w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center mb-0.5" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
+                          <Sparkles className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div className="px-4 py-3.5 rounded-2xl rounded-bl-sm flex items-center gap-1.5" style={{ background: "rgba(255,255,255,0.05)" }}>
+                          {[0, 0.2, 0.4].map((d) => (
+                            <span key={d} className="w-2 h-2 rounded-full bg-[#9d8df1] animate-bounce" style={{ animationDelay: `${d}s` }} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Input */}
+                  <div className="border-t px-4 py-4" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+                    <div className="flex items-center gap-2 rounded-2xl px-4 py-1 border transition-all focus-within:border-[#9d8df1]/40"
+                      style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)" }}>
+                      <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !sending && handleSendMessage()}
+                        placeholder="Describe your ideal shop look..."
+                        disabled={sending}
+                        className="flex-1 bg-transparent py-3 text-white text-sm focus:outline-none placeholder:text-white/20 disabled:opacity-50"
+                      />
+                      <button
+                        onClick={handleSendMessage}
+                        disabled={!input.trim() || sending}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white transition-all hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
+                        style={{ background: input.trim() && !sending ? "linear-gradient(135deg,#9d8df1,#5b4dd4)" : "rgba(255,255,255,0.06)" }}
+                      >
+                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mt-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <p className="text-xs text-white/25">AI streams in real time · Theme changes apply instantly</p>
                     </div>
                   </div>
-                ))}
-
-                {streamingReply && (
-                  <div className="flex items-end gap-2.5 justify-start">
-                    <div className="w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center mb-0.5" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
-                      <Sparkles className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <div className="max-w-xs sm:max-w-sm text-sm px-4 py-3 rounded-2xl rounded-bl-sm text-white/85 leading-relaxed" style={{ background: "rgba(255,255,255,0.05)" }}>
-                      {streamingReply}
-                      <span className="inline-block w-1.5 h-[14px] ml-0.5 rounded-sm align-middle animate-pulse" style={{ background: "#9d8df1" }} />
-                    </div>
-                  </div>
-                )}
-
-                {sending && !streamingReply && (
-                  <div className="flex items-end gap-2.5 justify-start">
-                    <div className="w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center mb-0.5" style={{ background: "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}>
-                      <Sparkles className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <div className="px-4 py-3.5 rounded-2xl rounded-bl-sm flex items-center gap-1.5" style={{ background: "rgba(255,255,255,0.05)" }}>
-                      {[0, 0.2, 0.4].map((d) => (
-                        <span key={d} className="w-2 h-2 rounded-full bg-[#9d8df1] animate-bounce" style={{ animationDelay: `${d}s` }} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="border-t px-4 py-4" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
-                <div className="flex items-center gap-2 rounded-2xl px-4 py-1 border transition-all focus-within:border-[#9d8df1]/40"
-                  style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)" }}>
-                  <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !sending && handleSendMessage()}
-                    placeholder="Describe your ideal shop look..."
-                    disabled={sending}
-                    className="flex-1 bg-transparent py-3 text-white text-sm focus:outline-none placeholder:text-white/20 disabled:opacity-50"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!input.trim() || sending}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white transition-all hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
-                    style={{ background: input.trim() && !sending ? "linear-gradient(135deg,#9d8df1,#5b4dd4)" : "rgba(255,255,255,0.06)" }}
-                  >
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </button>
-                </div>
-                <div className="flex items-center justify-center gap-2 mt-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <p className="text-xs text-white/25">AI streams in real time · Theme changes apply instantly</p>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>

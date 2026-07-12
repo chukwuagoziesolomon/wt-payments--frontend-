@@ -1,6 +1,5 @@
 
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { RiDashboardLine, RiWalletLine, RiMoneyDollarCircleLine, RiSettings3Line, RiBankCardLine, RiCoinsLine, RiStoreLine, RiArchiveLine, RiFileHistoryLine } from "@remixicon/react";
@@ -24,7 +23,7 @@ export default function AppSidebar() {
     <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
       <div className="flex flex-col gap-2 px-4 pt-6 pb-2">
         <div className="flex items-center mb-2 justify-center">
-          <Image src="/images/logo.svg" alt="zedify" width={56} height={56} />
+          <img src="/images/logo.svg" alt="zedify" className="w-14 h-14 object-contain" />
         </div>
         <div className="border-b border-[#23232b] w-full mb-2" />
         <div className="text-xs text-[#b0b0c3] leading-none">zedify</div>
