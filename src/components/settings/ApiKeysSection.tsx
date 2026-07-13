@@ -70,7 +70,7 @@ export default function ApiKeysSection({ environment }: { environment: "test" | 
     setRequiresVerification(false);
     try {
       const res = await authFetch(
-        `${API}/api/user/settings/api-key?environment=${environment.toUpperCase()}`,
+        `${API}/user/settings/api-key?environment=${environment.toUpperCase()}`,
         { headers: authHeaders() }
       );
       const json = await res.json().catch(() => ({}));
@@ -116,7 +116,7 @@ export default function ApiKeysSection({ environment }: { environment: "test" | 
     setGenerating(true);
     try {
       const res = await authFetch(
-        `${API}/api/user/settings/api-key?environment=${environment.toUpperCase()}`,
+        `${API}/user/settings/api-key?environment=${environment.toUpperCase()}`,
         {
           method: "POST",
           headers: authHeaders(),

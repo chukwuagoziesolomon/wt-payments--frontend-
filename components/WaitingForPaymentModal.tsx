@@ -72,7 +72,7 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
     if (!open || !paymentData) return;
 
     const token = getStoredToken();
-    const es = new EventSource(`/backend/api/payments/stream?token=${encodeURIComponent(token)}`);
+    const es = new EventSource(`/backend/payments/stream?token=${encodeURIComponent(token)}`);
 
     const handler = (e: MessageEvent) => {
       try {
