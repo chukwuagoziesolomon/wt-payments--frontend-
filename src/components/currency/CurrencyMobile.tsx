@@ -4,11 +4,19 @@ import React from "react";
 import { Copy, Search, Loader2, AlertCircle } from "lucide-react";
 import type { AssetItem } from "@/app/(dashboard)/dashboard/currency/page";
 import { useToast } from "@/components/ui/ToastProvider";
+import { usePrices } from "@/lib/usePrices";
 
 function truncateAddress(addr?: string) {
   if (!addr) return null;
   if (addr.length <= 18) return addr;
   return `${addr.slice(0, 10)}…${addr.slice(-6)}`;
+}
+
+function formatRate(value: number | undefined): string {
+  if (value == null) return "—";
+  if (value >= 1) return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (value >= 0.01) return `$${value.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 })}`;
 }
 
 type Props = {
@@ -21,6 +29,7 @@ type Props = {
 
 export function CurrencyMobile({ assets, loading, error, search, onSearchChange }: Props) {
   const { notify } = useToast();
+  const { getPrice, loading: pricesLoading } = usePrices();
 
   const handleCopy = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -74,6 +83,8 @@ export function CurrencyMobile({ assets, loading, error, search, onSearchChange 
           {assets.map((asset) => {
             const active = asset.is_active !== false;
             const address = asset.network?.contract_address;
+            const livePrice = getPrice(asset.crypto.symbol);
+            const displayRate = livePrice ?? asset.crypto.ratePerUsd;
             return (
               <div
                 key={asset.currency_id}
@@ -111,9 +122,9 @@ export function CurrencyMobile({ assets, loading, error, search, onSearchChange 
                       <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-emerald-400" : "bg-zinc-500"}`} />
                       {active ? "Active" : "Inactive"}
                     </span>
-                    {asset.crypto.ratePerUsd != null && (
+                    {displayRate != null && (
                       <span className="text-xs text-white/60 font-mono">
-                        ${asset.crypto.ratePerUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                        {pricesLoading ? "..." : formatRate(displayRate)}
                       </span>
                     )}
                   </div>

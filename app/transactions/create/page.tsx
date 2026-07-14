@@ -27,6 +27,11 @@ const ASSETS = [
   { label: "RUSD", value: "RUSD", icon: "/images/rusd.png" },
 ];
 
+const ASSET_ICON_MAP: Record<string, string> = {
+  CKB: "/images/ckb.png",
+  RUSD: "/images/rusd.png",
+};
+
 export default function CreateTransactionPage() {
   const router = useRouter();
   const { notify } = useToast();
@@ -167,7 +172,21 @@ export default function CreateTransactionPage() {
             <div>
               <label className="block text-sm text-muted-foreground mb-2">Blockchain</label>
               <div className="rounded-md border border-border p-4 flex items-center gap-2 bg-[#19191d]">
-                <img src="/images/ckb.png" alt="CKB Fiber" className="w-6 h-6 rounded-full" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <img
+                  src="/images/ckb.png"
+                  alt="CKB Fiber"
+                  className="w-6 h-6 rounded-full"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    const fallbacks = ["/images/ckb.png", "/images/usdtasset.png", "/images/usdcbase.png"]
+                    const current = fallbacks.findIndex(f => target.src.includes(f))
+                    if (current >= 0 && current < fallbacks.length - 1) {
+                      target.src = fallbacks[current + 1]
+                    } else {
+                      target.style.display = "none"
+                    }
+                  }}
+                />
                 <span className="font-medium">Fiber Network (CKB)</span>
               </div>
             </div>
@@ -180,9 +199,21 @@ export default function CreateTransactionPage() {
                 onClick={() => setAssetDropdownOpen(o => !o)}
               >
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex w-6 h-6 rounded-full bg-[#6c5dd3] items-center justify-center text-white text-[9px] font-bold">
-                    {asset.slice(0, 3)}
-                  </span>
+                  <img
+                    src={ASSET_ICON_MAP[asset.toUpperCase()] || "/images/usdcbase.png"}
+                    alt={asset}
+                    className="w-6 h-6 rounded-full"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      const fallbacks = ["/images/ckb.png", "/images/usdtasset.png", "/images/usdcbase.png"]
+                      const current = fallbacks.findIndex(f => target.src.includes(f))
+                      if (current >= 0 && current < fallbacks.length - 1) {
+                        target.src = fallbacks[current + 1]
+                      } else {
+                        target.style.display = "none"
+                      }
+                    }}
+                  />
                   <span className="font-medium">{asset}</span>
                   {availableAssets.find(a => a.symbol === asset) && (
                     <span className="text-muted-foreground text-xs">
@@ -195,8 +226,8 @@ export default function CreateTransactionPage() {
               {assetDropdownOpen && (
                 <div className="absolute z-10 w-full mt-1 rounded-md border border-border bg-[#19191d] shadow-lg">
                   {(availableAssets.length > 0
-                    ? availableAssets.map(a => ({ label: a.name || a.symbol, value: a.symbol, sub: `${a.amount.toLocaleString()} ${a.symbol}` }))
-                    : ASSETS.map(a => ({ label: a.label, value: a.value, sub: "" }))
+                    ? availableAssets.map(a => ({ label: a.name || a.symbol, value: a.symbol, sub: `${a.amount.toLocaleString()} ${a.symbol}`, icon: ASSET_ICON_MAP[a.symbol.toUpperCase()] || "/images/usdcbase.png" }))
+                    : ASSETS.map(a => ({ label: a.label, value: a.value, sub: "", icon: a.icon }))
                   ).map(a => (
                     <button
                       key={a.value}
@@ -204,9 +235,21 @@ export default function CreateTransactionPage() {
                       className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[#23243a] transition-colors text-left"
                       onClick={() => { setAsset(a.value); setAssetDropdownOpen(false); }}
                     >
-                      <span className="inline-flex w-5 h-5 rounded-full bg-[#6c5dd3] items-center justify-center text-white text-[8px] font-bold">
-                        {a.value.slice(0, 3)}
-                      </span>
+                      <img
+                        src={a.icon}
+                        alt={a.label}
+                        className="w-5 h-5 rounded-full"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          const fallbacks = ["/images/ckb.png", "/images/usdtasset.png", "/images/usdcbase.png"]
+                          const current = fallbacks.findIndex(f => target.src.includes(f))
+                          if (current >= 0 && current < fallbacks.length - 1) {
+                            target.src = fallbacks[current + 1]
+                          } else {
+                            target.style.display = "none"
+                          }
+                        }}
+                      />
                       <span className="text-white font-medium flex-1">{a.label}</span>
                       {a.sub && <span className="text-muted-foreground text-xs">{a.sub}</span>}
                     </button>
