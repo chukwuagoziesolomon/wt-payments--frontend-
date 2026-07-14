@@ -47,6 +47,7 @@ type Shop = {
   currency: string;
   shop_type?: string;
   template?: string;
+  features?: Record<string, any>;
   customization_access?: {
     required: boolean;
     paid: boolean;
@@ -63,6 +64,7 @@ type Shop = {
     iframe_src: string;
     is_live: boolean;
   };
+  created_at?: string;
 };
 
 type Message = {
@@ -152,6 +154,14 @@ function CreateShopModal({
     template: "yanga-default",
   });
 
+  const templates = [
+    { value: "yanga-default", label: "Default Shop", desc: "Basic storefront with essential features" },
+    { value: "fashion-store", label: "Fashion Store", desc: "Optimized for fashion/apparel with lookbooks" },
+    { value: "digital-goods", label: "Digital Goods", desc: "For digital products and online services" },
+    { value: "service-booking", label: "Service Booking", desc: "For service-based businesses" },
+    { value: "ai-custom", label: "AI Custom", desc: "Fully AI-generated custom storefront", paid: true },
+  ];
+
   const autoSlug = (name: string) =>
     name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 40);
 
@@ -173,6 +183,16 @@ function CreateShopModal({
     }));
   };
 
+  const handleTemplateChange = (templateValue: string) => {
+    const isCustom = templateValue === "ai-custom";
+    setForm((prev) => ({
+      ...prev,
+      template: templateValue,
+      shop_type: isCustom ? "ai_custom" : "default",
+    }));
+    setSelection(isCustom ? "customized" : "default");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.business_name.trim()) { notify("Business name is required"); return; }
@@ -183,9 +203,12 @@ function CreateShopModal({
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({
-          ...form,
-          shop_type: selection === "customized" ? "ai_custom" : "default",
-          template: selection === "customized" ? "yanga-premium" : "yanga-default",
+          business_name: form.business_name,
+          subdomain: form.subdomain,
+          description: form.description,
+          currency: form.currency,
+          template: form.template,
+          shop_type: form.shop_type,
           theme_config: {
             primaryColor: form.primaryColor,
             accentColor: form.accentColor,
@@ -231,56 +254,43 @@ function CreateShopModal({
 
         <form onSubmit={handleSubmit} className="px-4 sm:px-6 pb-5 sm:pb-6 space-y-4">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Choose Shop Mode</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setSelection("default")}
-                className={`relative overflow-hidden rounded-2xl border p-4 text-left transition-all ${selection === "default"
-                  ? "border-[#9d8df1]/70 bg-[#9d8df1]/10 shadow-[0_0_0_1px_rgba(157,141,241,0.25)]"
-                  : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.18] hover:bg-white/[0.05]"}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#9d8df1]/15 text-[#c7bfff] font-semibold text-xs">01</span>
-                      <h3 className="text-sm font-semibold text-white">Default Shop</h3>
+            <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Choose Template</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {templates.map((tpl) => {
+                const active = form.template === tpl.value;
+                return (
+                  <button
+                    key={tpl.value}
+                    type="button"
+                    onClick={() => handleTemplateChange(tpl.value)}
+                    className={`relative overflow-hidden rounded-2xl border p-4 text-left transition-all ${
+                      active
+                        ? tpl.paid
+                          ? "border-amber-400/70 bg-amber-400/10 shadow-[0_0_0_1px_rgba(251,191,36,0.22)]"
+                          : "border-[#9d8df1]/70 bg-[#9d8df1]/10 shadow-[0_0_0_1px_rgba(157,141,241,0.25)]"
+                        : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.18] hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    {tpl.paid && (
+                      <span className="absolute right-3 top-3 rounded-full border border-amber-400/30 bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                        Paid
+                      </span>
+                    )}
+                    <div className="flex items-start gap-2.5">
+                      <span className={`inline-flex h-8 w-8 items-center justify-center rounded-xl text-xs font-semibold ${active ? (tpl.paid ? "bg-amber-400/15 text-amber-200" : "bg-[#9d8df1]/15 text-[#c7bfff]") : "bg-white/[0.06] text-white/60"}`}>
+                        {templates.indexOf(tpl) + 1}
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">{tpl.label}</h3>
+                        <p className="text-xs text-white/45 leading-relaxed mt-0.5">{tpl.desc}</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-white/45 leading-relaxed">Launch fast with the base storefront template and standard settings.</p>
-                  </div>
-                  <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-                    Free
-                  </span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelection("customized")}
-                className={`relative overflow-hidden rounded-2xl border p-4 text-left transition-all ${selection === "customized"
-                  ? "border-amber-400/70 bg-amber-400/10 shadow-[0_0_0_1px_rgba(251,191,36,0.22)]"
-                  : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.18] hover:bg-white/[0.05]"}`}
-              >
-                <div className="absolute right-3 top-3 rounded-full border border-amber-400/30 bg-amber-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
-                  Paid
-                </div>
-                <div className="flex items-start justify-between gap-3 pr-14">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-400/15 text-amber-200 font-semibold text-xs">02</span>
-                      <h3 className="text-sm font-semibold text-white">Customized Shop</h3>
-                    </div>
-                    <p className="text-xs text-white/45 leading-relaxed">Unlock AI styling, premium layout control, and branded customization.</p>
-                  </div>
-                </div>
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[10px] font-medium text-amber-200">
-                  <Sparkles className="w-3 h-3" />
-                  Requires payment to unlock
-                </div>
-              </button>
+                  </button>
+                );
+              })}
             </div>
             <p className="text-xs text-white/25">
-              {selection === "customized"
+              {form.template === "ai-custom"
                 ? "AI custom mode is premium and requires payment unlock before AI customization features are used."
                 : "Default mode launches the standard shop experience immediately."}
             </p>
@@ -384,7 +394,7 @@ function CreateShopModal({
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: creating ? "rgba(91,77,212,0.4)" : selection === "customized" ? "linear-gradient(135deg,#f59e0b,#d97706)" : "linear-gradient(135deg,#9d8df1,#5b4dd4)" }}
             >
-              {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Sparkles className="w-4 h-4" /> Launch {selection === "customized" ? "AI Custom" : "Default"} Shop</>}
+              {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><Sparkles className="w-4 h-4" /> Create {templates.find(t => t.value === form.template)?.label || "Shop"}</>}
             </button>
           </div>
         </form>

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { authFetch } from "@/lib/auth-fetch";
-import { Plus, Edit2, Trash2, Image, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit2, Trash2, Image, ChevronLeft, ChevronRight, Upload, X, Loader2 } from "lucide-react";
 
 const API = "/backend";
 
@@ -25,11 +25,16 @@ type Product = {
   stock: number;
   images: Array<{ url: string; publicId: string }>;
   isActive: boolean;
+  product_type?: string;
+  trackStock?: boolean;
+  variants?: Record<string, any>;
 };
 
 type PaginationMeta = {
   currentPage: number;
   total: number;
+  perPage: number;
+  lastPage: number;
 };
 
 function normalizeProduct(product: any): Product {
@@ -43,30 +48,33 @@ function normalizeProduct(product: any): Product {
     stock: Number(product.stock ?? 0),
     images: Array.isArray(product.images) ? product.images : [],
     isActive: Boolean(product.isActive ?? product.is_active ?? false),
+    product_type: product.product_type ?? product.productType ?? "physical",
+    trackStock: Boolean(product.trackStock ?? product.track_stock ?? true),
+    variants: product.variants ?? {},
   };
 }
 
 export default function ProductsPage() {
   const { notify } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta>({ currentPage: 1, total: 0 });
+  const [meta, setMeta] = useState<PaginationMeta>({ currentPage: 1, total: 0, perPage: 20, lastPage: 1 });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     description: "",
     category: "",
     stock: "",
+    product_type: "physical",
+    track_stock: true,
+    variants: "",
   });
 
-  useEffect(() => {
-    loadProducts();
-  }, [page]);
-
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await authFetch(`${API}/user/shop/products?page=${page}&limit=12`, {
@@ -83,6 +91,8 @@ export default function ProductsPage() {
         setMeta({
           currentPage: metaData.current_page ?? metaData.currentPage ?? page,
           total: metaData.total ?? items.length ?? 0,
+          perPage: metaData.per_page ?? metaData.perPage ?? 12,
+          lastPage: metaData.last_page ?? metaData.lastPage ?? 1,
         });
       } else {
         notify(json.data || json.message || "Failed to load products");
@@ -94,7 +104,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, notify]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,16 +121,29 @@ export default function ProductsPage() {
     const url = editingId ? `${API}/user/shop/products/${editingId}` : `${API}/user/shop/products`;
 
     try {
+      const body: Record<string, any> = {
+        name: formData.name,
+        price: parseFloat(formData.price),
+        description: formData.description,
+        category: formData.category,
+        stock: parseInt(formData.stock) || 0,
+        product_type: formData.product_type,
+        track_stock: formData.track_stock,
+      };
+
+      if (formData.variants.trim()) {
+        try {
+          body.variants = JSON.parse(formData.variants);
+        } catch {
+          notify("Invalid JSON for variants");
+          return;
+        }
+      }
+
       const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({
-          name: formData.name,
-          price: parseFloat(formData.price),
-          description: formData.description,
-          category: formData.category,
-          stock: parseInt(formData.stock) || 0,
-        }),
+        body: JSON.stringify(body),
       });
 
       const json = await res.json().catch(() => ({}));
@@ -125,7 +152,7 @@ export default function ProductsPage() {
         notify(editingId ? "Product updated!" : "Product created!");
         setShowForm(false);
         setEditingId(null);
-        setFormData({ name: "", price: "", description: "", category: "", stock: "" });
+        setFormData({ name: "", price: "", description: "", category: "", stock: "", product_type: "physical", track_stock: true, variants: "" });
         loadProducts();
       } else {
         notify(json.data || json.message || "Failed to save product");
@@ -159,6 +186,48 @@ export default function ProductsPage() {
     }
   };
 
+  const handleImageUpload = async (productId: string, file: File) => {
+    setUploadingImage(true);
+    try {
+      const form = new FormData();
+      form.append("images", file);
+      const res = await authFetch(`${API}/user/shop/products/${productId}/images`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: form,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.result) {
+        notify("Image uploaded!");
+        loadProducts();
+      } else {
+        notify(json.data || json.message || "Failed to upload image");
+      }
+    } catch (err: any) {
+      if (err.name !== "AuthExpiredError") notify("Error uploading image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleDeleteImage = async (productId: string, publicId: string) => {
+    if (!confirm("Delete this image?")) return;
+    try {
+      const res = await authFetch(`${API}/user/shop/products/${productId}/images/${encodeURIComponent(publicId)}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        notify("Image deleted");
+        loadProducts();
+      } else {
+        notify("Failed to delete image");
+      }
+    } catch (err: any) {
+      if (err.name !== "AuthExpiredError") notify("Error deleting image");
+    }
+  };
+
   const handleEdit = (product: Product) => {
     setFormData({
       name: product.name,
@@ -166,6 +235,9 @@ export default function ProductsPage() {
       description: product.description || "",
       category: product.category || "",
       stock: product.stock.toString(),
+      product_type: product.product_type || "physical",
+      track_stock: product.trackStock ?? true,
+      variants: product.variants ? JSON.stringify(product.variants, null, 2) : "",
     });
     setEditingId(product.uniqueId);
     setShowForm(true);
@@ -184,7 +256,7 @@ export default function ProductsPage() {
             onClick={() => {
               setShowForm(!showForm);
               if (showForm) setEditingId(null);
-              setFormData({ name: "", price: "", description: "", category: "", stock: "" });
+              setFormData({ name: "", price: "", description: "", category: "", stock: "", product_type: "physical", track_stock: true, variants: "" });
             }}
             className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white hover:shadow-lg transition-all"
           >
@@ -239,6 +311,27 @@ export default function ProductsPage() {
                     placeholder="50"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-2">Product Type</label>
+                  <select
+                    value={formData.product_type}
+                    onChange={(e) => setFormData({ ...formData, product_type: e.target.value })}
+                    className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#9d8df1]"
+                  >
+                    <option value="physical">Physical</option>
+                    <option value="digital">Digital</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-3 pt-6">
+                  <input
+                    id="track_stock"
+                    type="checkbox"
+                    checked={formData.track_stock}
+                    onChange={(e) => setFormData({ ...formData, track_stock: e.target.checked })}
+                    className="h-4 w-4 rounded border-[#23242A] bg-[#11111a] text-[#9d8df1] focus:ring-[#9d8df1]"
+                  />
+                  <label htmlFor="track_stock" className="text-sm text-muted-foreground">Track stock</label>
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">Description</label>
@@ -250,13 +343,23 @@ export default function ProductsPage() {
                   placeholder="Product description..."
                 />
               </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Variants (JSON, optional)</label>
+                <textarea
+                  value={formData.variants}
+                  onChange={(e) => setFormData({ ...formData, variants: e.target.value })}
+                  className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-[#9d8df1] resize-none font-mono text-xs"
+                  rows={3}
+                  placeholder='{ "sizes": ["S", "M", "L"], "colors": ["Red", "Blue"] }'
+                />
+              </div>
               <div className="flex gap-3 justify-end pt-4 border-t border-[#23242A]">
                 <button
                   type="button"
                   onClick={() => {
                     setShowForm(false);
                     setEditingId(null);
-                    setFormData({ name: "", price: "", description: "", category: "", stock: "" });
+                    setFormData({ name: "", price: "", description: "", category: "", stock: "", product_type: "physical", track_stock: true, variants: "" });
                   }}
                   className="px-6 py-2.5 rounded-lg font-semibold border border-[#23242A] text-muted-foreground hover:text-white hover:border-[#9d8df1] transition-colors"
                 >
@@ -334,6 +437,45 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
+                    {/* Product type & stock tracking */}
+                    <div className="flex items-center gap-2 mb-3 text-xs text-white/50">
+                      <span className="px-2 py-1 rounded-full border border-white/[0.08] bg-white/[0.03] capitalize">{product.product_type || "physical"}</span>
+                      <span className={`px-2 py-1 rounded-full border ${product.trackStock ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-white/[0.08] bg-white/[0.03] text-white/50"}`}>
+                        {product.trackStock ? "Tracking stock" : "Stock untracked"}
+                      </span>
+                    </div>
+
+                    {/* Image thumbnails */}
+                    {product.images.length > 0 && (
+                      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+                        {product.images.map((img) => (
+                          <div key={img.publicId} className="relative flex-shrink-0">
+                            <img src={img.url} alt="" className="h-12 w-12 rounded-lg object-cover border border-white/[0.08]" />
+                            <button
+                              onClick={() => handleDeleteImage(product.uniqueId, img.publicId)}
+                              className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center"
+                              title="Delete image"
+                            >
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                        <label className="h-12 w-12 rounded-lg border border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-[#9d8df1] transition-colors flex-shrink-0">
+                          <Upload className="h-4 w-4 text-white/40" />
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleImageUpload(product.uniqueId, f);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
+                    )}
+
                     {/* Status Badge */}
                     <div className="mb-4">
                       <span
@@ -385,7 +527,7 @@ export default function ProductsPage() {
                   </button>
                   <button
                     onClick={() => setPage(page + 1)}
-                    disabled={page >= Math.ceil(meta.total / 12)}
+                    disabled={page >= meta.lastPage}
                     className="p-2 rounded-lg border border-[#23242A] text-muted-foreground hover:border-[#9d8df1] hover:text-white transition-colors disabled:opacity-50"
                   >
                     <ChevronRight className="w-4 h-4" />

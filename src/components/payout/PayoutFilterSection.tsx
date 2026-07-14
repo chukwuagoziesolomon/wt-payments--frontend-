@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,14 +15,97 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Icons from "@/components/icons";
-import { ChevronDown, Filter, Eye } from "lucide-react";
+import { ChevronDown, Filter, Eye, Loader2 } from "lucide-react";
+import { authFetch } from "@/lib/auth-fetch";
+import { useToast } from "@/components/ui/ToastProvider";
+
+const API = "/backend";
+
+type PayoutSettings = {
+  type: string;
+  network_id: string | null;
+  wallet_address: string | null;
+  currency_id: string | null;
+  bank_account_no: string;
+  bank_name: string;
+  account_name: string;
+  bank_code: string;
+};
+
+function getToken() {
+  return typeof window !== "undefined" ? (localStorage.getItem("authToken") || localStorage.getItem("token") || "") : "";
+}
 
 export function PayoutFilterSection() {
+  const { notify } = useToast();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState<PayoutSettings | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const loadSettings = async () => {
+    setLoadingSettings(true);
+    try {
+      const res = await authFetch(`${API}/user/settings/payout`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.data) {
+        setSettings(json.data);
+      } else {
+        notify(json.data || "Failed to load payout settings");
+      }
+    } catch (err: any) {
+      if (err.name !== "AuthExpiredError") notify("Error loading payout settings");
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const formData = new FormData(e.currentTarget);
+      const payload = {
+        type: settings?.type || "FIAT",
+        bank_account_no: formData.get("bank_account_no")?.toString() || settings?.bank_account_no || "",
+        bank_name: formData.get("bank_name")?.toString() || settings?.bank_name || "",
+        account_name: formData.get("account_name")?.toString() || settings?.account_name || "",
+        bank_code: formData.get("bank_code")?.toString() || settings?.bank_code || "",
+      };
+
+      const res = await authFetch(`${API}/user/settings/payout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        notify("Payout details updated successfully!");
+        setSettingsOpen(false);
+      } else {
+        notify(json.data || "Failed to save payout settings");
+      }
+    } catch (err: any) {
+      if (err.name !== "AuthExpiredError") notify("Error saving payout settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openSettings = () => {
+    loadSettings();
+    setSettingsOpen(true);
+  };
+
   return (
     <div className="bg-background border border-border rounded-lg p-4 mb-6">
       <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Mobile-only: simple left filter icon and right payout button */}
         <div className="w-full flex items-center justify-between md:hidden">
           <Button
             variant="ghost"
@@ -29,13 +118,13 @@ export function PayoutFilterSection() {
           <Button
             variant="outline"
             className="bg-background border-border text-foreground hover:bg-accent"
+            onClick={openSettings}
           >
             <Icons.settingsIcon className="w-4 h-4 mr-2" />
             Payout Setting
           </Button>
         </div>
 
-        {/* Mobile collapsible panel: shows hidden controls when filter is toggled */}
         <div className={`md:hidden mt-3 ${mobileOpen ? '' : 'hidden'}`}>
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
@@ -98,7 +187,6 @@ export function PayoutFilterSection() {
             </div>
           </div>
         </div>
-        {/* Filter Section */}
         <div className="hidden md:flex items-center gap-4 flex-wrap min-w-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -171,9 +259,7 @@ export function PayoutFilterSection() {
           </DropdownMenu>
         </div>
 
-        {/* Right Section */}
         <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-          {/* Eye/View Toggle Button */}
           <Button
             variant="ghost"
             size="icon"
@@ -182,16 +268,73 @@ export function PayoutFilterSection() {
             <Eye className="w-4 h-4" />
           </Button>
 
-          {/* Payout Setting Button */}
           <Button
             variant="outline"
             className="bg-background border-border text-foreground hover:bg-accent"
+            onClick={openSettings}
           >
             <Icons.settingsIcon className="w-4 h-4 mr-2" />
             Payout Setting
           </Button>
         </div>
       </div>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Payout Settings</DialogTitle>
+          </DialogHeader>
+          {loadingSettings ? (
+            <div className="py-8 flex items-center justify-center text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Loading settings...
+            </div>
+          ) : (
+            <form onSubmit={handleSaveSettings} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Account Name</label>
+                <input
+                  name="account_name"
+                  defaultValue={settings?.account_name || ""}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Bank Name</label>
+                <input
+                  name="bank_name"
+                  defaultValue={settings?.bank_name || ""}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Account Number</label>
+                <input
+                  name="bank_account_no"
+                  defaultValue={settings?.bank_account_no || ""}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Bank Code</label>
+                <input
+                  name="bank_code"
+                  defaultValue={settings?.bank_code || ""}
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)} disabled={saving}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
