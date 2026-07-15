@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 
 type PricesData = Record<string, number>;
 
@@ -27,7 +27,7 @@ export function usePrices(symbols: string[] = DEFAULT_SYMBOLS, pollIntervalMs = 
   const mountedRef = useRef(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const symbolsCsv = Array.from(new Set(symbols)).join(",");
+  const symbolsCsv = useMemo(() => Array.from(new Set(symbols)).join(","), [symbols]);
 
   const fetchPrices = useCallback(async () => {
     try {
