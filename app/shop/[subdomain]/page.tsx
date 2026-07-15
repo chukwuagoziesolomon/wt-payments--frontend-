@@ -342,19 +342,19 @@ export default function StorefrontPage() {
                        </a>
                      )}
 
-                     {product.is_active && product.stock > 0 && (
-                       <button
-                         onClick={() => addToCart(product)}
-                         disabled={addingId === product.id}
-                         className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold text-white border border-white/10 hover:border-white/25 transition-all disabled:opacity-50"
-                       >
-                         {addingId === product.id ? (
-                           <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Adding...</>
-                         ) : (
-                           <><Plus className="w-3.5 h-3.5" /> Add to Cart</>
-                         )}
-                       </button>
-                     )}
+                      {product.stock > 0 && (
+                        <button
+                          onClick={() => addToCart(product)}
+                          disabled={addingId === product.id}
+                          className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold text-white border border-white/10 hover:border-white/25 transition-all disabled:opacity-50"
+                        >
+                          {addingId === product.id ? (
+                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Adding...</>
+                          ) : (
+                            <><Plus className="w-3.5 h-3.5" /> Add to Cart</>
+                          )}
+                        </button>
+                      )}
                    </div>
                  </div>
                ))}
