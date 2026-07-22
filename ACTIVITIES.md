@@ -9,6 +9,17 @@
 - Fixed double `/api/` path bugs in `src/components/settings/ApiKeysSection.tsx`, `src/components/settings/WebhooksSection.tsx`, and `components/WaitingForPaymentModal.tsx` SSE URL
 - Created `app/api/user/prices/route.ts` proxy and `lib/usePrices.ts` hook for 60-second live price polling
 - Fixed "Add to Cart" button not showing in shopfront by removing `product.is_active` gating in `app/shop/[subdomain]/page.tsx`
+- Fixed storefront cart "View Cart" button to redirect unauthenticated customers to `/login` instead of navigating to dashboard-only `/cart` route
+
+## Guest Checkout
+- Made storefront cart fully usable without auth: `addToCart`, `updateCartItem`, `removeCartItem` now use localStorage guest cart when no token is present
+- Wired storefront "View Cart" button to public `/checkout` page instead of `/dashboard/cart`
+- Created guest checkout page at `app/checkout/page.tsx` with cart review, guest details form, and crypto checkout flow
+- Guest checkout calls public backend endpoints without auth: `/backend/cart/checkout` and `/backend/cart/wallet`
+- Created Next.js proxy routes `app/api/cart/checkout/route.ts` and `app/api/cart/wallet/route.ts` forwarding to backend public guest endpoints
+- Guest checkout sends `customer_email`, `items` with `product_id`, `quantity`, `price`, `shopId`, and wallet request uses `reference_id` per new backend contract
+- Added success redirect and cart cleanup on payment completion
+- Storefront guest cart now stores `shop_id` on each item so checkout includes `shopId` in the items payload
 
 ## Product Management
 - Added image upload UI to the Create/Edit Product form in `app/(dashboard)/dashboard/shop/products/page.tsx`
