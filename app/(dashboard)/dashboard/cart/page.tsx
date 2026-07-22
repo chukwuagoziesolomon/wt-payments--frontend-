@@ -4,10 +4,23 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Loader2, CreditCard, Wallet, ChevronDown } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingBag,
+  ArrowRight,
+  Loader2,
+  CreditCard,
+  Wallet,
+  ChevronDown,
+} from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/components/ui/ToastProvider";
-import { WaitingForPaymentModal, type PaymentIntentData } from "@/components/WaitingForPaymentModal";
+import {
+  WaitingForPaymentModal,
+  type PaymentIntentData,
+} from "@/components/WaitingForPaymentModal";
 import { useCartStream } from "@/lib/useCartStream";
 
 const API = "/backend";
@@ -32,7 +45,9 @@ type CheckoutResult = {
 };
 
 function getToken() {
-  return typeof window !== "undefined" ? (localStorage.getItem("authToken") || localStorage.getItem("token") || "") : "";
+  return typeof window !== "undefined"
+    ? localStorage.getItem("authToken") || localStorage.getItem("token") || ""
+    : "";
 }
 
 type CartItem = {
@@ -63,12 +78,20 @@ export default function CartPage() {
   const [cart, setCart] = useState<CartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"crypto" | "paystack">("crypto");
-  const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"crypto" | "paystack">(
+    "crypto"
+  );
+  const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(
+    null
+  );
+  const [selectedAsset, setSelectedAsset] = useState<CheckoutAsset | null>(
+    null
+  );
   const [assetDropdownOpen, setAssetDropdownOpen] = useState(false);
   const [loadingWallet, setLoadingWallet] = useState(false);
-  const [paymentData, setPaymentData] = useState<PaymentIntentData | null>(null);
+  const [paymentData, setPaymentData] = useState<PaymentIntentData | null>(
+    null
+  );
   const [waitingOpen, setWaitingOpen] = useState(false);
 
   const loadCart = async () => {
@@ -172,12 +195,20 @@ export default function CartPage() {
         }),
       });
       const json = await res.json().catch(() => ({}));
+      console.log("[CartPage] checkout response", { status: res.status, json });
       if (res.ok && json.result) {
         setCheckoutResult(json.result);
-        if (json.result.payment_method === "paystack" && json.result.authorization_url) {
+        if (
+          json.result.payment_method === "paystack" &&
+          json.result.authorization_url
+        ) {
           setCheckoutResult(json.result);
         } else if (json.result.assets && json.result.assets.length > 0) {
-          setSelectedAsset(json.result.assets[0].symbol);
+          setSelectedAsset(json.result.assets[0]);
+        } else {
+          notify(
+            "Checkout succeeded but no crypto assets were returned by the server."
+          );
         }
       } else {
         notify(json.data || json.message || "Failed to start checkout");
@@ -201,10 +232,11 @@ export default function CartPage() {
         },
         body: JSON.stringify({
           payment_intent_id: checkoutResult.payment_intent_id,
-          crypto_currency_id: selectedAsset,
+          crypto_currency_id: selectedAsset.currency_id,
         }),
       });
       const json = await res.json().catch(() => null);
+      console.log("[CartPage] wallet response", { status: res.status, json });
       if (res.ok && json.data) {
         const d = json.data;
         const cryptoNetwork: string =
@@ -217,7 +249,10 @@ export default function CartPage() {
           expiration_time: d.expiration_time,
           fee_in_crypto: d.fee_in_crypto,
           wallet: d.wallet,
-          fiat: d.fiat ?? { amount: checkoutResult.fiat_amount || 0, currency: cart?.currency || "NGN" },
+          fiat: d.fiat ?? {
+            amount: checkoutResult.fiat_amount || 0,
+            currency: cart?.currency || "NGN",
+          },
           crypto: { ...d.crypto, network: cryptoNetwork },
         });
         setWaitingOpen(true);
@@ -267,7 +302,10 @@ export default function CartPage() {
             <CardContent className="py-16 text-center">
               <ShoppingBag className="w-12 h-12 text-white/20 mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">Your cart is empty</p>
-              <Button onClick={() => router.push("/dashboard/shop")} className="bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white">
+              <Button
+                onClick={() => router.push("/dashboard/shop")}
+                className="bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white"
+              >
                 Browse Shops
               </Button>
             </CardContent>
@@ -284,9 +322,15 @@ export default function CartPage() {
           <div className="flex items-center gap-3">
             <ShoppingBag className="w-6 h-6 text-muted-foreground" />
             <h1 className="text-2xl font-bold text-white">Shopping Cart</h1>
-            <span className="text-sm text-muted-foreground">({cart.item_count} items)</span>
+            <span className="text-sm text-muted-foreground">
+              ({cart.item_count} items)
+            </span>
           </div>
-          <Button variant="ghost" onClick={clearCart} className="text-red-400 hover:text-red-300 text-sm">
+          <Button
+            variant="ghost"
+            onClick={clearCart}
+            className="text-red-400 hover:text-red-300 text-sm"
+          >
             Clear Cart
           </Button>
         </div>
@@ -301,7 +345,11 @@ export default function CartPage() {
                     {/* Product Image */}
                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-[#11111a] flex-shrink-0">
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <ShoppingBag className="w-8 h-8 text-white/20" />
@@ -311,22 +359,32 @@ export default function CartPage() {
 
                     {/* Product Details */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-white text-sm sm:text-base line-clamp-2">{item.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Stock: {item.stock}</p>
+                      <h3 className="font-semibold text-white text-sm sm:text-base line-clamp-2">
+                        {item.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Stock: {item.stock}
+                      </p>
 
                       <div className="flex items-center justify-between mt-3">
                         {/* Quantity Controls */}
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() =>
+                              updateQuantity(item.id, item.quantity - 1)
+                            }
                             disabled={item.quantity <= 1}
                             className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:border-[#9d8df1] transition-colors disabled:opacity-50"
                           >
                             <Minus className="w-4 h-4" />
                           </button>
-                          <span className="text-white font-semibold w-8 text-center">{item.quantity}</span>
+                          <span className="text-white font-semibold w-8 text-center">
+                            {item.quantity}
+                          </span>
                           <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() =>
+                              updateQuantity(item.id, item.quantity + 1)
+                            }
                             disabled={item.quantity >= item.stock}
                             className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:border-[#9d8df1] transition-colors disabled:opacity-50"
                           >
@@ -338,7 +396,10 @@ export default function CartPage() {
                         <div className="flex items-center gap-3">
                           <div className="text-right">
                             <p className="text-sm font-bold text-[#9d8df1]">
-                              {formatCurrency(item.price * item.quantity, item.currency)}
+                              {formatCurrency(
+                                item.price * item.quantity,
+                                item.currency
+                              )}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatCurrency(item.price, item.currency)} each
@@ -363,13 +424,19 @@ export default function CartPage() {
           <div className="lg:col-span-1">
             <Card className="bg-[#19191d] border-border sticky top-4">
               <CardHeader>
-                <CardTitle className="text-base font-semibold text-white">Order Summary</CardTitle>
+                <CardTitle className="text-base font-semibold text-white">
+                  Order Summary
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal ({cart.item_count} items)</span>
-                    <span className="text-white">{formatCurrency(cart.total, cart.currency)}</span>
+                    <span className="text-muted-foreground">
+                      Subtotal ({cart.item_count} items)
+                    </span>
+                    <span className="text-white">
+                      {formatCurrency(cart.total, cart.currency)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
@@ -379,7 +446,9 @@ export default function CartPage() {
 
                 {/* Payment Method Selector */}
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment Method</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Payment Method
+                  </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -414,59 +483,96 @@ export default function CartPage() {
                 </div>
 
                 {/* Crypto Asset Selector */}
-                {checkoutResult && checkoutResult.assets && checkoutResult.assets.length > 0 && paymentMethod === "crypto" && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Select Asset</label>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setAssetDropdownOpen((o) => !o)}
-                        className="w-full rounded-md border border-border bg-[#19191d] px-4 py-3 flex items-center justify-between text-sm text-white"
+                {checkoutResult &&
+                  checkoutResult.assets &&
+                  checkoutResult.assets.length > 0 &&
+                  paymentMethod === "crypto" && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Select Asset
+                      </label>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setAssetDropdownOpen((o) => !o)}
+                          className="w-full rounded-md border border-border bg-[#19191d] px-4 py-3 flex items-center justify-between text-sm text-white"
+                        >
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={
+                                checkoutResult.assets.find(
+                                  (a) => a.symbol === selectedAsset?.symbol
+                                )?.logo || "/images/usdcbase.png"
+                              }
+                              alt={selectedAsset?.symbol ?? ""}
+                              className="w-5 h-5 rounded-full"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display =
+                                  "none";
+                              }}
+                            />
+                            <span className="font-medium">
+                              {selectedAsset?.symbol}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                              ≈{" "}
+                              {checkoutResult.assets
+                                .find((a) => a.symbol === selectedAsset?.symbol)
+                                ?.amount.toLocaleString()}{" "}
+                              {selectedAsset?.symbol}
+                            </span>
+                          </div>
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                        {assetDropdownOpen && (
+                          <div className="absolute z-10 w-full mt-1 rounded-md border border-border bg-[#19191d] shadow-lg">
+                            {checkoutResult.assets.map((a) => (
+                              <button
+                                key={a.symbol}
+                                type="button"
+                                className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[#23243a] transition-colors text-left"
+                                onClick={() => {
+                                  setSelectedAsset(a);
+                                  setAssetDropdownOpen(false);
+                                }}
+                              >
+                                <img
+                                  src={a.logo || "/images/usdcbase.png"}
+                                  alt={a.symbol}
+                                  className="w-5 h-5 rounded-full"
+                                  onError={(e) => {
+                                    (
+                                      e.target as HTMLImageElement
+                                    ).style.display = "none";
+                                  }}
+                                />
+                                <span className="text-white font-medium flex-1">
+                                  {a.name || a.symbol}
+                                </span>
+                                <span className="text-muted-foreground text-xs">
+                                  {a.amount.toLocaleString()} {a.symbol}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        onClick={handleCreateWallet}
+                        disabled={!selectedAsset || loadingWallet}
+                        className="w-full bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
                       >
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={checkoutResult.assets.find((a) => a.symbol === selectedAsset)?.logo || "/images/usdcbase.png"}
-                            alt={selectedAsset ?? ""}
-                            className="w-5 h-5 rounded-full"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                          <span className="font-medium">{selectedAsset}</span>
-                          <span className="text-muted-foreground text-xs">
-                            ≈ {checkoutResult.assets.find((a) => a.symbol === selectedAsset)?.amount.toLocaleString()} {selectedAsset}
-                          </span>
-                        </div>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                      {assetDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 rounded-md border border-border bg-[#19191d] shadow-lg">
-                          {checkoutResult.assets.map((a) => (
-                            <button
-                              key={a.symbol}
-                              type="button"
-                              className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[#23243a] transition-colors text-left"
-                              onClick={() => { setSelectedAsset(a.symbol); setAssetDropdownOpen(false); }}
-                            >
-                              <img src={a.logo || "/images/usdcbase.png"} alt={a.symbol} className="w-5 h-5 rounded-full" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                              <span className="text-white font-medium flex-1">{a.name || a.symbol}</span>
-                              <span className="text-muted-foreground text-xs">{a.amount.toLocaleString()} {a.symbol}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                        {loadingWallet ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />{" "}
+                            Generating wallet...
+                          </>
+                        ) : (
+                          <>Pay with {selectedAsset?.symbol || "crypto"}</>
+                        )}
+                      </Button>
                     </div>
-                    <Button
-                      onClick={handleCreateWallet}
-                      disabled={!selectedAsset || loadingWallet}
-                      className="w-full bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
-                    >
-                      {loadingWallet ? (
-                        <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating wallet...</>
-                      ) : (
-                        <>Pay with {selectedAsset || "crypto"}</>
-                      )}
-                    </Button>
-                  </div>
-                )}
+                  )}
 
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between items-center">
@@ -489,7 +595,10 @@ export default function CartPage() {
                     </>
                   ) : (
                     <>
-                      {paymentMethod === "crypto" ? "Pay with Crypto" : "Pay with Paystack"} <ArrowRight className="w-4 h-4 ml-2" />
+                      {paymentMethod === "crypto"
+                        ? "Pay with Crypto"
+                        : "Pay with Paystack"}{" "}
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
@@ -506,7 +615,12 @@ export default function CartPage() {
         </div>
       </div>
 
-      <WaitingForPaymentModal open={waitingOpen} onClose={() => setWaitingOpen(false)} paymentData={paymentData} onPaymentComplete={handlePaymentComplete} />
+      <WaitingForPaymentModal
+        open={waitingOpen}
+        onClose={() => setWaitingOpen(false)}
+        paymentData={paymentData}
+        onPaymentComplete={handlePaymentComplete}
+      />
     </div>
   );
 }
