@@ -24,6 +24,7 @@ type CheckoutAsset = {
 type CheckoutResult = {
   payment_method: "crypto" | "paystack";
   reference_id: string;
+  payment_intent_id: string;
   fiat_amount?: number;
   fiat_currency?: string;
   authorization_url?: string;
@@ -192,15 +193,15 @@ export default function CartPage() {
     if (!checkoutResult || !selectedAsset) return;
     setLoadingWallet(true);
     try {
-      const res = await authFetch(`${API}/user/payment-intent/create-wallet`, {
+      const res = await authFetch(`${API}/user/cart/wallet`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify({
+          payment_intent_id: checkoutResult.payment_intent_id,
           crypto_currency_id: selectedAsset,
-          reference_id: checkoutResult.reference_id,
         }),
       });
       const json = await res.json().catch(() => null);
