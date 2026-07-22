@@ -63,6 +63,8 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     price: "",
@@ -149,6 +151,12 @@ export default function ProductsPage() {
       const json = await res.json().catch(() => ({}));
 
       if (res.ok) {
+        const productId = editingId || json.result?.uniqueId || json.result?.id;
+        if (pendingImages.length > 0 && productId) {
+          await uploadImagesForProduct(productId, pendingImages);
+          setPendingImages([]);
+          setImagePreviewUrls([]);
+        }
         notify(editingId ? "Product updated!" : "Product created!");
         setShowForm(false);
         setEditingId(null);
@@ -240,7 +248,26 @@ export default function ProductsPage() {
       variants: product.variants ? JSON.stringify(product.variants, null, 2) : "",
     });
     setEditingId(product.uniqueId);
+    setPendingImages([]);
+    setImagePreviewUrls([]);
     setShowForm(true);
+  };
+
+  const uploadImagesForProduct = async (productId: string, files: File[]) => {
+    for (const file of files) {
+      const form = new FormData();
+      form.append("images", file);
+      const res = await authFetch(`${API}/user/shop/products/${productId}/images`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: form,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.result) {
+        notify(json.data || json.message || "Failed to upload an image");
+      }
+    }
+    loadProducts();
   };
 
   return (
@@ -255,8 +282,12 @@ export default function ProductsPage() {
           <button
             onClick={() => {
               setShowForm(!showForm);
-              if (showForm) setEditingId(null);
-              setFormData({ name: "", price: "", description: "", category: "", stock: "", product_type: "physical", track_stock: true, variants: "" });
+              if (showForm) {
+                setEditingId(null);
+                setPendingImages([]);
+                setImagePreviewUrls([]);
+                setFormData({ name: "", price: "", description: "", category: "", stock: "", product_type: "physical", track_stock: true, variants: "" });
+              }
             }}
             className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white hover:shadow-lg transition-all"
           >
@@ -353,12 +384,57 @@ export default function ProductsPage() {
                   placeholder='{ "sizes": ["S", "M", "L"], "colors": ["Red", "Blue"] }'
                 />
               </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Product Images</label>
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {imagePreviewUrls.map((url, idx) => (
+                    <div key={idx} className="relative h-24 w-24 rounded-xl overflow-hidden border border-[#23242A]">
+                      <img src={url} alt="Preview" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingImages((prev) => prev.filter((_, i) => i !== idx));
+                          setImagePreviewUrls((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-1 right-1 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="h-24 w-24 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:border-[#9d8df1] transition-colors">
+                    <Upload className="h-5 w-5 text-white/40" />
+                    <span className="text-[11px] text-white/40 mt-1">Upload</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const result = reader.result as string;
+                            setPendingImages((prev) => [...prev, file]);
+                            setImagePreviewUrls((prev) => [...prev, result]);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">You can upload images here while creating/editing, or use the uploader on each product card after saving.</p>
+              </div>
               <div className="flex gap-3 justify-end pt-4 border-t border-[#23242A]">
                 <button
                   type="button"
                   onClick={() => {
                     setShowForm(false);
                     setEditingId(null);
+                    setPendingImages([]);
+                    setImagePreviewUrls([]);
                     setFormData({ name: "", price: "", description: "", category: "", stock: "", product_type: "physical", track_stock: true, variants: "" });
                   }}
                   className="px-6 py-2.5 rounded-lg font-semibold border border-[#23242A] text-muted-foreground hover:text-white hover:border-[#9d8df1] transition-colors"
