@@ -26,6 +26,8 @@
 - Updated checkout payload to match backend contract: `customer_email`, `items` with `product_id`, `quantity`, `price`, `shopId`, `delivery_address`, `delivery_state`, optional `promo_code`
 - Created `/checkout/success` page with reference ID display
 - Created `app/api/shop/[subdomain]/delivery-settings/route.ts` proxy for public delivery settings
+- Fixed `/checkout` validation bug: `canProceed` was checking `delivery.full_name` which was never populated; now syncs `guestName` → `delivery.full_name` and checks the correct fields
+- Fixed `/checkout` payload to always include `full_name` and `state` inside `delivery_address` by syncing `guestName` and `deliveryState` back into the `delivery` object before sending
 
 ## Product Management
 - Added image upload UI to the Create/Edit Product form in `app/(dashboard)/dashboard/shop/products/page.tsx`

@@ -196,6 +196,16 @@ export default function GuestCheckoutPage() {
   }, []);
 
   useEffect(() => {
+    setDelivery((prev) => ({ ...prev, full_name: guestName }));
+  }, [guestName]);
+
+  useEffect(() => {
+    if (deliveryState) {
+      setDelivery((prev) => ({ ...prev, state: deliveryState }));
+    }
+  }, [deliveryState]);
+
+  useEffect(() => {
     const shopId =
       cart[0]?.shop_id ||
       new URLSearchParams(window.location.search).get("shopId");
@@ -208,7 +218,10 @@ export default function GuestCheckoutPage() {
       .then((json) => {
         if (json.result) {
           setDeliverySettings(json.result);
-          if (json.result.delivery_zones) {
+          if (
+            json.result.delivery_zones &&
+            Object.keys(json.result.delivery_zones).length > 0
+          ) {
             const firstState = Object.keys(json.result.delivery_zones)[0] || "";
             setDeliveryState(firstState);
           }
@@ -241,11 +254,12 @@ export default function GuestCheckoutPage() {
   const canProceed =
     guestName.trim() &&
     guestEmail.trim() &&
-    delivery.full_name.trim() &&
     delivery.phone.trim() &&
     delivery.address.trim() &&
     delivery.city.trim() &&
-    deliveryState;
+    (deliverySettings?.delivery_zones
+      ? Boolean(deliveryState)
+      : delivery.state.trim());
 
   const startCheckout = async () => {
     if (!guestName || !guestEmail) {
@@ -269,8 +283,12 @@ export default function GuestCheckoutPage() {
         })),
         fiat_currency: cart[0]?.currency || "NGN",
         payment_method: "crypto",
-        delivery_address: delivery,
-        delivery_state: deliveryState,
+        delivery_address: {
+          ...delivery,
+          full_name: guestName,
+          state: deliveryState || delivery.state,
+        },
+        delivery_state: deliveryState || delivery.state,
       };
       if (promoCode.trim()) {
         payload.promo_code = promoCode.trim();
