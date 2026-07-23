@@ -21,6 +21,11 @@
 - Added success redirect and cart cleanup on payment completion
 - Storefront guest cart now stores `shop_id` on each item so checkout includes `shopId` in the items payload
 - Fixed `/checkout` page to load cart from server API when user is logged in, falling back to localStorage guest cart when not; previously it only read localStorage which was empty for authenticated users
+- Added delivery settings fetch on `/checkout` via `/backend/shop/[subdomain]/delivery-settings` to calculate delivery fee, promo code, and discount totals
+- Added delivery address form fields, state selector, promo code input, and order summary with `items_total`, `delivery_fee`, `discount_amount`, and backend `fiat_amount` on `/checkout`
+- Updated checkout payload to match backend contract: `customer_email`, `items` with `product_id`, `quantity`, `price`, `shopId`, `delivery_address`, `delivery_state`, optional `promo_code`
+- Created `/checkout/success` page with reference ID display
+- Created `app/api/shop/[subdomain]/delivery-settings/route.ts` proxy for public delivery settings
 
 ## Product Management
 - Added image upload UI to the Create/Edit Product form in `app/(dashboard)/dashboard/shop/products/page.tsx`

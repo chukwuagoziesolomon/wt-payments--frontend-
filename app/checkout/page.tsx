@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,16 +46,32 @@ type CheckoutResult = {
   fiat_currency?: string;
   authorization_url?: string;
   assets?: CheckoutAsset[];
+  items_total?: number;
+  delivery_fee?: number;
+  discount_amount?: number;
+  delivery_address?: Record<string, any>;
+  delivery_state?: string;
 };
 
 type PaymentData = {
   payment_intent_id: string;
+  reference_id?: string;
   transaction_id?: string;
   expiration_time: string;
   fee_in_crypto: number;
   wallet: { address: string; qr_code: string };
   fiat: { amount: number; currency: string };
   crypto: { name: string; symbol: string; network: string; amount: number };
+};
+
+type DeliverySettings = {
+  has_free_delivery?: boolean;
+  delivery_fee?: number;
+  delivery_zones?: Record<string, number>;
+  discount_percentage?: number;
+  discount_amount?: number;
+  promo_code?: string;
+  free_delivery_threshold?: number;
 };
 
 function getGuestCart(): CartItem[] {
@@ -96,6 +112,61 @@ export default function GuestCheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [guestEmail, setGuestEmail] = useState("");
   const [guestName, setGuestName] = useState("");
+  const [delivery, setDelivery] = useState({
+    full_name: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "Nigeria",
+  });
+  const [deliveryState, setDeliveryState] = useState("");
+  const [promoCode, setPromoCode] = useState("");
+  const [deliverySettings, setDeliverySettings] =
+    useState<DeliverySettings | null>(null);
+  const [loadingDeliverySettings, setLoadingDeliverySettings] = useState(false);
+
+  const cartItemsTotal = useMemo(
+    () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cart]
+  );
+
+  const deliveryFee = useMemo(() => {
+    if (!deliverySettings) return 0;
+    if (deliverySettings.has_free_delivery) return 0;
+    if (
+      deliverySettings.delivery_zones &&
+      deliveryState &&
+      deliverySettings.delivery_zones[deliveryState]
+    ) {
+      return deliverySettings.delivery_zones[deliveryState];
+    }
+    return deliverySettings.delivery_fee || 0;
+  }, [deliverySettings, deliveryState]);
+
+  const discountAmount = useMemo(() => {
+    if (!deliverySettings) return 0;
+    let discount = deliverySettings.discount_amount || 0;
+    if (
+      promoCode &&
+      deliverySettings.promo_code &&
+      promoCode === deliverySettings.promo_code
+    ) {
+      discount += deliverySettings.discount_amount || 0;
+    }
+    if (
+      deliverySettings.discount_percentage &&
+      deliverySettings.discount_percentage > 0
+    ) {
+      discount += (cartItemsTotal * deliverySettings.discount_percentage) / 100;
+    }
+    return discount;
+  }, [deliverySettings, promoCode, cartItemsTotal]);
+
+  const estimatedTotal = useMemo(
+    () => Math.max(0, cartItemsTotal + deliveryFee - discountAmount),
+    [cartItemsTotal, deliveryFee, discountAmount]
+  );
 
   useEffect(() => {
     const token = getToken();
@@ -124,6 +195,31 @@ export default function GuestCheckoutPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const shopId =
+      cart[0]?.shop_id ||
+      new URLSearchParams(window.location.search).get("shopId");
+    if (!shopId) return;
+    setLoadingDeliverySettings(true);
+    fetch(`/backend/shop/${shopId}/delivery-settings`, {
+      cache: "no-store",
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((json) => {
+        if (json.result) {
+          setDeliverySettings(json.result);
+          if (json.result.delivery_zones) {
+            const firstState = Object.keys(json.result.delivery_zones)[0] || "";
+            setDeliveryState(firstState);
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoadingDeliverySettings(false);
+      });
+  }, [cart]);
+
   const updateQuantity = (productId: string, quantity: number) => {
     setCart((prev) => {
       const next = prev.map((item) =>
@@ -142,33 +238,47 @@ export default function GuestCheckoutPage() {
     });
   };
 
-  const cartTotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const canProceed =
+    guestName.trim() &&
+    guestEmail.trim() &&
+    delivery.full_name.trim() &&
+    delivery.phone.trim() &&
+    delivery.address.trim() &&
+    delivery.city.trim() &&
+    deliveryState;
 
   const startCheckout = async () => {
     if (!guestName || !guestEmail) {
       notify("Please fill in your name and email");
       return;
     }
+    if (!canProceed) {
+      notify("Please complete the delivery address");
+      return;
+    }
     setSubmitting(true);
     try {
       const shopId = cart[0]?.shop_id || "";
+      const payload: Record<string, any> = {
+        customer_email: guestEmail,
+        items: cart.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price,
+          shopId,
+        })),
+        fiat_currency: cart[0]?.currency || "NGN",
+        payment_method: "crypto",
+        delivery_address: delivery,
+        delivery_state: deliveryState,
+      };
+      if (promoCode.trim()) {
+        payload.promo_code = promoCode.trim();
+      }
       const res = await fetch("/backend/cart/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer_email: guestEmail,
-          items: cart.map((item) => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            price: item.price,
-            shopId: shopId,
-          })),
-          fiat_currency: cart[0]?.currency || "NGN",
-          payment_method: "crypto",
-        }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok && json.result) {
@@ -213,7 +323,7 @@ export default function GuestCheckoutPage() {
           fee_in_crypto: d.fee_in_crypto,
           wallet: d.wallet,
           fiat: d.fiat ?? {
-            amount: checkoutResult.fiat_amount || 0,
+            amount: checkoutResult.fiat_amount || estimatedTotal,
             currency: cart[0]?.currency || "NGN",
           },
           crypto: {
@@ -237,7 +347,8 @@ export default function GuestCheckoutPage() {
   const handlePaymentComplete = () => {
     setWaitingOpen(false);
     localStorage.removeItem("guest_cart");
-    router.push("/checkout/success");
+    const ref = checkoutResult?.reference_id || paymentData?.reference_id || "";
+    router.push(`/checkout/success${ref ? `?reference_id=${ref}` : ""}`);
   };
 
   if (loading) {
@@ -251,7 +362,7 @@ export default function GuestCheckoutPage() {
     );
   }
 
-  if (cart.length === 0) {
+  if (cart.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-background p-4 sm:p-8 flex items-center justify-center">
         <Card className="bg-[#19191d] border-border max-w-md w-full">
@@ -337,62 +448,191 @@ export default function GuestCheckoutPage() {
                   </CardContent>
                 </Card>
               ))}
+
+              <Card className="bg-[#19191d] border-border">
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-white">
+                    Delivery Address
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Phone
+                      </label>
+                      <input
+                        value={delivery.phone}
+                        onChange={(e) =>
+                          setDelivery({ ...delivery, phone: e.target.value })
+                        }
+                        className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Address
+                      </label>
+                      <input
+                        value={delivery.address}
+                        onChange={(e) =>
+                          setDelivery({ ...delivery, address: e.target.value })
+                        }
+                        className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        City
+                      </label>
+                      <input
+                        value={delivery.city}
+                        onChange={(e) =>
+                          setDelivery({ ...delivery, city: e.target.value })
+                        }
+                        className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        State
+                      </label>
+                      {deliverySettings?.delivery_zones &&
+                      Object.keys(deliverySettings.delivery_zones).length >
+                        0 ? (
+                        <select
+                          value={deliveryState}
+                          onChange={(e) => setDeliveryState(e.target.value)}
+                          className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                        >
+                          {Object.keys(deliverySettings.delivery_zones).map(
+                            (state) => (
+                              <option key={state} value={state}>
+                                {state}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      ) : (
+                        <input
+                          value={deliveryState}
+                          onChange={(e) => setDeliveryState(e.target.value)}
+                          className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Country
+                      </label>
+                      <input
+                        value={delivery.country}
+                        onChange={(e) =>
+                          setDelivery({ ...delivery, country: e.target.value })
+                        }
+                        className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <div className="lg:col-span-1">
               <Card className="bg-[#19191d] border-border sticky top-4">
                 <CardHeader>
                   <CardTitle className="text-base font-semibold text-white">
-                    Guest Details
+                    Order Summary
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">
-                      Full Name
-                    </label>
-                    <input
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
-                    />
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Items ({cart.length})
+                    </span>
+                    <span className="text-white">
+                      {cart[0]?.currency} {cartItemsTotal.toLocaleString()}
+                    </span>
                   </div>
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
-                    />
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Delivery</span>
+                    <span className="text-white">
+                      {deliverySettings?.has_free_delivery
+                        ? "Free"
+                        : `${cart[0]?.currency} ${deliveryFee.toLocaleString()}`}
+                    </span>
                   </div>
-                  <div className="border-t border-border pt-3 space-y-2">
+                  {discountAmount > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total</span>
-                      <span className="text-white font-bold">
-                        {cart[0]?.currency} {cartTotal.toLocaleString()}
+                      <span className="text-muted-foreground">Discount</span>
+                      <span className="text-emerald-400">
+                        -{cart[0]?.currency} {discountAmount.toLocaleString()}
                       </span>
                     </div>
-                    <Button
-                      onClick={startCheckout}
-                      disabled={submitting}
-                      className="w-full bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />{" "}
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          Continue to Payment{" "}
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
+                  )}
+                  <div className="border-t border-border pt-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total</span>
+                      <span className="text-lg font-bold text-[#9d8df1]">
+                        {cart[0]?.currency} {estimatedTotal.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
+                  {deliverySettings?.promo_code && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Promo Code
+                      </label>
+                      <input
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        placeholder={deliverySettings.promo_code}
+                        className="w-full bg-[#11111a] border border-[#23242A] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#9d8df1]"
+                      />
+                    </div>
+                  )}
+                  <Button
+                    onClick={startCheckout}
+                    disabled={submitting}
+                    className="w-full bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />{" "}
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Continue to Payment{" "}
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -502,14 +742,36 @@ export default function GuestCheckoutPage() {
                       Items ({cart.length})
                     </span>
                     <span className="text-white">
-                      {cart[0]?.currency} {cartTotal.toLocaleString()}
+                      {cart[0]?.currency}{" "}
+                      {checkoutResult?.items_total?.toLocaleString() ??
+                        cartItemsTotal.toLocaleString()}
                     </span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Delivery</span>
+                    <span className="text-white">
+                      {deliverySettings?.has_free_delivery
+                        ? "Free"
+                        : `${cart[0]?.currency} ${checkoutResult?.delivery_fee?.toLocaleString() ?? deliveryFee.toLocaleString()}`}
+                    </span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Discount</span>
+                      <span className="text-emerald-400">
+                        -{cart[0]?.currency}{" "}
+                        {checkoutResult?.discount_amount?.toLocaleString() ??
+                          discountAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                   <div className="border-t border-border pt-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Total</span>
                       <span className="text-lg font-bold text-[#9d8df1]">
-                        {cart[0]?.currency} {cartTotal.toLocaleString()}
+                        {cart[0]?.currency}{" "}
+                        {checkoutResult?.fiat_amount?.toLocaleString() ??
+                          estimatedTotal.toLocaleString()}
                       </span>
                     </div>
                   </div>
