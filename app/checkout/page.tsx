@@ -70,10 +70,18 @@ function setGuestCart(items: CartItem[]) {
   localStorage.setItem("guest_cart", JSON.stringify(items));
 }
 
+function getToken() {
+  if (typeof window === "undefined") return "";
+  return (
+    localStorage.getItem("authToken") || localStorage.getItem("token") || ""
+  );
+}
+
 export default function GuestCheckoutPage() {
   const router = useRouter();
   const { notify } = useToast();
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(
     null
   );
@@ -90,7 +98,30 @@ export default function GuestCheckoutPage() {
   const [guestName, setGuestName] = useState("");
 
   useEffect(() => {
-    setCart(getGuestCart());
+    const token = getToken();
+    if (token) {
+      fetch("/backend/user/cart", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      })
+        .then((res) => res.json().catch(() => ({})))
+        .then((json) => {
+          if (json.result?.items) {
+            setCart(json.result.items);
+          } else {
+            setCart(getGuestCart());
+          }
+        })
+        .catch(() => {
+          setCart(getGuestCart());
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setCart(getGuestCart());
+      setLoading(false);
+    }
   }, []);
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -208,6 +239,17 @@ export default function GuestCheckoutPage() {
     localStorage.removeItem("guest_cart");
     router.push("/checkout/success");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-4 sm:p-8 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <p className="text-sm">Loading cart...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (

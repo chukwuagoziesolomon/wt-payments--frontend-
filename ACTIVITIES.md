@@ -20,6 +20,7 @@
 - Guest checkout sends `customer_email`, `items` with `product_id`, `quantity`, `price`, `shopId`, and wallet request uses `reference_id` per new backend contract
 - Added success redirect and cart cleanup on payment completion
 - Storefront guest cart now stores `shop_id` on each item so checkout includes `shopId` in the items payload
+- Fixed `/checkout` page to load cart from server API when user is logged in, falling back to localStorage guest cart when not; previously it only read localStorage which was empty for authenticated users
 
 ## Product Management
 - Added image upload UI to the Create/Edit Product form in `app/(dashboard)/dashboard/shop/products/page.tsx`
