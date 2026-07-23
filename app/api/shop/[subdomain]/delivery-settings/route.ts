@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { subdomain: string } }
+  { params }: { params: Promise<{ subdomain: string }> }
 ) {
   const apiBase =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
   try {
+    const resolvedParams = await params;
     const res = await fetch(
-      `${apiBase}/api/shop/${params.subdomain}/delivery-settings`,
+      `${apiBase}/api/shop/${resolvedParams.subdomain}/delivery-settings`,
       {
         headers: { "content-type": "application/json" },
         cache: "no-store",
