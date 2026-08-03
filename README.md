@@ -209,6 +209,21 @@ pnpm start
 | `/dashboard/cart` | Shopping cart |
 | `/shop/:subdomain` | Public storefront |
 | `/cart` | Cart entry point (redirects to `/dashboard/cart`) |
+| `/checkout` | Guest checkout (no login required) |
+| `/checkout/success` | Order confirmation |
+
+---
+
+## Demo Credentials
+
+> ⚠️ **Note:** These are temporary test credentials for evaluation/demo purposes only. Do not use these credentials in production.
+
+| Field | Value |
+|-------|-------|
+| **Email** | `chukwuagoziesolomon@gmail.com` |
+| **Password** | `90909090` |
+
+Use these credentials to log in at [`/login`](http://localhost:3000/login) and explore the merchant dashboard.
 
 ---
 
