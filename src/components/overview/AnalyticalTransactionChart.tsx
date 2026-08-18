@@ -1,7 +1,16 @@
 "use client";
 import React from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
 import { authFetch } from "@/lib/auth-fetch";
 
@@ -28,10 +37,14 @@ function CustomTooltip({ active, payload }: any) {
   if (active && payload && payload.length) {
     const entry: ChartItem = payload[0].payload;
     return (
-      <div className="rounded-md bg-background px-3 py-2 text-xs shadow border border-border">
+      <div className="rounded-md border border-border bg-background px-3 py-2 text-xs shadow">
         <div className="text-muted-foreground">{entry.label}</div>
-        <div className="font-bold">{entry.count} txn{entry.count !== 1 ? "s" : ""}</div>
-        <div className="text-muted-foreground">${entry.amount.toLocaleString()}</div>
+        <div className="font-bold">
+          {entry.count} txn{entry.count !== 1 ? "s" : ""}
+        </div>
+        <div className="text-muted-foreground">
+          ${entry.amount.toLocaleString()}
+        </div>
       </div>
     );
   }
@@ -85,64 +98,102 @@ export function AnalyticalTransactionChart() {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [period, year, month]);
 
   const maxCount = Math.max(...chartData.map((d) => d.count), 1);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold">Analytical Transaction</CardTitle>
+      <CardHeader className="flex flex-col items-start gap-2 pb-2 sm:flex-row sm:items-center sm:justify-between">
+        <CardTitle className="font-semibold text-sm sm:text-base">
+          Analytical Transaction
+        </CardTitle>
         <div className="flex gap-1 text-xs">
           <button
-            onClick={() => setPeriod("week")}
-            className={`px-3 py-1 rounded-md transition-colors ${
+            className={`rounded-md px-2 py-0.5 transition-colors sm:px-3 sm:py-1 ${
               period === "week"
                 ? "bg-violet-600 text-white"
                 : "text-muted-foreground hover:text-foreground"
             }`}
+            onClick={() => setPeriod("week")}
           >
             Week
           </button>
           <button
-            onClick={() => setPeriod("month")}
-            className={`px-3 py-1 rounded-md transition-colors ${
+            className={`rounded-md px-2 py-0.5 transition-colors sm:px-3 sm:py-1 ${
               period === "month"
                 ? "bg-violet-600 text-white"
                 : "text-muted-foreground hover:text-foreground"
             }`}
+            onClick={() => setPeriod("month")}
           >
             Month
           </button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="w-full h-[300px] md:h-[350px]">
+        <div className="h-[260px] w-full sm:h-[300px] md:h-[350px]">
           {loading ? (
-            <SectionLoader variant="bars" message="Loading chart…" />
+            <SectionLoader message="Loading chart…" variant="bars" />
           ) : error ? (
-            <div className="flex items-center justify-center h-full text-sm text-destructive">
+            <div className="flex h-full items-center justify-center text-destructive text-sm">
               {error}
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} barSize={period === "month" ? 12 : 40} maxBarSize={60}>
+            <ResponsiveContainer height="100%" width="100%">
+              <BarChart
+                barSize={period === "month" ? 12 : 40}
+                data={chartData}
+                maxBarSize={60}
+              >
                 <defs>
-                  <linearGradient id="purple-gradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient
+                    id="purple-gradient"
+                    x1="0"
+                    x2="0"
+                    y1="0"
+                    y2="1"
+                  >
                     <stop offset="0%" stopColor="#a78bfa" />
                     <stop offset="100%" stopColor="#6d28d9" />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#33343a" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#A1A1AA" tick={{ fontSize: 11 }} />
-                <YAxis axisLine={false} tickLine={false} stroke="#A1A1AA" allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: "#262626" }} />
+                <CartesianGrid
+                  stroke="#33343a"
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+                <XAxis
+                  axisLine={false}
+                  dataKey="label"
+                  interval="preserveEnd"
+                  minTickGap={4}
+                  stroke="#A1A1AA"
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  axisLine={false}
+                  stroke="#A1A1AA"
+                  tickLine={false}
+                />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{ fill: "#262626" }}
+                />
                 <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                   {chartData.map((entry, index) => (
                     <Cell
+                      fill={
+                        entry.count === maxCount && entry.count > 0
+                          ? "url(#purple-gradient)"
+                          : "#262626"
+                      }
                       key={`cell-${index}`}
-                      fill={entry.count === maxCount && entry.count > 0 ? "url(#purple-gradient)" : "#262626"}
                     />
                   ))}
                 </Bar>

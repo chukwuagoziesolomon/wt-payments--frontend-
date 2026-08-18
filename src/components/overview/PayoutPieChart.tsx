@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
 import { authFetch } from "@/lib/auth-fetch";
 
@@ -54,7 +54,9 @@ export function PayoutPieChart() {
         const payload = await res.json().catch(() => null);
         if (!res.ok || payload?.error) {
           throw new Error(
-            typeof payload?.data === "string" ? payload.data : `Error ${res.status}`
+            typeof payload?.data === "string"
+              ? payload.data
+              : `Error ${res.status}`
           );
         }
 
@@ -63,7 +65,9 @@ export function PayoutPieChart() {
         }
       } catch (err: unknown) {
         if (mounted)
-          setError(err instanceof Error ? err.message : "Failed to load payout chart");
+          setError(
+            err instanceof Error ? err.message : "Failed to load payout chart"
+          );
       } finally {
         if (mounted) setLoading(false);
       }
@@ -90,58 +94,66 @@ export function PayoutPieChart() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-base font-semibold">Payout</CardTitle>
+        <CardTitle className="font-semibold text-base">Payout</CardTitle>
         <button
-          className="text-xs text-muted-foreground flex items-center gap-1"
-          onClick={() => { window.location.href = "/dashboard/payout"; }}
+          className="flex items-center gap-1 text-muted-foreground text-xs"
+          onClick={() => {
+            window.location.href = "/dashboard/payout";
+          }}
         >
           View All <span className="ml-1">&gt;</span>
         </button>
       </CardHeader>
       <CardContent>
-        {loading && <SectionLoader variant="ring" message="Loading payout data…" height={180} />}
+        {loading && (
+          <SectionLoader
+            height={180}
+            message="Loading payout data…"
+            variant="ring"
+          />
+        )}
         {!loading && error && (
-          <p className="text-xs text-destructive mb-2">{error}</p>
+          <p className="mb-2 text-destructive text-xs">{error}</p>
         )}
         <div className="flex flex-col items-center">
-          <div className="w-full flex justify-center items-center" style={{ height: 280 }}>
-            <ResponsiveContainer width={280} height={280}>
+          <div className="flex h-[220px] w-full items-center justify-center sm:h-[280px]">
+            <ResponsiveContainer height="100%" width="100%">
               <PieChart>
                 <Pie
-                  data={displayData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={70}
-                  outerRadius={110}
+                  data={displayData}
                   dataKey="value"
-                  startAngle={90}
                   endAngle={-270}
+                  innerRadius={70}
+                  isAnimationActive={!loading}
+                  outerRadius={110}
+                  startAngle={90}
                   stroke="#1A1A1A"
                   strokeWidth={12}
-                  isAnimationActive={!loading}
                 >
                   {displayData.map((entry, idx) => (
-                    <Cell key={`cell-${idx}`} fill={entry.color} />
+                    <Cell fill={entry.color} key={`cell-${idx}`} />
                   ))}
                 </Pie>
                 <text
-                  x="50%"
-                  y="46%"
-                  textAnchor="middle"
                   dominantBaseline="middle"
                   fill="#9ca3af"
                   fontSize={12}
+                  textAnchor="middle"
+                  x="50%"
+                  y="46%"
                 >
                   {loading ? "Loading…" : "Total"}
                 </text>
                 <text
-                  x="50%"
-                  y="56%"
-                  textAnchor="middle"
                   dominantBaseline="middle"
                   fill="#ffffff"
                   fontSize={20}
                   fontWeight="bold"
+                  textAnchor="middle"
+                  x="50%"
+                  y="56%"
                 >
                   ${result.total.toLocaleString()}
                 </text>
@@ -149,17 +161,20 @@ export function PayoutPieChart() {
             </ResponsiveContainer>
           </div>
           {/* Legend */}
-          <div className="mt-4 w-full flex flex-col gap-2">
+          <div className="mt-4 flex w-full flex-col gap-2">
             {result.breakdown.map((entry) => (
-              <div key={entry.label} className="flex items-center justify-between">
+              <div
+                className="flex items-center justify-between"
+                key={entry.label}
+              >
                 <div className="flex items-center gap-2">
                   <span
-                    className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+                    className="inline-block h-3 w-3 flex-shrink-0 rounded-full"
                     style={{ backgroundColor: entry.color }}
                   />
                   <span className="text-sm">{entry.label}</span>
                 </div>
-                <span className="text-sm font-medium">
+                <span className="font-medium text-sm">
                   ${entry.value.toLocaleString()}
                 </span>
               </div>

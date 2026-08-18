@@ -22,8 +22,8 @@ type PaymentIntent = {
   currency: string;
   status: "payment_created" | "incomplete_payment" | "awaiting_confirmation" | "payment_completed";
   crypto_amount: string;
-  crypto_currency: string;
-  network: string;
+  crypto_currency: string | { symbol: string; name: string };
+  network: string | { name: string };
   tx_hash: string;
   wallet_address: string;
   created_at: string;
@@ -64,11 +64,18 @@ export default function PaymentHistoryPage() {
       });
       const json = await res.json().catch(() => ({}));
 
-      if (res.ok && json.result) {
-        setPayments(json.result.data);
-        setMeta(json.result.meta || { currentPage: page, total: 0 });
+      if (res.ok) {
+        const result = json.result;
+        const data = result || json.data;
+        const txns = data?.transactions ?? data?.data;
+        if (txns && Array.isArray(txns)) {
+          setPayments(txns);
+          setMeta(data?.meta || { currentPage: page, total: 0 });
+        } else {
+          notify("No transactions found");
+        }
       } else {
-        notify(json.data || "Failed to load payment history");
+        notify(typeof json.message === "string" ? json.message : "Failed to load payment history");
       }
     } catch (err: any) {
       if (err.name !== "AuthExpiredError") {
@@ -93,15 +100,20 @@ export default function PaymentHistoryPage() {
     return statusConfig[status] || statusConfig.payment_created;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const toStr = (val: string | { symbol?: string; name?: string }): string => {
+  if (typeof val === "string") { return val; }
+  return val?.symbol ?? val?.name ?? "";
+};
 
   const truncateHash = (hash: string) => {
     return `${hash.substring(0, 12)}...${hash.substring(hash.length - 8)}`;
@@ -178,9 +190,9 @@ export default function PaymentHistoryPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-muted-foreground text-sm">
-                              {payment.crypto_amount} {payment.crypto_currency}
-                              <span className="text-xs block text-muted-foreground/50 mt-0.5">
-                                {payment.network}
+              {payment.crypto_amount} {toStr(payment.crypto_currency)}
+              <span className="text-xs block text-muted-foreground/50 mt-0.5">
+                {toStr(payment.network)}
                               </span>
                             </div>
                           </td>
@@ -243,7 +255,7 @@ export default function PaymentHistoryPage() {
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Crypto</p>
                         <p className="text-white font-semibold">
-                          {payment.crypto_amount} {payment.crypto_currency}
+                          {payment.crypto_amount} {toStr(payment.crypto_currency)}
                         </p>
                       </div>
                     </div>

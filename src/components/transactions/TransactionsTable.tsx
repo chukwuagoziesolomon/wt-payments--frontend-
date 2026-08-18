@@ -1,13 +1,23 @@
 "use client";
 
+import { Copy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Copy } from "lucide-react";
-import { DetailsModal } from "../DetailsModal";
-import { DetailsData } from "@/types";
-import { getPaymentIntentHistory, type HistoryListItem } from "@/lib/payment-intent-history";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  getPaymentIntentHistory,
+  type HistoryListItem,
+} from "@/lib/payment-intent-history";
+import type { DetailsData } from "@/types";
+import { DetailsModal } from "../DetailsModal";
 
 export function TransactionsTable() {
   const [open, setOpen] = useState(false);
@@ -41,17 +51,24 @@ export function TransactionsTable() {
   return (
     <div className="relative">
       {/* Header section outside the card */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-        <div className="flex items-center gap-2 w-full md:w-auto">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex w-full items-center gap-2 md:w-auto">
           <input
-            type="text"
+            className="w-full rounded border border-border bg-background px-3 py-1 text-sm md:w-56"
             placeholder="Search"
-            className="bg-background border border-border rounded px-3 py-1 text-sm w-full md:w-56"
+            type="text"
           />
-          <button className="bg-background border border-border rounded px-3 py-1 text-sm">Filter</button>
+          <button className="rounded border border-border bg-background px-3 py-1 text-sm">
+            Filter
+          </button>
         </div>
-        <div className="flex items-center justify-end w-full md:w-auto">
-          <button onClick={() => window.location.href = '/transactions/create'} className="hidden md:inline-flex bg-primary text-primary-foreground rounded px-3 py-1 text-sm">Create Transaction</button>
+        <div className="flex w-full items-center justify-end md:w-auto">
+          <button
+            className="hidden rounded bg-primary px-3 py-1 text-primary-foreground text-sm md:inline-flex"
+            onClick={() => (window.location.href = "/transactions/create")}
+          >
+            Create Transaction
+          </button>
         </div>
       </div>
 
@@ -72,55 +89,89 @@ export function TransactionsTable() {
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    <TableCell
+                      className="py-8 text-center text-muted-foreground"
+                      colSpan={6}
+                    >
                       Loading transactions...
                     </TableCell>
                   </TableRow>
                 )}
                 {!loading && rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    <TableCell
+                      className="py-8 text-center text-muted-foreground"
+                      colSpan={6}
+                    >
                       No additional transactions to display.
                     </TableCell>
                   </TableRow>
                 )}
-                {!loading && rows.map((row) => (
-                  <TableRow key={row.id} className="cursor-pointer hover:bg-gray-800" onClick={() => handleRowClick(row)}>
-                    <TableCell className="py-4 px-3">{row.paidOn}</TableCell>
-                    <TableCell className="py-4 px-3">{row.customer}</TableCell>
-                    <TableCell className="py-4 px-3">{row.currencyDisplay}</TableCell>
-                    <TableCell className="py-4 px-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-blue-300 cursor-pointer">{row.walletAddress}</span>
-                        <Copy className="w-3 h-3" />
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-3">{row.amountDisplay}</TableCell>
-                    <TableCell className="py-4 px-3">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${row.statusClass}`}>{row.statusLabel}</span>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {!loading &&
+                  rows.map((row) => (
+                    <TableRow
+                      className="cursor-pointer hover:bg-gray-800"
+                      key={row.id}
+                      onClick={() => handleRowClick(row)}
+                    >
+                      <TableCell className="px-3 py-4">{row.paidOn}</TableCell>
+                      <TableCell className="px-3 py-4">
+                        {row.customer}
+                      </TableCell>
+                      <TableCell className="px-3 py-4">
+                        {row.currencyDisplay}
+                      </TableCell>
+                      <TableCell className="px-3 py-4">
+                        <div className="flex items-center gap-1">
+                          <span className="block min-w-0 max-w-[140px] cursor-pointer truncate text-blue-300">
+                            {row.walletAddress}
+                          </span>
+                          <Copy className="h-3 w-3 flex-shrink-0" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 py-4">
+                        {row.amountDisplay}
+                      </TableCell>
+                      <TableCell className="px-3 py-4">
+                        <span
+                          className={`rounded px-2 py-1 font-medium text-xs ${row.statusClass}`}
+                        >
+                          {row.statusLabel}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </div>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-4 text-xs text-muted-foreground">
+          <div className="mt-4 flex flex-col text-muted-foreground text-xs md:flex-row md:items-center md:justify-between">
             <span>Showing {rows.length} entries</span>
-            <div className="flex items-center gap-2 mt-2 md:mt-0">
+            <div className="mt-2 flex items-center gap-2 md:mt-0">
               <span>Page</span>
-              <span className="px-2 py-1 bg-background border border-border rounded">1</span>
+              <span className="rounded border border-border bg-background px-2 py-1">
+                1
+              </span>
               <span>of 0</span>
-              <button className="px-2 py-1 bg-background border border-border rounded">&lt;</button>
-              <button className="px-2 py-1 bg-background border border-border rounded">&gt;</button>
+              <button className="rounded border border-border bg-background px-2 py-1">
+                &lt;
+              </button>
+              <button className="rounded border border-border bg-background px-2 py-1">
+                &gt;
+              </button>
             </div>
           </div>
         </CardContent>
       </Card>
       {/* Mobile bottom action */}
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-t border-border p-4 md:hidden">
-        <button onClick={() => window.location.href = '/transactions/create'} className="w-full h-12 rounded-md bg-primary text-primary-foreground text-base font-medium">Create Transaction</button>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-border border-t bg-background/90 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70 md:hidden">
+        <button
+          className="h-12 w-full rounded-md bg-primary font-medium text-base text-primary-foreground"
+          onClick={() => (window.location.href = "/transactions/create")}
+        >
+          Create Transaction
+        </button>
       </div>
-      <DetailsModal open={open} onOpenChange={setOpen} data={selectedData} />
+      <DetailsModal data={selectedData} onOpenChange={setOpen} open={open} />
     </div>
   );
 }

@@ -232,11 +232,13 @@ export default function WithdrawPage() {
       const json = await res.json().catch(() => null);
 
       if (!res.ok || json?.error) {
-        const message = json?.data || json?.message || "Failed to initiate withdrawal";
+        const message = typeof json?.data === "string"
+          ? json.data
+          : json?.message || "Failed to initiate withdrawal";
         notify(message);
 
         // If it's a no bank account error, suggest going to settings
-        if (message.toLowerCase().includes("no bank account") && mode === "fiat") {
+        if (typeof message === "string" && message.toLowerCase().includes("no bank account") && mode === "fiat") {
           setTimeout(() => {
             const goToSettings = window.confirm(
               "Would you like to go to Settings to add your bank account?"

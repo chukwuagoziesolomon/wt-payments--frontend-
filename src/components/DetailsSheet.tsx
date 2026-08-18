@@ -1,13 +1,21 @@
 "use client";
 
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  AlertCircle,
+  Clock,
+  Copy,
+  Download,
+  Monitor,
+  Shield,
+  Zap,
+} from "lucide-react";
+import type * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Copy, QrCode, Shield, Zap, Download, Monitor, Clock, AlertCircle } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import type { DetailsData } from "@/types";
-import * as React from "react";
 
 interface DetailsSheetProps {
   open: boolean;
@@ -32,103 +40,139 @@ export function DetailsSheet({ open, onOpenChange, data }: DetailsSheetProps) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
+        className="flex h-screen w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-[#282A33] bg-[#17171A] p-0 [&::-webkit-scrollbar]:hidden [&_*::-webkit-scrollbar-thumb]:rounded-full [&_*::-webkit-scrollbar-thumb]:bg-gray-700 [&_*::-webkit-scrollbar-track]:bg-transparent [&_*::-webkit-scrollbar]:w-2"
         side="right"
-        className="max-w-5xl w-full h-screen p-0 bg-[#17171A] rounded-lg border border-[#282A33] overflow-hidden flex flex-col [&::-webkit-scrollbar]:hidden [&_*::-webkit-scrollbar]:w-2 [&_*::-webkit-scrollbar-track]:bg-transparent [&_*::-webkit-scrollbar-thumb]:bg-gray-700 [&_*::-webkit-scrollbar-thumb]:rounded-full"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 h-full overflow-hidden">
+        <div className="grid h-full grid-cols-1 overflow-hidden md:grid-cols-2">
           {/* Left Column: Transaction Details */}
-          <div className="p-6 flex flex-col gap-4 border-r border-[#26272F] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700">
+          <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700 flex flex-col gap-4 overflow-y-auto border-[#26272F] border-r p-6">
             <div>
-              <div className="text-lg font-semibold text-white mb-4">Transaction Details</div>
+              <div className="mb-4 font-semibold text-lg text-white">
+                Transaction Details
+              </div>
               {/* Amount Paid Card */}
-              <div className="bg-[#17171A] p-4 rounded-md flex flex-col gap-0.5 border border-[#353640] mb-4">
-                <div className="flex justify-between items-center">
+              <div className="mb-4 flex flex-col gap-0.5 rounded-md border border-[#353640] bg-[#17171A] p-4">
+                <div className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="block text-xs text-gray-400">Amount Paid</span>
-                    <span className="block text-2xl font-bold text-white">{data.amountPaid}</span>
-                    <span className="block text-xs text-gray-400 mt-1">{data.equivalent}</span>
+                    <span className="block text-gray-400 text-xs">
+                      Amount Paid
+                    </span>
+                    <span className="block font-bold text-2xl text-white">
+                      {data.amountPaid}
+                    </span>
+                    <span className="mt-1 block text-gray-400 text-xs">
+                      {data.equivalent}
+                    </span>
                   </div>
-                  <div className="text-sm font-semibold text-white text-right">{data.receiver}</div>
+                  <div className="min-w-0 max-w-[180px] truncate text-right font-semibold text-sm text-white">
+                    {data.receiver}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Details Table/Rows */}
-            <Card className="bg-[#17171A] divide-y divide-[#292933] border border-[#282A33] overflow-hidden rounded-lg">
+            <Card className="divide-y divide-[#292933] overflow-hidden rounded-lg border border-[#282A33] bg-[#17171A]">
               <CardContent className="p-0">
                 <DetailRow label="Paid on" value={data.paidOn} />
                 <DetailRow label="Payment Method" value={data.paymentMethod} />
                 <DetailRow
-                  label="ID"
-                  value={data.id}
                   copyValue={data.id}
-                  valueClass="text-blue-400 font-mono text-xs"
+                  label="ID"
                   onCopy={copyToClipboard}
+                  value={data.id}
+                  valueClass="text-blue-400 font-mono text-xs"
                 />
-                <DetailRow label="Token" value={<TokenOrChain label={data.token} type="token" />} />
-                <DetailRow label="Blockchain" value={<TokenOrChain label={data.blockchain} type="chain" />} />
+                <DetailRow
+                  label="Token"
+                  value={<TokenOrChain label={data.token} type="token" />}
+                />
+                <DetailRow
+                  label="Blockchain"
+                  value={<TokenOrChain label={data.blockchain} type="chain" />}
+                />
                 <DetailRow label="Network Fee" value={data.networkFee} />
                 <DetailRow
-                  label="Receiver"
-                  value={data.receiverAddress}
                   copyValue={data.receiverAddress}
-                  valueClass="text-blue-400 font-mono text-xs"
+                  label="Receiver"
                   onCopy={copyToClipboard}
+                  value={data.receiverAddress}
+                  valueClass="text-blue-400 font-mono text-xs"
                 />
                 <DetailRow
-                  label="Sender"
-                  value={data.senderAddress}
                   copyValue={data.senderAddress}
-                  valueClass="text-blue-400 font-mono text-xs"
+                  label="Sender"
                   onCopy={copyToClipboard}
-                />
-                <DetailRow
-                  label="QR Code (Sender)"
-                  value={
-                    <div className="flex items-center gap-2">
-                      <img src="https://via.placeholder.com/40x40?text=QR" alt="QR Code" className="w-10 h-10 rounded bg-neutral-800 border border-gray-700" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(data.qrCode)}
-                        className="hover:bg-[#23243a] p-1"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  }
+                  value={data.senderAddress}
+                  valueClass="text-blue-400 font-mono text-xs"
                 />
                 <DetailRow
                   label="Status"
-                  value={<Badge className="bg-green-900 text-green-200 text-xs">{data.status}</Badge>}
+                  value={
+                    <Badge className="bg-green-900 text-green-200 text-xs">
+                      {data.status}
+                    </Badge>
+                  }
                 />
-                {data.deviceType && <DetailRow label="Device Type" value={<span className="font-semibold">{data.deviceType}</span>} />}
-                {data.attempts !== undefined && <DetailRow label="Attempts" value={data.attempts} />}
-                {data.error && <DetailRow label="Error" value={<span className="text-red-400">{data.error}</span>} />}
+                {data.deviceType && (
+                  <DetailRow
+                    label="Device Type"
+                    value={
+                      <span className="font-semibold">{data.deviceType}</span>
+                    }
+                  />
+                )}
+                {data.attempts !== undefined && (
+                  <DetailRow label="Attempts" value={data.attempts} />
+                )}
+                {data.error && (
+                  <DetailRow
+                    label="Error"
+                    value={<span className="text-red-400">{data.error}</span>}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Right Column: Activity Log */}
-          <div className="p-6 flex flex-col gap-4 bg-[#17171A] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700">
+          <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700 flex flex-col gap-4 overflow-y-auto bg-[#17171A] p-6">
             <div>
-              <div className="text-lg font-semibold text-white mb-4">Activity Log</div>
+              <div className="mb-4 font-semibold text-lg text-white">
+                Activity Log
+              </div>
               <Card className="bg-[#17171A]">
                 <CardContent className="p-0">
                   <div className="flex flex-col gap-3">
                     {data.activityLog?.map((item, idx) => {
                       const IconComponent = iconMap[item.icon] || Shield;
                       return (
-                        <div key={idx} className="flex items-start gap-3 p-4">
-                          <IconComponent className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-white font-semibold text-base leading-tight">{item.title}</div>
-                            <div className="text-gray-400 text-sm">{item.description}</div>
-                            {item.status && <div className="text-gray-400 text-sm">Status: {item.status}</div>}
-                            {item.date && <div className="text-gray-400 text-xs">Date: {item.date}</div>}
-                            {item.time && <div className="text-gray-400 text-xs">Time: {item.time}</div>}
+                        <div className="flex items-start gap-3 p-4" key={idx}>
+                          <IconComponent className="mt-0.5 h-5 w-5 shrink-0 text-blue-400" />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-base text-white leading-tight">
+                              {item.title}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              {item.description}
+                            </div>
+                            {item.status && (
+                              <div className="text-gray-400 text-sm">
+                                Status: {item.status}
+                              </div>
+                            )}
+                            {item.date && (
+                              <div className="text-gray-400 text-xs">
+                                Date: {item.date}
+                              </div>
+                            )}
+                            {item.time && (
+                              <div className="text-gray-400 text-xs">
+                                Time: {item.time}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -137,51 +181,66 @@ export function DetailsSheet({ open, onOpenChange, data }: DetailsSheetProps) {
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Horizontal separator line */}
             {(data.deviceType || data.attempts !== undefined || data.error) && (
               <>
-                <div className="border-t border-gray-700 my-4"></div>
-                
+                <div className="my-4 border-gray-700 border-t" />
+
                 {/* Device Type, Attempts, Error section with large number */}
                 <div className="space-y-3">
                   {data.deviceType && (
-                    <Card className="bg-[#17171A] border border-[#282A33] rounded-lg">
+                    <Card className="rounded-lg border border-[#282A33] bg-[#17171A]">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2">
-                          <Monitor className="w-4 h-4 text-gray-400" />
+                          <Monitor className="h-4 w-4 text-gray-400" />
                           <div>
-                            <div className="text-gray-400 text-xs uppercase">DEVICE TYPE</div>
-                            <div className="text-white text-sm">{data.deviceType}</div>
+                            <div className="text-gray-400 text-xs uppercase">
+                              DEVICE TYPE
+                            </div>
+                            <div className="text-sm text-white">
+                              {data.deviceType}
+                            </div>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
                   )}
                   {data.attempts !== undefined && (
-                    <Card className="bg-[#17171A] border border-[#282A33] rounded-lg">
+                    <Card className="rounded-lg border border-[#282A33] bg-[#17171A]">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-gray-400" />
+                            <Clock className="h-4 w-4 text-gray-400" />
                             <div>
-                              <div className="text-gray-400 text-xs uppercase">ATTEMPTS</div>
-                              <div className="text-white text-sm">{data.attempts} attempt{data.attempts !== 1 ? 's' : ''}</div>
+                              <div className="text-gray-400 text-xs uppercase">
+                                ATTEMPTS
+                              </div>
+                              <div className="text-sm text-white">
+                                {data.attempts} attempt
+                                {data.attempts !== 1 ? "s" : ""}
+                              </div>
                             </div>
                           </div>
-                          <div className="text-white text-6xl font-bold leading-none">{data.attempts}</div>
+                          <div className="font-bold text-6xl text-white leading-none">
+                            {data.attempts}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   )}
                   {data.error && (
-                    <Card className="bg-[#17171A] border border-[#282A33] rounded-lg">
+                    <Card className="rounded-lg border border-[#282A33] bg-[#17171A]">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-red-400" />
+                          <AlertCircle className="h-4 w-4 text-red-400" />
                           <div>
-                            <div className="text-red-400 text-xs uppercase">ERROR</div>
-                            <div className="text-white text-sm">{data.error}</div>
+                            <div className="text-red-400 text-xs uppercase">
+                              ERROR
+                            </div>
+                            <div className="text-sm text-white">
+                              {data.error}
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -197,7 +256,13 @@ export function DetailsSheet({ open, onOpenChange, data }: DetailsSheetProps) {
   );
 }
 
-function DetailRow({ label, value, copyValue, valueClass = '', onCopy }: {
+function DetailRow({
+  label,
+  value,
+  copyValue,
+  valueClass = "",
+  onCopy,
+}: {
   label: string;
   value: React.ReactNode;
   copyValue?: string;
@@ -205,18 +270,23 @@ function DetailRow({ label, value, copyValue, valueClass = '', onCopy }: {
   onCopy?: (v: string) => void;
 }) {
   return (
-    <div className="flex justify-between items-center px-4 py-3 gap-2 last:rounded-b">
-      <span className="text-gray-400 text-sm whitespace-nowrap">{label}</span>
-      <span className={"text-white text-sm ml-auto flex items-center gap-2 " + valueClass}>
-        {value}
+    <div className="flex items-center justify-between gap-2 px-4 py-3 last:rounded-b">
+      <span className="whitespace-nowrap text-gray-400 text-sm">{label}</span>
+      <span
+        className={
+          "ml-auto flex items-center gap-2 overflow-hidden text-sm text-white" +
+          valueClass
+        }
+      >
+        <span className="block min-w-0 max-w-[200px] truncate">{value}</span>
         {copyValue && onCopy && (
           <Button
-            variant="ghost"
-            size="sm"
+            className="shrink-0 p-1 hover:bg-[#23243a]"
             onClick={() => onCopy(copyValue)}
-            className="hover:bg-[#23243a] p-1"
+            size="sm"
+            variant="ghost"
           >
-            <Copy className="w-4 h-4" />
+            <Copy className="h-4 w-4" />
           </Button>
         )}
       </span>
@@ -224,13 +294,27 @@ function DetailRow({ label, value, copyValue, valueClass = '', onCopy }: {
   );
 }
 
-function TokenOrChain({ label, type }: { label: string; type: "token"|"chain" }) {
+function TokenOrChain({
+  label,
+  type,
+}: {
+  label: string;
+  type: "token" | "chain";
+}) {
   return (
     <span className="flex items-center gap-2">
-      <div className={type === "token" ? "w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center" : "w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"}>
-        <span className="text-white text-xs font-bold">{type === "token" ? "T" : "B"}</span>
+      <div
+        className={
+          type === "token"
+            ? "flex h-6 w-6 items-center justify-center rounded-full bg-blue-500"
+            : "flex h-6 w-6 items-center justify-center rounded-full bg-blue-500"
+        }
+      >
+        <span className="font-bold text-white text-xs">
+          {type === "token" ? "T" : "B"}
+        </span>
       </div>
-      <span className="text-white font-medium">{label}</span>
+      <span className="font-medium text-white">{label}</span>
     </span>
   );
 }

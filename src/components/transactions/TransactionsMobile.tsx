@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Copy, Filter, Search } from "lucide-react";
-import { DetailsSheet } from "../DetailsSheet";
-import { DetailsData } from "@/types";
-import { getPaymentIntentHistory, type HistoryListItem } from "@/lib/payment-intent-history";
+import { useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
+import {
+  getPaymentIntentHistory,
+  type HistoryListItem,
+} from "@/lib/payment-intent-history";
+import type { DetailsData } from "@/types";
+import { DetailsSheet } from "../DetailsSheet";
 
 export function TransactionsMobile() {
   const [open, setOpen] = useState(false);
@@ -63,64 +66,96 @@ export function TransactionsMobile() {
   };
 
   return (
-    <div className="md:hidden relative pb-24">
+    <div className="relative pb-24 md:hidden">
       {/* Search + Filter */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
           <input
-            type="text"
+            className="w-full rounded border border-border bg-background py-2 pr-3 pl-9 text-sm"
             placeholder="Search"
-            className="w-full bg-background border border-border rounded pl-9 pr-3 py-2 text-sm"
+            type="text"
           />
         </div>
-        <button className="h-10 w-10 flex items-center justify-center rounded-md border border-border">
+        <button className="flex h-10 w-10 items-center justify-center rounded-md border border-border">
           <Filter className="h-4 w-4" />
         </button>
       </div>
 
-      {loading && <SectionLoader variant="bars" message="Loading transactions…" height={120} />}
+      {loading && (
+        <SectionLoader
+          height={120}
+          message="Loading transactions…"
+          variant="bars"
+        />
+      )}
       {!loading && months.length === 0 && (
-        <div className="text-sm text-muted-foreground py-6">No additional transactions to display.</div>
+        <div className="py-6 text-muted-foreground text-sm">
+          No additional transactions to display.
+        </div>
       )}
 
-      {!loading && months.map((m) => (
-        <Card key={m.month} className="mb-4">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{m.month}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ul className="flex flex-col gap-4">
-              {m.items.map((tx) => (
-                <li key={tx.id} className="flex items-start justify-between cursor-pointer hover:bg-gray-800 py-4 px-3 rounded" onClick={() => handleItemClick(tx)}>
-                  <div className="flex-1 pr-3">
-                    <div className="text-base font-medium">{tx.customer}</div>
-                    <div className="mt-1 flex items-center gap-1 text-[13px] text-blue-300">
-                      <span>{tx.walletAddress}</span>
-                      <Copy className="h-3.5 w-3.5" />
+      {!loading &&
+        months.map((m) => (
+          <Card className="mb-4" key={m.month}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="font-semibold text-base">
+                  {m.month}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="flex flex-col gap-4">
+                {m.items.map((tx) => (
+                  <li
+                    className="flex cursor-pointer items-start justify-between rounded px-3 py-4 hover:bg-gray-800"
+                    key={tx.id}
+                    onClick={() => handleItemClick(tx)}
+                  >
+                    <div className="min-w-0 flex-1 pr-3">
+                      <div className="truncate font-medium text-base">
+                        {tx.customer}
+                      </div>
+                      <div className="mt-1 flex items-center gap-1 text-[13px] text-blue-300">
+                        <span className="block min-w-0 max-w-[150px] truncate">
+                          {tx.walletAddress}
+                        </span>
+                        <Copy className="h-3.5 w-3.5 flex-shrink-0" />
+                      </div>
+                      <div className="mt-1 truncate text-muted-foreground text-xs">
+                        {tx.paidOn}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{tx.paidOn}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-base font-semibold">{tx.amountDisplay}</div>
-                    <div className="mt-2">
-                      <Badge className={`${tx.statusClass} px-2 py-0.5 text-xs`}>{tx.statusLabel}</Badge>
+                    <div className="text-right">
+                      <div className="font-semibold text-base">
+                        {tx.amountDisplay}
+                      </div>
+                      <div className="mt-2">
+                        <Badge
+                          className={`${tx.statusClass} px-2 py-0.5 text-xs`}
+                        >
+                          {tx.statusLabel}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      ))}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        ))}
 
       {/* Mobile bottom action */}
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-t border-border p-4">
-        <button onClick={() => (window.location.href = '/transactions/create')} className="w-full h-12 rounded-md bg-primary text-primary-foreground text-base font-medium">Create Transaction</button>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-border border-t bg-background/90 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+        <button
+          className="h-12 w-full rounded-md bg-primary font-medium text-base text-primary-foreground"
+          onClick={() => (window.location.href = "/transactions/create")}
+        >
+          Create Transaction
+        </button>
       </div>
-      <DetailsSheet open={open} onOpenChange={setOpen} data={selectedData} />
+      <DetailsSheet data={selectedData} onOpenChange={setOpen} open={open} />
     </div>
   );
 }
