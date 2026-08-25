@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { authFetch } from "@/lib/auth-fetch";
-import { Plus, Edit2, Trash2, Image, ChevronLeft, ChevronRight, Upload, X, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight, Upload, X } from "lucide-react";
+import { TreasuryCard } from "@/components/products/TreasuryCard";
 
 const API = "/backend";
 
@@ -467,119 +468,29 @@ export default function ProductsPage() {
               {products.map((product) => (
                 <div
                   key={product.uniqueId}
-                  className="bg-[#19191d] rounded-xl border border-[#23242A] overflow-hidden hover:border-[#9d8df1] transition-colors group"
+                  className="group relative"
                 >
-                  {/* Product Image */}
-                  <div className="relative h-40 bg-[#11111a] overflow-hidden">
-                    {product.images.length > 0 ? (
-                      <img
-                        src={product.images[0].url}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        <Image className="w-8 h-8" />
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white">
-                        {product.images.length} image{product.images.length !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Product Details */}
-                  <div className="p-4">
-                    <h3 className="font-semibold text-white mb-1 line-clamp-2">{product.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-3">{product.category || "Uncategorized"}</p>
-
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Price</p>
-                        <p className="text-lg font-bold text-[#9d8df1]">
-                          {product.currency} {product.price.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Stock</p>
-                        <p
-                          className={`text-lg font-bold ${
-                            product.stock > 0 ? "text-green-400" : "text-red-400"
-                          }`}
-                        >
-                          {product.stock}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Product type & stock tracking */}
-                    <div className="flex items-center gap-2 mb-3 text-xs text-white/50">
-                      <span className="px-2 py-1 rounded-full border border-white/[0.08] bg-white/[0.03] capitalize">{product.product_type || "physical"}</span>
-                      <span className={`px-2 py-1 rounded-full border ${product.trackStock ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-white/[0.08] bg-white/[0.03] text-white/50"}`}>
-                        {product.trackStock ? "Tracking stock" : "Stock untracked"}
-                      </span>
-                    </div>
-
-                    {/* Image thumbnails */}
-                    <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                      {product.images.map((img) => (
-                        <div key={img.publicId} className="relative flex-shrink-0">
-                          <img src={img.url} alt="" className="h-12 w-12 rounded-lg object-cover border border-white/[0.08]" />
-                          <button
-                            onClick={() => handleDeleteImage(product.uniqueId, img.publicId)}
-                            className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center"
-                            title="Delete image"
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </div>
-                      ))}
-                      <label className="h-12 w-12 rounded-lg border border-dashed border-white/20 flex items-center justify-center cursor-pointer hover:border-[#9d8df1] transition-colors flex-shrink-0">
-                        <Upload className="h-4 w-4 text-white/40" />
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) handleImageUpload(product.uniqueId, f);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div className="mb-4">
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          product.isActive
-                            ? "bg-green-500/20 text-green-400"
-                            : "bg-red-500/20 text-red-400"
-                        }`}
-                      >
-                        {product.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-3 border-t border-[#23242A]">
-                      <button
-                        onClick={() => handleEdit(product)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-[#23242A] text-muted-foreground hover:text-white hover:border-[#9d8df1] transition-colors text-sm"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.uniqueId)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
+                  <TreasuryCard
+                    productName={product.name}
+                    category={product.category || "Uncategorized"}
+                    price={`${product.currency} ${product.price.toLocaleString()}`}
+                    stock={product.stock}
+                    isActive={product.isActive}
+                    imageCount={product.images.length}
+                  />
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button
+                      onClick={() => handleEdit(product)}
+                      className="h-7 w-7 rounded-lg border border-[#23242A] text-muted-foreground hover:text-white hover:border-[#9d8df1] flex items-center justify-center transition-colors"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product.uniqueId)}
+                      className="h-7 w-7 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 flex items-center justify-center transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
