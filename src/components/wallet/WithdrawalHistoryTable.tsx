@@ -9,20 +9,18 @@ import { Copy, Filter, Search } from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
 import { DetailsModal } from "../DetailsModal";
 import { DetailsData } from "@/types";
+import type { WithdrawalHistoryItem } from "@/types";
 
-interface HistoryItem {
-  id: number | string;
-  uniqueId?: string;
-  recipientType?: string;
-  recipientName?: string;
-  recipientAccountNumber?: string;
-  usdtAmount?: number;
-  nairaAmount?: number;
-  fee?: number;
-  status?: string;
-  initiatedAt?: string;
-  processedAt?: string | null;
-  completedAt?: string | null;
+function getCryptoIcon(symbol?: string) {
+  const s = (symbol || "").toUpperCase();
+  if (s === "USDC") return <img src="/images/usdcbase.png" alt="USDC" className="w-6 h-6 rounded-full" />;
+  if (s === "USDT") return <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />;
+  if (s === "SOL") return <span className="inline-flex w-6 h-6 bg-[#9945ff] rounded-full items-center justify-center text-white text-[9px] font-bold">SOL</span>;
+  if (s === "TRX" || s === "TRON") return <span className="inline-flex w-6 h-6 bg-[#ff060a] rounded-full items-center justify-center text-white text-[9px] font-bold">TRX</span>;
+  if (s === "CKB") return <span className="inline-flex w-6 h-6 bg-[#3dba9e] rounded-full items-center justify-center text-white text-[10px] font-bold">CKB</span>;
+  if (s === "ETH") return <span className="inline-flex w-6 h-6 bg-[#627eea] rounded-full items-center justify-center text-white text-[10px] font-bold">ETH</span>;
+  if (s === "MATIC" || s === "POL") return <span className="inline-flex w-6 h-6 bg-[#8247e5] rounded-full items-center justify-center text-white text-[9px] font-bold">POL</span>;
+  return <img src="/images/usdtasset.png" alt={s} className="w-6 h-6 rounded-full" />;
 }
 
 const statusClass = {
@@ -33,14 +31,14 @@ const statusClass = {
   Cancelled: "bg-gray-800 text-gray-200",
 } as const;
 
-function DesktopTable({ rows }: { rows: HistoryItem[] }) {
+function DesktopTable({ rows }: { rows: WithdrawalHistoryItem[] }) {
   const [open, setOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<DetailsData | null>(null);
   const [filter, setFilter] = useState<'All' | 'Crypto' | 'Fiat'>('All');
 
-  const cryptoCount = rows.filter((r) => !(r.recipientType || '').toLowerCase().includes('bank')).length;
-  const fiatCount = rows.filter((r) => (r.recipientType || '').toLowerCase().includes('bank')).length;
-  const filteredRows = filter === 'All' ? rows : rows.filter((r) => filter === 'Crypto' ? !(r.recipientType || '').toLowerCase().includes('bank') : (r.recipientType || '').toLowerCase().includes('bank'));
+  const cryptoCount = rows.filter((r) => r.method?.toLowerCase() === 'crypto').length;
+  const fiatCount = rows.filter((r) => r.method?.toLowerCase() === 'fiat').length;
+  const filteredRows = filter === 'All' ? rows : rows.filter((r) => filter === 'Crypto' ? r.method?.toLowerCase() === 'crypto' : r.method?.toLowerCase() === 'fiat');
 
   const handleRowClick = (row: DetailsData) => {
     setSelectedData(row);
@@ -97,36 +95,36 @@ function DesktopTable({ rows }: { rows: HistoryItem[] }) {
               {filteredRows.map((row) => (
                 <TableRow key={row.id} className="cursor-pointer hover:bg-gray-800" onClick={() => handleRowClick({
                   type: 'withdrawal',
-                  amountPaid: `${row.usdtAmount ?? 0} USDT`,
-                  equivalent: `${row.nairaAmount ?? 0} NGN`,
-                  receiver: row.recipientName || 'Recipient',
-                  paidOn: row.initiatedAt ? new Date(row.initiatedAt).toLocaleDateString() : '-',
-                  paymentMethod: row.recipientType || 'Withdrawal',
-                  id: String(row.id),
-                  token: 'USDT',
-                  blockchain: 'BASE',
-                  networkFee: `${row.fee ?? 0} USDT`,
-                  receiverAddress: row.recipientAccountNumber || row.recipientName || '-',
+                  amountPaid: `${row.amount} ${row.crypto_currency || 'USDT'}`,
+                  equivalent: '-',
+                  receiver: row.method === 'Fiat' ? 'Bank Account' : 'Crypto Wallet',
+                  paidOn: row.paidOn,
+                  paymentMethod: row.method,
+                  id: row.id,
+                  token: row.crypto_currency || 'USDT',
+                  blockchain: row.network || 'N/A',
+                  networkFee: 'N/A',
+                  receiverAddress: row.wallet || '-',
                   senderAddress: '-',
                   qrCode: '',
                   status: row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Pending',
                   activityLog: [],
                 } as DetailsData)}>
-                  <TableCell className="py-4 px-3">{row.initiatedAt ? new Date(row.initiatedAt).toLocaleDateString() : '-'}</TableCell>
-                  <TableCell className="py-4 px-3">{row.recipientType || 'Withdrawal'}</TableCell>
+                  <TableCell className="py-4 px-3">{row.paidOn}</TableCell>
+                  <TableCell className="py-4 px-3">{row.method}</TableCell>
                   <TableCell className="py-4 px-3">
                     <div className="flex items-center gap-2">
-                      <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />
-                      <span>USDT</span>
+                      {getCryptoIcon(row.crypto_currency)}
+                      <span>{row.crypto_currency || '-'}</span>
                     </div>
                   </TableCell>
                   <TableCell className="py-4 px-3">
                     <div className="flex items-center gap-1">
-                      <span className="text-blue-300 cursor-pointer">{row.recipientAccountNumber || row.recipientName || '-'}</span>
+                      <span className="text-blue-300 cursor-pointer">{row.wallet || '-'}</span>
                       <Copy className="w-3 h-3" />
                     </div>
                   </TableCell>
-                  <TableCell className="py-4 px-3">{row.usdtAmount ? `${row.usdtAmount} USDT` : '-'}</TableCell>
+                  <TableCell className="py-4 px-3">{row.amount ? `${row.amount} ${row.crypto_currency || 'USDT'}` : '-'}</TableCell>
                   <TableCell className="py-4 px-3">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass[(row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Pending') as keyof typeof statusClass] || 'bg-gray-800 text-gray-200'}`}>{row.status || 'Pending'}</span>
                   </TableCell>
@@ -152,15 +150,15 @@ function DesktopTable({ rows }: { rows: HistoryItem[] }) {
   );
 }
 
-function MobileList({ rows }: { rows: HistoryItem[] }) {
+function MobileList({ rows }: { rows: WithdrawalHistoryItem[] }) {
   const [open, setOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<DetailsData | null>(null);
   const [filter, setFilter] = useState<'All' | 'Crypto' | 'Fiat'>('All');
   const router = useRouter();
 
-  const cryptoCount = rows.filter((r) => !(r.recipientType || '').toLowerCase().includes('bank')).length;
-  const fiatCount = rows.filter((r) => (r.recipientType || '').toLowerCase().includes('bank')).length;
-  const filteredRows = filter === 'All' ? rows : rows.filter((r) => filter === 'Crypto' ? !(r.recipientType || '').toLowerCase().includes('bank') : (r.recipientType || '').toLowerCase().includes('bank'));
+  const cryptoCount = rows.filter((r) => r.method?.toLowerCase() === 'crypto').length;
+  const fiatCount = rows.filter((r) => r.method?.toLowerCase() === 'fiat').length;
+  const filteredRows = filter === 'All' ? rows : rows.filter((r) => filter === 'Crypto' ? r.method?.toLowerCase() === 'crypto' : r.method?.toLowerCase() === 'fiat');
 
   const handleRowClick = (row: DetailsData) => {
     setSelectedData(row);
@@ -213,31 +211,31 @@ function MobileList({ rows }: { rows: HistoryItem[] }) {
               {m.items.map((tx, idx) => (
                 <li key={tx.id} className={`flex items-start justify-between py-4 px-3 ${idx !== m.items.length - 1 ? 'border-b border-border' : ''} cursor-pointer hover:bg-gray-800`} onClick={() => handleRowClick({
                   type: 'withdrawal',
-                  amountPaid: `${tx.usdtAmount ?? 0} USDT`,
-                  equivalent: `${tx.nairaAmount ?? 0} NGN`,
-                  receiver: tx.recipientName || 'Recipient',
-                  paidOn: tx.initiatedAt ? new Date(tx.initiatedAt).toLocaleDateString() : '-',
-                  paymentMethod: tx.recipientType || 'Withdrawal',
-                  id: String(tx.id),
-                  token: 'USDT',
-                  blockchain: 'BASE',
-                  networkFee: `${tx.fee ?? 0} USDT`,
-                  receiverAddress: tx.recipientAccountNumber || tx.recipientName || '-',
+                  amountPaid: `${tx.amount} ${tx.crypto_currency || 'USDT'}`,
+                  equivalent: '-',
+                  receiver: tx.method === 'Fiat' ? 'Bank Account' : 'Crypto Wallet',
+                  paidOn: tx.paidOn,
+                  paymentMethod: tx.method,
+                  id: tx.id,
+                  token: tx.crypto_currency || 'USDT',
+                  blockchain: tx.network || 'N/A',
+                  networkFee: 'N/A',
+                  receiverAddress: tx.wallet || '-',
                   senderAddress: '-',
                   qrCode: '',
                   status: tx.status ? tx.status.charAt(0).toUpperCase() + tx.status.slice(1) : 'Pending',
                   activityLog: [],
                 } as DetailsData)}>
                   <div className="flex-1 pr-3">
-                    <div className="text-base font-medium">{tx.recipientType || 'Withdrawal'}</div>
+                    <div className="text-base font-medium">{tx.method}</div>
                     <div className="mt-1 flex items-center gap-1 text-[13px] text-blue-300">
-                      <span>{tx.recipientAccountNumber || tx.recipientName || '-'}</span>
+                      <span>{tx.wallet || '-'}</span>
                       <Copy className="h-3.5 w-3.5" />
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{tx.initiatedAt ? new Date(tx.initiatedAt).toLocaleDateString() : '-'}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{tx.paidOn}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-base font-semibold">{tx.usdtAmount ? `${tx.usdtAmount} USDT` : '-'}</div>
+                    <div className="text-base font-semibold">{tx.amount ? `${tx.amount} ${tx.crypto_currency || 'USDT'}` : '-'}</div>
                     <div className="mt-2">
                       <Badge className={`${statusClass[(tx.status ? tx.status.charAt(0).toUpperCase() + tx.status.slice(1) : 'Pending') as keyof typeof statusClass] || 'bg-gray-800 text-gray-200'} px-2 py-0.5 text-xs`}>
                         {tx.status || 'Pending'}
@@ -269,7 +267,7 @@ function MobileList({ rows }: { rows: HistoryItem[] }) {
 }
 
 export function WithdrawalHistoryTable() {
-  const [rows, setRows] = useState<HistoryItem[]>([]);
+  const [rows, setRows] = useState<WithdrawalHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

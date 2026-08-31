@@ -131,6 +131,11 @@ export function TransactionsTable() {
                       </TableCell>
                       <TableCell className="px-3 py-4">
                         {row.amountDisplay}
+                        {row.txHash && (
+                          <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-[140px]">
+                            TX: {row.txHash}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="px-3 py-4">
                         <span

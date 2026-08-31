@@ -102,7 +102,7 @@ export function CurrencyTable({ assets, loading, error, search, onSearchChange }
                   </TableRow>
                 )}
                 {!loading && !error && paged.map((asset) => {
-                  const address = asset.network?.contract_address;
+                  const address = asset.crypto?.contractAddress || asset.network?.contract_address;
                   const active = asset.is_active !== false;
                   const livePrice = getPrice(asset.crypto.symbol);
                   const displayRate = livePrice ?? asset.crypto.ratePerUsd;

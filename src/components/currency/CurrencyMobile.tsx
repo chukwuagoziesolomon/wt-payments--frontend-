@@ -82,7 +82,7 @@ export function CurrencyMobile({ assets, loading, error, search, onSearchChange 
         <div className="flex flex-col gap-3">
           {assets.map((asset) => {
             const active = asset.is_active !== false;
-            const address = asset.network?.contract_address;
+            const address = asset.crypto?.contractAddress || asset.network?.contract_address;
             const livePrice = getPrice(asset.crypto.symbol);
             const displayRate = livePrice ?? asset.crypto.ratePerUsd;
             return (

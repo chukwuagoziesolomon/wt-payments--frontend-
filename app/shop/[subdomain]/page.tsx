@@ -12,6 +12,7 @@ import {
   X,
   Minus,
 } from "lucide-react";
+import { ProductCard } from "@/components/products/ProductCard";
 
 const API = "/backend";
 
@@ -50,6 +51,10 @@ type Product = {
   stock: number;
   is_active: boolean;
   images: Array<{ url: string; publicId: string }>;
+  compareAt?: number;
+  rating?: number;
+  reviews?: number;
+  badge?: string;
 };
 
 function normalizeProduct(product: any): Product {
@@ -63,6 +68,10 @@ function normalizeProduct(product: any): Product {
     stock: Number(product.stock ?? 0),
     is_active: Boolean(product.is_active ?? product.isActive ?? false),
     images: Array.isArray(product.images) ? product.images : [],
+    compareAt: product.compareAt ? Number(product.compareAt) : undefined,
+    rating: product.rating ? Number(product.rating) : undefined,
+    reviews: product.reviews ? Number(product.reviews) : undefined,
+    badge: product.badge ?? undefined,
   };
 }
 
@@ -410,90 +419,26 @@ export default function StorefrontPage() {
           <h2 className="text-lg font-semibold text-white mb-5">Products</h2>
 
           {products.length === 0 ? (
-            <div className="rounded-2xl border border-white/[0.06] p-12 text-center bg-[#19191d]">
+            <div className="rounded-2xl border border-base-border p-12 text-center bg-base-surface">
               <Package className="w-10 h-10 text-white/20 mx-auto mb-3" />
-              <p className="text-white/40 text-sm">No products listed yet.</p>
+              <p className="text-ink-muted text-sm">No products listed yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-[#19191d] rounded-2xl border border-white/[0.06] overflow-hidden hover:border-white/[0.15] transition-colors group"
-                >
-                  <div className="h-44 bg-[#111118] overflow-hidden relative">
-                    {product.images?.[0]?.url ? (
-                      <img
-                        src={product.images[0].url}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Package className="w-8 h-8 text-white/15" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2">
-                      {product.name}
-                    </h3>
-                    {product.category && (
-                      <p className="text-white/35 text-xs mb-3">
-                        {product.category}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <p
-                        className="text-lg font-bold"
-                        style={{ color: primary }}
-                      >
-                        {product.currency} {product.price.toLocaleString()}
-                      </p>
-                      {product.stock > 0 ? (
-                        <span className="text-xs text-emerald-400">
-                          In stock
-                        </span>
-                      ) : (
-                        <span className="text-xs text-red-400">
-                          Out of stock
-                        </span>
-                      )}
-                    </div>
-                    {checkoutUrl && (
-                      <a
-                        href={checkoutUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
-                        style={{
-                          background: `linear-gradient(135deg, ${primary}, ${accent})`,
-                        }}
-                      >
-                        <ShoppingBag className="w-3.5 h-3.5" />
-                        Buy Now
-                      </a>
-                    )}
-
-                    {product.stock > 0 && (
-                      <button
-                        onClick={() => addToCart(product)}
-                        disabled={addingId === product.id}
-                        className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold text-white border border-white/10 hover:border-white/25 transition-all disabled:opacity-50"
-                      >
-                        {addingId === product.id ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
-                            Adding...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-3.5 h-3.5" /> Add to Cart
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
+                <div key={product.id}>
+                  <ProductCard
+                    product={{
+                      name: product.name,
+                      category: product.category || "Uncategorized",
+                      price: product.price,
+                      compareAt: product.compareAt,
+                      rating: product.rating ?? 0,
+                      reviews: product.reviews ?? 0,
+                      badge: product.badge,
+                    }}
+                    onAddToCart={() => addToCart(product)}
+                  />
                 </div>
               ))}
             </div>

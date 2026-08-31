@@ -10,6 +10,7 @@ import { SelectBlockchainSheet } from "@/src/components/wallet/SelectBlockchainS
 import { SelectAssetSheet } from "@/src/components/wallet/SelectAssetSheet";
 import { WaitingForPaymentModal } from "@/components/WaitingForPaymentModal";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
+import { useWalletBalance, type WithdrawalUpdateEvent } from "@/hooks/use-wallet-balance";
 import { authFetch } from "@/lib/auth-fetch";
 
 const API = "/backend";
@@ -59,13 +60,29 @@ type AssetConfig = { id: string; label: string; sudtTypeScript: string | null };
 type NetworkConfig = {
   id: string;
   label: string;
-  networkType: "ckb" | "evm";
+  networkType: "ckb" | "evm" | "solana" | "tron";
   icon: React.ReactNode;
   addressPlaceholder: string;
   assets: AssetConfig[];
   disabled?: boolean;
   badge?: string;
 };
+
+function SolanaIcon() {
+  return <span className="inline-flex w-6 h-6 bg-[#9945ff] rounded-full items-center justify-center text-white text-[9px] font-bold">SOL</span>;
+}
+function TronIcon() {
+  return <span className="inline-flex w-6 h-6 bg-[#ff060a] rounded-full items-center justify-center text-white text-[9px] font-bold">TRX</span>;
+}
+
+function isValidAddress(address: string, networkType: string): boolean {
+  if (!address) return false;
+  if (networkType === "evm") return /^0x[a-fA-F0-9]{40}$/.test(address);
+  if (networkType === "ckb") return /^ckt1q[a-zA-Z0-9]{20,40}$/.test(address);
+  if (networkType === "solana") return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address) && !address.startsWith("0x");
+  if (networkType === "tron") return /^T[a-zA-Z0-9]{33}$/.test(address);
+  return true;
+}
 
 const NETWORKS: NetworkConfig[] = [
   {
@@ -115,12 +132,24 @@ const NETWORKS: NetworkConfig[] = [
   {
     id: "net_solana",
     label: "Solana",
-    networkType: "evm",
-    icon: <span className="inline-flex w-6 h-6 bg-[#9945ff] rounded-full items-center justify-center text-white text-[9px] font-bold">SOL</span>,
-    addressPlaceholder: "",
-    assets: [],
-    disabled: true,
-    badge: "Soon",
+    networkType: "solana",
+    icon: <SolanaIcon />,
+    addressPlaceholder: "7EcjQq5RXkqBaDb2LDWSDbQmybg4GBFPJV2H9DDJr4V",
+    assets: [
+      { id: "SOL", label: "SOL", sudtTypeScript: null },
+      { id: "USDC", label: "USDC", sudtTypeScript: null },
+    ],
+  },
+  {
+    id: "net_tron",
+    label: "Tron",
+    networkType: "tron",
+    icon: <TronIcon />,
+    addressPlaceholder: "TQcZ9FqK9w8fZ6fQo1J19w6dE6w8fZ6fQo1J19w6dE6",
+    assets: [
+      { id: "TRX", label: "TRX", sudtTypeScript: null },
+      { id: "USDT", label: "USDT", sudtTypeScript: null },
+    ],
   },
   {
     id: "net_bitcoin",
@@ -178,6 +207,15 @@ export default function WithdrawPage() {
       });
   }, []);
 
+  // Listen for real-time withdrawal updates
+  useWalletBalance({
+    onWithdrawalUpdate: (event: WithdrawalUpdateEvent) => {
+      if (event.status === "completed") {
+        notify(`Withdrawal of ${event.amount} ${event.currency} completed! TX: ${event.tx_hash || event.transaction_id}`);
+      }
+    },
+  });
+
   // Debounced quote fetch
   React.useEffect(() => {
     if (!amount || Number(amount) <= 0) { setQuote(null); return; }
@@ -202,6 +240,10 @@ export default function WithdrawPage() {
   async function handleInitiate() {
     if (!amount || Number(amount) <= 0) { notify("Enter a valid amount"); return; }
     if (!selectedWallet) { notify("No wallet found"); return; }
+    if (mode === "crypto" && selectedNetwork && !isValidAddress(recipientAddress, selectedNetwork.networkType)) {
+      notify("Invalid recipient address for selected network");
+      return;
+    }
 
     setInitiating(true);
     try {

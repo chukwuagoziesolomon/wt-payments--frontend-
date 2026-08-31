@@ -41,3 +41,54 @@ export type DetailsData = {
   attempts?: number;
   error?: string;
 };
+
+export type NetworkType = "evm" | "ckb" | "solana" | "tron";
+
+export type AvailableAssetCrypto = {
+  id: string;
+  name: string;
+  symbol: string;
+  logo?: string;
+  type?: string;
+  contractAddress?: string | null;
+  ratePerUsd?: number;
+};
+
+export type AvailableAssetNetwork = {
+  id: string;
+  name: string;
+  logo?: string;
+  isTestnet: boolean;
+  networkType: NetworkType;
+  chainKey: string;
+  chainId: string | null;
+};
+
+export type AvailableAsset = {
+  currency_id: string;
+  crypto: AvailableAssetCrypto;
+  network: AvailableAssetNetwork;
+};
+
+export type WithdrawalSSEEventData = {
+  type: "crypto";
+  network: string;
+  status: string;
+  amount: number;
+  tx_hash?: string;
+  recipient?: string;
+  currency: string;
+  transaction_id: string;
+};
+
+export type WithdrawalHistoryItem = {
+  id: string;
+  paidOn: string;
+  method: string;
+  crypto_currency: string;
+  wallet: string;
+  amount: number;
+  status: string;
+  network: string;
+  tx_hash?: string;
+};

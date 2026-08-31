@@ -13,13 +13,27 @@ export type WalletBalance = {
   wallets: WalletEntry[];
 };
 
+export type WithdrawalUpdateEvent = {
+  type: "crypto";
+  network: string;
+  status: string;
+  amount: number;
+  tx_hash?: string;
+  recipient?: string;
+  currency: string;
+  transaction_id: string;
+};
+
 /**
  * Subscribes to the SSE stream and keeps the wallet balance up-to-date.
  * Falls back to null until the first `wallet.balance_updated` event arrives.
  */
-export function useWalletBalance(): WalletBalance | null {
+export function useWalletBalance(options?: {
+  onWithdrawalUpdate?: (event: WithdrawalUpdateEvent) => void;
+}): WalletBalance | null {
   const [balance, setBalance] = useState<WalletBalance | null>(null);
   const esRef = useRef<EventSource | null>(null);
+  const onWithdrawalUpdate = options?.onWithdrawalUpdate;
 
   useEffect(() => {
     const token =
@@ -40,6 +54,17 @@ export function useWalletBalance(): WalletBalance | null {
       }
     });
 
+    if (onWithdrawalUpdate) {
+      es.addEventListener("withdrawal.updated", (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data) as WithdrawalUpdateEvent;
+          onWithdrawalUpdate(payload);
+        } catch {
+          // ignore malformed events
+        }
+      });
+    }
+
     es.onerror = () => {
       // EventSource auto-reconnects on error; nothing extra needed
     };
@@ -48,7 +73,7 @@ export function useWalletBalance(): WalletBalance | null {
       es.close();
       esRef.current = null;
     };
-  }, []);
+  }, [onWithdrawalUpdate]);
 
   return balance;
 }

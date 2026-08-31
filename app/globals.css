@@ -123,6 +123,7 @@ h1 {
 
   /* Checkout page theme colors */
   .bg-base-bg { background-color: #0e0e10; }
+  .border-base-border { border-color: #2a2a3a; }
   .bg-radial-fade { background: radial-gradient(ellipse at top, #1a1a2e 0%, #0e0e10 70%); }
   .bg-base-surface { background-color: #17171a; }
   .bg-base-surface2 { background-color: #11111a; }

@@ -12,14 +12,19 @@ export type AssetItem = {
     name: string;
     symbol: string;
     logo?: string;
+    type?: string;
+    contractAddress?: string | null;
     ratePerUsd?: number;
   };
-  network?: {
-    id?: string;
-    name?: string;
-    contract_address?: string;
-    chain_id?: string;
-    [key: string]: any;
+  network: {
+    id: string;
+    name: string;
+    logo?: string;
+    isTestnet: boolean;
+    networkType: string;
+    chainKey: string;
+    chainId: string | null;
+    contract_address?: string | null;
   };
   is_active?: boolean;
 };

@@ -97,16 +97,21 @@ function MobileList({
                     {tx.paidOn}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold text-base">
-                    {tx.amountDisplay}
-                  </div>
-                  <div className="mt-2">
-                    <Badge className={`${tx.statusClass} px-2 py-0.5 text-xs`}>
-                      {tx.statusLabel}
-                    </Badge>
-                  </div>
-                </div>
+                 <div className="text-right">
+                   <div className="font-semibold text-base">
+                     {tx.amountDisplay}
+                     {tx.txHash && (
+                       <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-[120px]">
+                         TX: {tx.txHash}
+                       </div>
+                     )}
+                   </div>
+                   <div className="mt-2">
+                     <Badge className={`${tx.statusClass} px-2 py-0.5 text-xs`}>
+                       {tx.statusLabel}
+                     </Badge>
+                   </div>
+                 </div>
               </li>
             ))}
           </ul>
@@ -255,9 +260,14 @@ function DesktopTable({
                         <Copy className="h-3 w-3 flex-shrink-0 cursor-pointer" />
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 py-4 text-foreground">
-                      {tx.amountDisplay}
-                    </TableCell>
+                     <TableCell className="px-3 py-4 text-foreground">
+                       {tx.amountDisplay}
+                       {tx.txHash && (
+                         <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-[140px]">
+                           TX: {tx.txHash}
+                         </div>
+                       )}
+                     </TableCell>
                     <TableCell className="px-3 py-4 text-foreground">
                       <span
                         className={`rounded px-2 py-1 font-medium text-xs ${tx.statusClass}`}

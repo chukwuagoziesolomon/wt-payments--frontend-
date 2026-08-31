@@ -9,15 +9,25 @@ import { authFetch } from "@/lib/auth-fetch"
 import { usePrices } from "@/lib/usePrices"
 
 type AssetItem = {
-  currency_id: string
+  currency_id: string;
   crypto: {
-    id: string
-    name: string
-    symbol: string
-    logo?: string
-    ratePerUsd?: number
-  }
-  network?: any
+    id: string;
+    name: string;
+    symbol: string;
+    logo?: string;
+    type?: string;
+    contractAddress?: string | null;
+    ratePerUsd?: number;
+  };
+  network: {
+    id: string;
+    name: string;
+    logo?: string;
+    isTestnet: boolean;
+    networkType: string;
+    chainKey: string;
+    chainId: string | null;
+  };
 }
 
 const INITIAL_VISIBLE = 4

@@ -40,6 +40,10 @@ type PaymentIntentHistoryTransaction = {
     logo?: string | null;
     is_testnet?: boolean;
   } | null;
+  crypto_amount?: string | null;
+  crypto_currency?: string | null;
+  tx_hash?: string | null;
+  wallet_address?: string | null;
 };
 
 type PaymentIntentHistoryResponse = {
@@ -62,6 +66,10 @@ export type HistoryListItem = {
   amountDisplay: string;
   statusLabel: string;
   statusClass: string;
+  network?: string;
+  txHash?: string;
+  cryptoAmount?: string;
+  cryptoCurrency?: string;
   details: DetailsData;
 };
 
@@ -106,8 +114,9 @@ export async function getPaymentIntentHistory(params?: {
 function toHistoryItem(tx: PaymentIntentHistoryTransaction): HistoryListItem {
   const amount = Number.isFinite(tx.amount) ? tx.amount : 0;
   const currencySymbol = tx.currency?.symbol || tx.currency?.id || "";
-  const tokenSymbol = tx.crypto?.symbol || tx.crypto?.name || "-";
-  const walletAddress = tx.wallet?.address || "-";
+  const tokenSymbol = tx.crypto?.symbol || tx.crypto?.name || tx.crypto_currency || "-";
+  const walletAddress = tx.wallet?.address || tx.wallet_address || "-";
+  const networkName = tx.network?.name || "";
   const statusLabel = normalizeStatus(tx.status);
 
   return {
@@ -115,24 +124,28 @@ function toHistoryItem(tx: PaymentIntentHistoryTransaction): HistoryListItem {
     createdAt: tx.created_at,
     paidOn: formatDate(tx.created_at),
     customer: tx.reference_id || tx.transaction_id,
-    currencyDisplay: [tokenSymbol, tx.network?.name].filter(Boolean).join("/") || tokenSymbol,
+    currencyDisplay: [tokenSymbol, networkName].filter(Boolean).join("/") || tokenSymbol,
     tokenSymbol,
     walletAddress,
     amountDisplay: `${formatNumber(amount)} ${currencySymbol || tokenSymbol}`.trim(),
     statusLabel,
     statusClass: statusBadgeClass(statusLabel),
+    network: networkName || undefined,
+    txHash: tx.tx_hash || undefined,
+    cryptoAmount: tx.crypto_amount || undefined,
+    cryptoCurrency: tx.crypto_currency || undefined,
     details: {
       type: "transaction",
       amountPaid: `${formatNumber(amount)} ${currencySymbol || tokenSymbol}`.trim(),
-      equivalent: tx.crypto?.symbol
-        ? `≈ ${formatNumber(amount)} ${tx.crypto.symbol}`
+      equivalent: tx.crypto_currency
+        ? `≈ ${tx.crypto_amount || formatNumber(amount)} ${tx.crypto_currency}`
         : `≈ ${formatNumber(amount)} ${currencySymbol || tokenSymbol}`,
       receiver: tx.reference_id || "N/A",
       paidOn: formatDateTime(tx.created_at),
       paymentMethod: "Crypto",
       id: tx.transaction_id,
       token: tokenSymbol,
-      blockchain: tx.network?.name || "N/A",
+      blockchain: networkName || "N/A",
       networkFee: "N/A",
       receiverAddress: walletAddress,
       senderAddress: walletAddress,

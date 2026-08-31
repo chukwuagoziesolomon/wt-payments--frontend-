@@ -80,7 +80,12 @@ The `notify` function in `ToastProvider` was receiving objects from API response
 | File | Changes |
 |------|---------|
 | `components/ui/ToastProvider.tsx` | `notify` now coerces non-string values |
-| `src/components/DetailsModal.tsx` | Removed QR code, fixed modal centering (`relative` → removed, `fixed` preserved), `max-w-[95vw] sm:max-w-5xl`, Amount Paid card mobile-responsive |
+| `components/products/TreasuryCard.tsx` | TreasuryCard with dual mode: product card (props) or default card (no props) |
+| `components/products/ProductCard.tsx` | New ProductCard with wishlist toggle, star rating, compare-at pricing, add-to-cart state |
+| `components/TreasuryCard.ts` | Barrel export |
+| `app/globals.css` | Added checkout theme CSS classes (`bg-base-bg`, `bg-base-surface`, `bg-base-surface2`, `border-base-border`, `text-ink-*`, `shadow-glow`, `text-mint`, `bg-mint`) |
+| `app/checkout/page.tsx` | Replaced with new simplified checkout design |
+| `src/components/DetailsModal.tsx` | Removed QR code, fixed modal centering, `max-w-[95vw] sm:max-w-5xl`, Amount Paid card mobile-responsive |
 | `src/components/DetailsSheet.tsx` | Removed QR code and unused `QrCode` import, Amount Paid card truncation fix |
 | `src/components/overview/PayoutPieChart.tsx` | ResponsiveContainer fix, height resize |
 | `src/components/overview/AnalyticalTransactionChart.tsx` | Header stack, button padding, XAxis label spacing |
@@ -88,3 +93,4 @@ The `notify` function in `ToastProvider` was receiving objects from API response
 | `app/(dashboard)/dashboard/page.tsx` | Margin resize, import sort |
 | `app/(dashboard)/dashboard/payments/page.tsx` | API response handling, `toStr()` helper, type updates, `notify` fix |
 | `app/(dashboard)/dashboard/wallet/withdraw/page.tsx` | `notify` type guard, `toLowerCase()` guard |
+| `app/shop/[subdomain]/page.tsx` | Replaced product grid rendering with ProductCard, added `compareAt`/`rating`/`reviews`/`badge` to Product type |

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TreasuryCard } from "@/components/TreasuryCard";
+import { ShoppingBag } from "lucide-react";
 
 const lineItems = [
   { label: "Treasury Card — Obsidian", amount: 0 },
@@ -12,7 +13,7 @@ const lineItems = [
 const total = lineItems.reduce((sum, item) => sum + item.amount, 0);
 
 export default function CheckoutPage() {
-  const [method, setMethod] = useState<"card" | "crypto">("card");
+  const [method, setMethod] = useState<"paystack" | "crypto">("paystack");
 
   return (
     <main className="min-h-screen bg-base-bg bg-radial-fade px-6 py-16">
@@ -77,7 +78,7 @@ export default function CheckoutPage() {
                 Pay with
               </p>
               <div className="inline-flex rounded-xl border border-base-border bg-base-surface p-1 gap-1">
-                {(["card", "crypto"] as const).map((m) => (
+                {(["paystack", "crypto"] as const).map((m) => (
                   <button
                     key={m}
                     onClick={() => setMethod(m)}
@@ -87,21 +88,23 @@ export default function CheckoutPage() {
                         : "text-ink-secondary hover:text-ink-primary"
                     }`}
                   >
-                    {m === "card" ? "Card" : "Crypto wallet"}
+                    {m === "paystack" ? "Paystack" : "Crypto wallet"}
                   </button>
                 ))}
               </div>
             </div>
 
             <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-              {method === "card" ? (
+              {method === "paystack" ? (
                 <>
-                  <Field label="Card number" placeholder="4291 •••• •••• 8402" mono />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Expiry" placeholder="MM / YY" mono />
-                    <Field label="CVC" placeholder="•••" mono />
-                  </div>
-                  <Field label="Name on card" placeholder="Adaeze Chukwu" />
+                  <Field label="Billing email" placeholder="you@company.com" />
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center gap-2 mt-2 rounded-xl bg-violet-gradient text-white text-sm font-medium py-3.5 shadow-glow hover:brightness-110 active:scale-[0.99] transition"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Pay ${total.toFixed(2)} via Paystack
+                  </button>
                 </>
               ) : (
                 <>
@@ -110,17 +113,15 @@ export default function CheckoutPage() {
                     We'll settle in USDC at the current treasury rate. No network fee for
                     Treasury Card holders.
                   </div>
+                  <Field label="Billing email" placeholder="you@company.com" />
+                  <button
+                    type="submit"
+                    className="w-full mt-2 rounded-xl bg-violet-gradient text-white text-sm font-medium py-3.5 shadow-glow hover:brightness-110 active:scale-[0.99] transition"
+                  >
+                    Pay ${total.toFixed(2)}
+                  </button>
                 </>
               )}
-
-              <Field label="Billing email" placeholder="you@company.com" />
-
-              <button
-                type="submit"
-                className="w-full mt-2 rounded-xl bg-violet-gradient text-white text-sm font-medium py-3.5 shadow-glow hover:brightness-110 active:scale-[0.99] transition"
-              >
-                Pay ${total.toFixed(2)}
-              </button>
 
               <p className="text-xs text-ink-muted text-center pt-1">
                 Secured with 256-bit encryption. Refundable within 30 days.
