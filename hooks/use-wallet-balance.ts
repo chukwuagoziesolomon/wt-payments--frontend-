@@ -24,16 +24,26 @@ export type WithdrawalUpdateEvent = {
   transaction_id: string;
 };
 
-/**
- * Subscribes to the SSE stream and keeps the wallet balance up-to-date.
- * Falls back to null until the first `wallet.balance_updated` event arrives.
- */
+function mergeWallets(existing: WalletEntry[], incoming: WalletEntry[]): WalletEntry[] {
+  const map = new Map<string, WalletEntry>();
+  for (const w of existing) {
+    const key = w.currency_id || w.symbol || crypto.randomUUID();
+    map.set(key, w);
+  }
+  for (const w of incoming) {
+    const key = w.currency_id || w.symbol || crypto.randomUUID();
+    map.set(key, w);
+  }
+  return Array.from(map.values());
+}
+
 export function useWalletBalance(options?: {
   onWithdrawalUpdate?: (event: WithdrawalUpdateEvent) => void;
 }): WalletBalance | null {
   const [balance, setBalance] = useState<WalletBalance | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const onWithdrawalUpdate = options?.onWithdrawalUpdate;
+  const previousWalletsRef = useRef<WalletEntry[]>([]);
 
   useEffect(() => {
     const token =
@@ -48,7 +58,14 @@ export function useWalletBalance(options?: {
     es.addEventListener("wallet.balance_updated", (e: MessageEvent) => {
       try {
         const payload = JSON.parse(e.data) as WalletBalance;
-        setBalance(payload);
+        setBalance(prev => {
+          const prevWallets = prev?.wallets || previousWalletsRef.current;
+          const merged = payload.wallets?.length
+            ? mergeWallets(prevWallets, payload.wallets)
+            : payload.wallets;
+          previousWalletsRef.current = merged;
+          return { total_balance_usd: payload.total_balance_usd, wallets: merged };
+        });
       } catch {
         // ignore malformed events
       }

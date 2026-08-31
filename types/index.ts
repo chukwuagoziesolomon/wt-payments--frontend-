@@ -70,6 +70,35 @@ export type AvailableAsset = {
   network: AvailableAssetNetwork;
 };
 
+export type UserWallet = {
+  uniqueId: string;
+  walletAddress: string;
+  balance: number;
+  balanceUsd?: number;
+  status: string;
+  currencyId: string;
+  cryptoNetworkId: string;
+  currency?: {
+    id: string;
+    symbol: string;
+    name: string;
+    logo?: string;
+  };
+  cryptoNetwork?: {
+    id: string;
+    name: string;
+    logo?: string;
+    networkType: NetworkType;
+    chainKey: string;
+    isTestnet: boolean;
+  };
+};
+
+export type WalletsResponse = {
+  success: boolean;
+  data: UserWallet[];
+};
+
 export type WithdrawalSSEEventData = {
   type: "crypto";
   network: string;
@@ -91,4 +120,44 @@ export type WithdrawalHistoryItem = {
   status: string;
   network: string;
   tx_hash?: string;
+  user_wallet_id?: string;
+};
+
+export type PaymentIntentHistoryTransaction = {
+  transaction_id: string;
+  reference_id: string | null;
+  amount: number;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+  currency?: {
+    id?: string;
+    name?: string;
+    symbol?: string;
+    logo?: string | null;
+  } | null;
+  wallet?: {
+    id?: string;
+    address?: string;
+    qr_code?: string | null;
+    status?: string;
+  } | null;
+  crypto?: {
+    id?: string;
+    name?: string;
+    symbol?: string;
+    logo?: string | null;
+    contract_address?: string | null;
+  } | null;
+  network?: {
+    id?: string;
+    name?: string;
+    logo?: string | null;
+    is_testnet?: boolean;
+  } | null;
+  crypto_amount?: string | null;
+  crypto_currency?: string | null;
+  tx_hash?: string | null;
+  wallet_address?: string | null;
+  user_wallet_id?: string | null;
 };

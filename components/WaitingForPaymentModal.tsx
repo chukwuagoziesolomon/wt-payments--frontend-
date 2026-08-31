@@ -1,5 +1,5 @@
 ﻿import * as React from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Network } from "lucide-react";
 
 export type PaymentIntentData = {
   payment_intent_id: string;
@@ -18,6 +18,8 @@ export type PaymentIntentData = {
     symbol: string;
     network: string;
     amount: number;
+    logo?: string;
+    networkType?: string;
   };
 };
 
@@ -56,6 +58,32 @@ function useCountdown(expirationTime: string | undefined) {
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
   return { secondsLeft, display: `${mins}:${secs.toString().padStart(2, "0")}` };
+}
+
+function getEstimatedArrival(networkType?: string): string {
+  const type = (networkType || "").toLowerCase();
+  if (type === "solana") return "~1 min";
+  if (type === "tron") return "~1 min";
+  if (type === "ckb") return "~1 min";
+  if (type === "evm") return "~5-10 mins";
+  return "~1-5 mins";
+}
+
+function renderNetworkBadge(networkName: string, networkType?: string) {
+  const type = (networkType || "").toLowerCase();
+  let bg = "bg-[#23242A]";
+  let text = "text-white/70";
+  if (type === "solana") { bg = "bg-[#9945ff]/20"; text = "text-[#9945ff]"; }
+  if (type === "tron") { bg = "bg-[#ff060a]/20"; text = "text-[#ff060a]"; }
+  if (type === "ckb") { bg = "bg-[#3dba9e]/20"; text = "text-[#3dba9e]"; }
+  if (type === "evm") { bg = "bg-[#627eea]/20"; text = "text-[#627eea]"; }
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${bg} ${text} border-white/[0.06]`}>
+      <Network className="w-3 h-3" />
+      {networkName}
+    </span>
+  );
 }
 
 export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
@@ -131,6 +159,7 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
   }
 
   const isExpired = secondsLeft === 0;
+  const estimatedArrival = getEstimatedArrival(paymentData.crypto.networkType);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 overflow-y-auto py-4">
@@ -156,10 +185,17 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
 
         <div className="w-full bg-[#1e1e2a] border border-[#6c5dd3]/40 rounded-lg px-4 py-3 text-center">
           <p className="text-muted-foreground text-xs mb-1">Send exactly</p>
-          <p className="text-white text-2xl font-bold tracking-tight">
-            {paymentData.crypto.amount} {paymentData.crypto.symbol}
-          </p>
-          <p className="text-muted-foreground text-xs mt-1">{paymentData.crypto.network}</p>
+          <div className="flex items-center justify-center gap-2">
+            {paymentData.crypto.logo && (
+              <img src={paymentData.crypto.logo} alt={paymentData.crypto.symbol} className="w-5 h-5 rounded-full" />
+            )}
+            <p className="text-white text-2xl font-bold tracking-tight">
+              {paymentData.crypto.amount} {paymentData.crypto.symbol}
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            {renderNetworkBadge(paymentData.crypto.network, paymentData.crypto.networkType)}
+          </div>
         </div>
 
         <div className="w-full">
@@ -174,6 +210,11 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
               {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
+        </div>
+
+        <div className="w-full flex items-center justify-between bg-[#19191d] rounded-lg px-4 py-2 border border-border">
+          <span className="text-muted-foreground text-xs">Estimated arrival</span>
+          <span className="text-white text-xs font-semibold">{estimatedArrival}</span>
         </div>
 
         <p className="text-muted-foreground text-xs">
@@ -197,7 +238,7 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
         </div>
 
         <p className="text-muted-foreground text-xs text-center">
-          Payment settles instantly via Fiber protocol. Do not close this window.
+          Payment settles instantly via {paymentData.crypto.network}. Do not close this window.
         </p>
       </div>
     </div>

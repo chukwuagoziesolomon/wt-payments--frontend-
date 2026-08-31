@@ -12,6 +12,7 @@ import { WaitingForPaymentModal } from "@/components/WaitingForPaymentModal";
 import { SectionLoader } from "@/components/ui/LoadingAnimator";
 import { useWalletBalance, type WithdrawalUpdateEvent } from "@/hooks/use-wallet-balance";
 import { authFetch } from "@/lib/auth-fetch";
+import type { UserWallet, NetworkType } from "@/types";
 
 const API = "/backend";
 
@@ -35,8 +36,6 @@ type Quote = {
   fiatCurrency?: string;
 };
 
-type WalletEntry = { wallet_id: string; balance_usd: number; symbol: string };
-
 function UsdtIcon() {
   return <img src="/images/usdtasset.png" alt="USDT" className="w-6 h-6 rounded-full" />;
 }
@@ -55,25 +54,32 @@ function MaticIcon() {
     <span className="inline-flex w-6 h-6 bg-[#8247e5] rounded-full items-center justify-center text-white text-[9px] font-bold">POL</span>
   );
 }
-
-type AssetConfig = { id: string; label: string; sudtTypeScript: string | null };
-type NetworkConfig = {
-  id: string;
-  label: string;
-  networkType: "ckb" | "evm" | "solana" | "tron";
-  icon: React.ReactNode;
-  addressPlaceholder: string;
-  assets: AssetConfig[];
-  disabled?: boolean;
-  badge?: string;
-};
-
 function SolanaIcon() {
   return <span className="inline-flex w-6 h-6 bg-[#9945ff] rounded-full items-center justify-center text-white text-[9px] font-bold">SOL</span>;
 }
 function TronIcon() {
   return <span className="inline-flex w-6 h-6 bg-[#ff060a] rounded-full items-center justify-center text-white text-[9px] font-bold">TRX</span>;
 }
+
+function getNetworkIcon(networkType: NetworkType) {
+  if (networkType === "ckb") return <CkbIcon />;
+  if (networkType === "evm") return <EthIcon />;
+  if (networkType === "solana") return <SolanaIcon />;
+  if (networkType === "tron") return <TronIcon />;
+  return <EthIcon />;
+}
+
+type AssetConfig = { id: string; label: string; sudtTypeScript: string | null };
+type NetworkConfig = {
+  id: string;
+  label: string;
+  networkType: NetworkType;
+  icon: React.ReactNode;
+  addressPlaceholder: string;
+  assets: AssetConfig[];
+  disabled?: boolean;
+  badge?: string;
+};
 
 function isValidAddress(address: string, networkType: string): boolean {
   if (!address) return false;
@@ -170,8 +176,9 @@ export default function WithdrawPage() {
   const [mode, setMode] = React.useState<"crypto" | "fiat">("crypto");
 
   // Wallet / asset data
-  const [wallets, setWallets] = React.useState<WalletEntry[]>([]);
-  const [selectedWallet, setSelectedWallet] = React.useState<WalletEntry | null>(null);
+  const [userWallets, setUserWallets] = React.useState<UserWallet[]>([]);
+  const [selectedWallet, setSelectedWallet] = React.useState<UserWallet | null>(null);
+  const [walletSelectorOpen, setWalletSelectorOpen] = React.useState(false);
 
   // Crypto fields
   const [recipientAddress, setRecipientAddress] = React.useState("");
@@ -195,17 +202,47 @@ export default function WithdrawPage() {
   const [showOtpModal, setShowOtpModal] = React.useState(false);
   const [otpLoading, setOtpLoading] = React.useState(false);
 
-  // Load wallet balance on mount
+  // Load wallets on mount
   React.useEffect(() => {
-    authFetch(`${API}/user/wallet/balance`, { headers: authHeaders() })
+    authFetch(`${API}/user/wallets`, { headers: authHeaders() })
       .then(r => r.json())
       .catch(() => null)
       .then(json => {
-        const list: WalletEntry[] = json?.result?.wallets || json?.wallets || [];
-        setWallets(list);
-        if (list.length > 0) setSelectedWallet(list[0]);
+        const list: UserWallet[] = json?.data || json?.result?.data || [];
+        setUserWallets(list);
+        const active = list.find(w => (w.status || "").toLowerCase() === "active") || list[0];
+        if (active) {
+          setSelectedWallet(active);
+          const net = active.cryptoNetwork;
+          if (net) {
+            const netConfig = NETWORKS.find(n => n.id === net.id || n.networkType === net.networkType);
+            setSelectedNetwork(netConfig || NETWORKS[0]);
+          }
+          if (active.currency) {
+            const netConfig = NETWORKS.find(n => n.id === (active.cryptoNetwork?.id || ""));
+            if (netConfig) {
+              const assetSymbol = active.currency.symbol;
+              const asset = netConfig.assets.find(a => a.id === assetSymbol);
+              setSelectedAsset(asset || netConfig.assets[0] || null);
+            }
+          }
+        }
       });
   }, []);
+
+  React.useEffect(() => {
+    if (!selectedWallet) return;
+    const net = selectedWallet.cryptoNetwork;
+    if (!net) return;
+    const netConfig = NETWORKS.find(n => n.id === net.id || n.networkType === net.networkType);
+    if (netConfig) {
+      setSelectedNetwork(netConfig);
+    }
+    if (selectedWallet.currency) {
+      const asset = netConfig?.assets.find(a => a.id === selectedWallet.currency?.symbol);
+      setSelectedAsset(asset || netConfig?.assets[0] || null);
+    }
+  }, [selectedWallet?.uniqueId]);
 
   // Listen for real-time withdrawal updates
   useWalletBalance({
@@ -251,9 +288,9 @@ export default function WithdrawPage() {
         mode === "crypto"
           ? {
               type: "crypto",
-              user_wallet_id: selectedWallet.wallet_id,
-              crypto_currency_id: selectedAsset?.id ?? "",
-              network_id: selectedNetwork?.id ?? "",
+              user_wallet_id: selectedWallet.uniqueId,
+              crypto_currency_id: selectedAsset?.id ?? selectedWallet.currencyId,
+              network_id: selectedNetwork?.id ?? selectedWallet.cryptoNetworkId,
               amount: Number(amount),
               recipient_address: recipientAddress,
               ...(selectedAsset?.sudtTypeScript
@@ -262,7 +299,7 @@ export default function WithdrawPage() {
             }
           : {
               type: "fiat",
-              user_wallet_id: selectedWallet.wallet_id,
+              user_wallet_id: selectedWallet.uniqueId,
               amount: Number(amount),
             };
 
@@ -336,7 +373,7 @@ export default function WithdrawPage() {
     notify("A new OTP has been sent to your email.");
   }
 
-  const balance = selectedWallet?.balance_usd ?? 0;
+  const balance = selectedWallet ? (selectedWallet.balance ?? 0) : 0;
 
   return (
     <div className="min-h-screen bg-background px-0 pt-0 pb-8 flex flex-col">
@@ -368,6 +405,28 @@ export default function WithdrawPage() {
               {/* ── CRYPTO FORM ── */}
               {mode === "crypto" && (
                 <>
+                  {/* Wallet Selector */}
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">From Wallet</label>
+                    <div
+                      className="rounded-lg border border-border p-3 flex items-center justify-between bg-[#19191d] cursor-pointer"
+                      onClick={() => setWalletSelectorOpen(true)}
+                    >
+                      <div className="flex items-center gap-2">
+                        {selectedWallet?.cryptoNetwork?.logo ? (
+                          <img src={selectedWallet.cryptoNetwork.logo} alt={selectedWallet.cryptoNetwork.name} className="w-6 h-6 rounded-full" />
+                        ) : selectedWallet ? getNetworkIcon(selectedWallet.cryptoNetwork?.networkType || "evm") : <CkbIcon />}
+                        <span className="font-medium">
+                          {selectedWallet?.currency?.symbol || "Select wallet"} ({balance})
+                        </span>
+                      </div>
+                      <ChevronDown className="w-5 h-5 text-primary" />
+                    </div>
+                    {userWallets.length === 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">No wallets available. Create a transaction to generate one.</p>
+                    )}
+                  </div>
+
                   {/* Network / Blockchain */}
                   <div>
                     <label className="block text-sm text-muted-foreground mb-2">Network</label>
@@ -409,6 +468,9 @@ export default function WithdrawPage() {
                       value={recipientAddress}
                       onChange={e => setRecipientAddress(e.target.value)}
                     />
+                    {recipientAddress && selectedNetwork && !isValidAddress(recipientAddress, selectedNetwork.networkType) && (
+                      <p className="text-xs text-red-400 mt-1">Invalid address format for {selectedNetwork.label}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -436,7 +498,7 @@ export default function WithdrawPage() {
 
               {/* ── AMOUNT (shared) ── */}
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">Enter amount (USDT)</label>
+                <label className="block text-sm text-muted-foreground mb-2">Enter amount</label>
                 <div className="rounded-lg border border-border p-3 flex items-center justify-between bg-[#19191d]">
                   <input
                     type="number"
@@ -447,10 +509,14 @@ export default function WithdrawPage() {
                     placeholder="0"
                   />
                   <div className="flex flex-col items-end gap-1">
-                    <span className="text-xs text-muted-foreground">Bal: {balance} USDT</span>
+                    <span className="text-xs text-muted-foreground">Bal: {balance} {selectedWallet?.currency?.symbol || ""}</span>
                     <div className="flex items-center gap-2">
-                      <UsdtIcon />
-                      <span className="font-medium text-white">USDT</span>
+                      {selectedWallet?.currency?.logo ? (
+                        <img src={selectedWallet.currency.logo} alt={selectedWallet.currency.symbol} className="w-6 h-6 rounded-full" />
+                      ) : (
+                        <UsdtIcon />
+                      )}
+                      <span className="font-medium text-white">{selectedWallet?.currency?.symbol || "USDT"}</span>
                     </div>
                   </div>
                 </div>
@@ -465,17 +531,17 @@ export default function WithdrawPage() {
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-muted-foreground"><ArrowDownLeft className="w-4 h-4 text-primary" />Amount to receive</span>
                       <span className="text-white font-semibold">
-                        {quote.amountToReceive} USDT
+                        {quote.amountToReceive} {selectedAsset?.label || "USDT"}
                         {quote.nairaAmountToReceive ? ` ≈ ₦${quote.nairaAmountToReceive.toLocaleString()}` : ""}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-muted-foreground"><Percent className="w-4 h-4 text-primary" />Transaction fee</span>
-                      <span className="text-white font-semibold">{quote.transactionFee} USDT</span>
+                      <span className="text-white font-semibold">{quote.transactionFee} {selectedAsset?.label || "USDT"}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-muted-foreground"><Network className="w-4 h-4 text-primary" />Estimated network fee</span>
-                      <span className="text-white font-semibold">{quote.estimatedNetworkFee} USDT</span>
+                      <span className="text-white font-semibold">{quote.estimatedNetworkFee} {selectedAsset?.label || "USDT"}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-muted-foreground"><Clock className="w-4 h-4 text-primary" />Expected arrival</span>
@@ -488,7 +554,7 @@ export default function WithdrawPage() {
                     {quote.exchangeRate && (
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2 text-muted-foreground"><Info className="w-4 h-4 text-primary" />Exchange rate</span>
-                        <span className="text-white font-semibold">1 USDT = ₦{quote.exchangeRate.toLocaleString()}</span>
+                        <span className="text-white font-semibold">1 {selectedAsset?.label || "USDT"} = ₦{quote.exchangeRate.toLocaleString()}</span>
                       </div>
                     )}
                   </>
@@ -500,16 +566,77 @@ export default function WithdrawPage() {
               {/* Submit */}
               <Button
                 type="button"
-                disabled={initiating || !amount || Number(amount) <= 0}
+                disabled={initiating || !amount || Number(amount) <= 0 || !selectedWallet}
                 className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-lg disabled:opacity-50"
                 onClick={handleInitiate}
               >
-                {initiating ? "Sending OTP…" : `Withdraw ${amount || 0} USDT`}
+                {initiating ? "Sending OTP…" : `Withdraw ${amount || 0} ${selectedAsset?.label || "USDT"}`}
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Wallet selector dropdown (simple native select) */}
+      {walletSelectorOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setWalletSelectorOpen(false)}>
+          <div className="bg-[#17171a] border border-border rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+              <span className="text-white font-semibold">Select Wallet</span>
+              <button type="button" onClick={() => setWalletSelectorOpen(false)} className="text-muted-foreground">✕</button>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {userWallets.length === 0 && (
+                <div className="px-5 py-6 text-sm text-muted-foreground text-center">No wallets available.</div>
+              )}
+              {userWallets.map(w => {
+                const net = w.cryptoNetwork;
+                const cur = w.currency;
+                const isActive = (w.status || "").toLowerCase() === "active";
+                return (
+                  <button
+                    key={w.uniqueId}
+                    type="button"
+                    className={`w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-[#23243a] transition-colors border-b border-border/50 ${selectedWallet?.uniqueId === w.uniqueId ? "bg-[#23243a]" : ""}`}
+                    onClick={() => {
+                      setSelectedWallet(w);
+                      setWalletSelectorOpen(false);
+                    }}
+                  >
+                    <div className="flex-shrink-0">
+                      {net?.logo ? (
+                        <img src={net.logo} alt={net.name} className="w-8 h-8 rounded-full" />
+                      ) : (
+                        getNetworkIcon(net?.networkType || "evm")
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium text-sm">{net?.name || "Network"}</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#2a2a3a] text-muted-foreground border border-border">
+                          {cur?.symbol || ""}
+                        </span>
+                        {!isActive && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/25">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
+                        {w.walletAddress ? `${w.walletAddress.slice(0, 6)}...${w.walletAddress.slice(-4)}` : "No address"}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-white text-sm font-semibold">{typeof w.balance === "number" ? w.balance.toLocaleString() : "0"}</div>
+                      <div className="text-[10px] text-muted-foreground">{cur?.symbol || ""}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sheets */}
       <SelectBlockchainSheet

@@ -47,6 +47,15 @@ function renderAssetIcon(asset: { logo?: string; symbol: string }) {
   );
 }
 
+function getEstimatedArrival(networkType?: string): string {
+  const type = (networkType || "").toLowerCase();
+  if (type === "solana") return "~1 min";
+  if (type === "tron") return "~1 min";
+  if (type === "ckb") return "~1 min";
+  if (type === "evm") return "~5-10 mins";
+  return "~1-5 mins";
+}
+
 export default function CreateTransactionPage() {
   const router = useRouter();
   const { notify } = useToast();
@@ -132,6 +141,7 @@ export default function CreateTransactionPage() {
     e.preventDefault();
     if (!referenceId.trim()) { notify("Reference ID is required"); return; }
     if (!fiatAmount || Number(fiatAmount) <= 0) { notify("Enter a valid fiat amount"); return; }
+    if (!selectedNetworkId) { notify("Select a blockchain"); return; }
     if (!selectedCurrencyId) { notify("Select a cryptocurrency"); return; }
 
     setCreating(true);
@@ -172,6 +182,7 @@ export default function CreateTransactionPage() {
         typeof d.crypto?.network === "object"
           ? (d.crypto.network?.name ?? "")
           : (d.crypto?.network ?? "");
+      const selectedAsset = availableAssets.find(a => a.currency_id === selectedCurrencyId);
       setPaymentData({
         payment_intent_id: d.payment_intent_id,
         transaction_id: d.transaction_id,
@@ -179,7 +190,12 @@ export default function CreateTransactionPage() {
         fee_in_crypto: d.fee_in_crypto,
         wallet: d.wallet,
         fiat: d.fiat ?? { amount: Number(fiatAmount), currency: fiatCurrency },
-        crypto: { ...d.crypto, network: cryptoNetwork },
+        crypto: {
+          ...d.crypto,
+          network: cryptoNetwork,
+          logo: selectedAsset?.crypto.logo,
+          networkType: selectedAsset?.network.networkType,
+        },
       });
       setWaitingOpen(true);
     } finally {
@@ -247,25 +263,36 @@ export default function CreateTransactionPage() {
               </div>
             </div>
 
-            {/* Asset selector */}
-            <div className="relative">
-              <label className="block text-sm text-muted-foreground mb-2">Cryptocurrency</label>
-              <div
-                className={`rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d] cursor-pointer ${!selectedNetwork ? "opacity-50" : ""}`}
-                onClick={() => selectedNetwork && setAssetSheetOpen(true)}
-              >
-                <div className="flex items-center gap-2">
-                  {selectedAsset ? renderAssetIcon(selectedAsset.crypto) : <span className="text-muted-foreground">Select cryptocurrency</span>}
-                  <span className="font-medium">{selectedAsset?.crypto.symbol || "Select cryptocurrency"}</span>
-                  {selectedAsset && (
-                    <span className="text-muted-foreground text-xs">
-                      {selectedAsset.crypto.name}
-                    </span>
-                  )}
-                </div>
-                <ChevronDown className="w-5 h-5 text-primary" />
-              </div>
-            </div>
+             {/* Asset selector */}
+             <div className="relative">
+               <label className="block text-sm text-muted-foreground mb-2">Cryptocurrency</label>
+               <div
+                 className={`rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d] cursor-pointer ${!selectedNetwork ? "opacity-50" : ""}`}
+                 onClick={() => selectedNetwork && setAssetSheetOpen(true)}
+               >
+                 <div className="flex items-center gap-2">
+                   {selectedAsset ? renderAssetIcon(selectedAsset.crypto) : <span className="text-muted-foreground">Select cryptocurrency</span>}
+                   <span className="font-medium">{selectedAsset?.crypto.symbol || "Select cryptocurrency"}</span>
+                   {selectedAsset && (
+                     <span className="text-muted-foreground text-xs">
+                       {selectedAsset.crypto.name}
+                     </span>
+                   )}
+                 </div>
+                 <ChevronDown className="w-5 h-5 text-primary" />
+               </div>
+             </div>
+
+             {/* Network info preview */}
+             {selectedNetwork && selectedAsset && (
+               <div className="rounded-md border border-[#23242A] bg-[#19191d] p-3 flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                   <Clock className="w-4 h-4 text-primary" />
+                   <span className="text-xs text-muted-foreground">Estimated arrival on {selectedNetwork.name}</span>
+                 </div>
+                 <span className="text-xs text-white font-semibold">{getEstimatedArrival(selectedAsset?.network?.networkType || selectedNetwork?.networkType)}</span>
+               </div>
+             )}
 
             {/* Reference ID */}
             <div>
@@ -301,7 +328,7 @@ export default function CreateTransactionPage() {
 
             <Button
               type="submit"
-              disabled={creating || !referenceId.trim() || !fiatAmount || Number(fiatAmount) <= 0 || !selectedCurrencyId}
+              disabled={creating || !referenceId.trim() || !fiatAmount || Number(fiatAmount) <= 0 || !selectedNetworkId || !selectedCurrencyId}
               className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-md disabled:opacity-50"
             >
               {creating
