@@ -66,6 +66,7 @@ export default function CreateTransactionPage() {
   const networks = React.useMemo(() => {
     const map = new Map<string, { id: string; name: string; logo?: string; networkType: string; chainKey: string }>();
     for (const asset of availableAssets) {
+      if (!asset.network) continue;
       const nid = asset.network.id;
       if (!map.has(nid)) {
         map.set(nid, {
@@ -194,7 +195,7 @@ export default function CreateTransactionPage() {
           ...d.crypto,
           network: cryptoNetwork,
           logo: selectedAsset?.crypto.logo,
-          networkType: selectedAsset?.network.networkType,
+          networkType: selectedAsset?.network?.networkType,
         },
       });
       setWaitingOpen(true);
