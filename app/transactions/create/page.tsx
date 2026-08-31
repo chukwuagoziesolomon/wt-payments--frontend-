@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, Info, ArrowDownLeft, Percent, Network, Clock } from "lucide-react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { WaitingForPaymentModal, type PaymentIntentData } from "@/components/WaitingForPaymentModal";
+import { SelectBlockchainSheet } from "@/src/components/wallet/SelectBlockchainSheet";
+import { SelectAssetSheet } from "@/src/components/wallet/SelectAssetSheet";
 import { authFetch } from "@/lib/auth-fetch";
+import type { AvailableAsset } from "@/types";
 
 const API = "/backend";
 
@@ -22,23 +25,62 @@ function generateReferenceId() {
   return `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-const ASSETS = [
-  { label: "CKB", value: "CKB", icon: "/images/ckb.png" },
-  { label: "RUSD", value: "RUSD", icon: "/images/rusd.png" },
-];
+function renderNetworkIcon(network: { logo?: string; name: string }) {
+  if (network.logo) {
+    return <img src={network.logo} alt={network.name} className="w-6 h-6 rounded-full" />;
+  }
+  return (
+    <span className="inline-flex w-6 h-6 bg-[#23242A] rounded-full items-center justify-center text-white text-[9px] font-bold">
+      {network.name.slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
 
-const ASSET_ICON_MAP: Record<string, string> = {
-  CKB: "/images/ckb.png",
-  RUSD: "/images/rusd.png",
-};
+function renderAssetIcon(asset: { logo?: string; symbol: string }) {
+  if (asset.logo) {
+    return <img src={asset.logo} alt={asset.symbol} className="w-6 h-6 rounded-full" />;
+  }
+  return (
+    <span className="inline-flex w-6 h-6 bg-[#23242A] rounded-full items-center justify-center text-white text-[9px] font-bold">
+      {asset.symbol.slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
 
 export default function CreateTransactionPage() {
   const router = useRouter();
   const { notify } = useToast();
 
-  const [asset, setAsset] = React.useState<string>("CKB");
-  const [assetDropdownOpen, setAssetDropdownOpen] = React.useState(false);
-  const [availableAssets, setAvailableAssets] = React.useState<Array<{ symbol: string; name: string; amount: number }>>([]);
+  const [availableAssets, setAvailableAssets] = React.useState<AvailableAsset[]>([]);
+  const [loadingAssets, setLoadingAssets] = React.useState(false);
+
+  const networks = React.useMemo(() => {
+    const map = new Map<string, { id: string; name: string; logo?: string; networkType: string; chainKey: string }>();
+    for (const asset of availableAssets) {
+      const nid = asset.network.id;
+      if (!map.has(nid)) {
+        map.set(nid, {
+          id: nid,
+          name: asset.network.name,
+          logo: asset.network.logo,
+          networkType: asset.network.networkType,
+          chainKey: asset.network.chainKey,
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [availableAssets]);
+
+  const [selectedNetworkId, setSelectedNetworkId] = React.useState<string>("");
+  const [selectedCurrencyId, setSelectedCurrencyId] = React.useState<string>("");
+
+  const [blockchainSheetOpen, setBlockchainSheetOpen] = React.useState(false);
+  const [assetSheetOpen, setAssetSheetOpen] = React.useState(false);
+
+  const selectedNetwork = networks.find(n => n.id === selectedNetworkId) || null;
+  const networkAssets = availableAssets.filter(a => a.network.id === selectedNetworkId);
+  const selectedAsset = availableAssets.find(a => a.currency_id === selectedCurrencyId) || null;
+
   const [fiatAmount, setFiatAmount] = React.useState<number | "">("");
   const [fiatCurrency, setFiatCurrency] = React.useState("NGN");
   const [referenceId, setReferenceId] = React.useState(() => generateReferenceId());
@@ -48,14 +90,52 @@ export default function CreateTransactionPage() {
   const [waitingOpen, setWaitingOpen] = React.useState(false);
   const [paymentData, setPaymentData] = React.useState<PaymentIntentData | null>(null);
 
+  React.useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoadingAssets(true);
+      try {
+        const res = await authFetch("/backend/available-assets", {
+          headers: authHeaders(),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || json?.error) {
+          notify(json?.message || "Failed to load available assets");
+          return;
+        }
+        const items: AvailableAsset[] = json?.data || [];
+        if (mounted) {
+          setAvailableAssets(items);
+          if (items.length > 0) {
+            const firstNetwork = items[0].network;
+            setSelectedNetworkId(firstNetwork.id);
+            setSelectedCurrencyId(items[0].currency_id);
+          }
+        }
+      } catch {
+        if (mounted) notify("Failed to load available assets");
+      } finally {
+        if (mounted) setLoadingAssets(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedNetworkId && networkAssets.length > 0 && !networkAssets.find(a => a.currency_id === selectedCurrencyId)) {
+      setSelectedCurrencyId(networkAssets[0].currency_id);
+    }
+  }, [selectedNetworkId, networkAssets, selectedCurrencyId]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!referenceId.trim()) { notify("Reference ID is required"); return; }
     if (!fiatAmount || Number(fiatAmount) <= 0) { notify("Enter a valid fiat amount"); return; }
+    if (!selectedCurrencyId) { notify("Select a cryptocurrency"); return; }
 
     setCreating(true);
     try {
-      // ── Step 1: Create payment intent ──────────────────────────────
       setStep(1);
       const intentRes = await authFetch(`${API}/user/payment-intent`, {
         method: "POST",
@@ -72,27 +152,12 @@ export default function CreateTransactionPage() {
         return;
       }
 
-      // Populate asset list from response if available
-      const assetsFromServer: Array<{ symbol: string; name: string; amount: number }> =
-        (intentJson.data?.assets ?? []).map((a: { symbol: string; name: string; amount: number }) => ({
-          symbol: a.symbol,
-          name: a.name,
-          amount: a.amount,
-        }));
-      const chosenAsset =
-        assetsFromServer.length > 0 ? assetsFromServer[0].symbol : asset;
-      if (assetsFromServer.length > 0) {
-        setAvailableAssets(assetsFromServer);
-        setAsset(chosenAsset);
-      }
-
-      // ── Step 2: Generate wallet address ────────────────────────────
       setStep(2);
       const walletRes = await authFetch(`${API}/user/payment-intent/create-wallet`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          crypto_currency_id: chosenAsset,
+          crypto_currency_id: selectedCurrencyId,
           reference_id: referenceId.trim(),
         }),
       });
@@ -103,7 +168,6 @@ export default function CreateTransactionPage() {
       }
 
       const d = walletJson.data;
-      // Normalize crypto.network — API may return an object { name, logo } or a plain string
       const cryptoNetwork: string =
         typeof d.crypto?.network === "object"
           ? (d.crypto.network?.name ?? "")
@@ -168,26 +232,18 @@ export default function CreateTransactionPage() {
               </div>
             </div>
 
-            {/* Blockchain — fixed to Fiber Network */}
+            {/* Blockchain selector */}
             <div>
               <label className="block text-sm text-muted-foreground mb-2">Blockchain</label>
-              <div className="rounded-md border border-border p-4 flex items-center gap-2 bg-[#19191d]">
-                <img
-                  src="/images/ckb.png"
-                  alt="CKB Fiber"
-                  className="w-6 h-6 rounded-full"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    const fallbacks = ["/images/ckb.png", "/images/usdtasset.png", "/images/usdcbase.png"]
-                    const current = fallbacks.findIndex(f => target.src.includes(f))
-                    if (current >= 0 && current < fallbacks.length - 1) {
-                      target.src = fallbacks[current + 1]
-                    } else {
-                      target.style.display = "none"
-                    }
-                  }}
-                />
-                <span className="font-medium">Fiber Network (CKB)</span>
+              <div
+                className="rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d] cursor-pointer"
+                onClick={() => setBlockchainSheetOpen(true)}
+              >
+                <div className="flex items-center gap-2">
+                  {selectedNetwork ? renderNetworkIcon(selectedNetwork) : <span className="text-muted-foreground">Select blockchain</span>}
+                  <span className="font-medium">{selectedNetwork?.name || "Select blockchain"}</span>
+                </div>
+                <ChevronDown className="w-5 h-5 text-primary" />
               </div>
             </div>
 
@@ -195,67 +251,20 @@ export default function CreateTransactionPage() {
             <div className="relative">
               <label className="block text-sm text-muted-foreground mb-2">Cryptocurrency</label>
               <div
-                className="rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d] cursor-pointer"
-                onClick={() => setAssetDropdownOpen(o => !o)}
+                className={`rounded-md border border-border p-4 flex items-center justify-between bg-[#19191d] cursor-pointer ${!selectedNetwork ? "opacity-50" : ""}`}
+                onClick={() => selectedNetwork && setAssetSheetOpen(true)}
               >
                 <div className="flex items-center gap-2">
-                  <img
-                    src={ASSET_ICON_MAP[asset.toUpperCase()] || "/images/usdcbase.png"}
-                    alt={asset}
-                    className="w-6 h-6 rounded-full"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      const fallbacks = ["/images/ckb.png", "/images/usdtasset.png", "/images/usdcbase.png"]
-                      const current = fallbacks.findIndex(f => target.src.includes(f))
-                      if (current >= 0 && current < fallbacks.length - 1) {
-                        target.src = fallbacks[current + 1]
-                      } else {
-                        target.style.display = "none"
-                      }
-                    }}
-                  />
-                  <span className="font-medium">{asset}</span>
-                  {availableAssets.find(a => a.symbol === asset) && (
+                  {selectedAsset ? renderAssetIcon(selectedAsset.crypto) : <span className="text-muted-foreground">Select cryptocurrency</span>}
+                  <span className="font-medium">{selectedAsset?.crypto.symbol || "Select cryptocurrency"}</span>
+                  {selectedAsset && (
                     <span className="text-muted-foreground text-xs">
-                      ≈ {availableAssets.find(a => a.symbol === asset)!.amount.toLocaleString()} {asset}
+                      {selectedAsset.crypto.name}
                     </span>
                   )}
                 </div>
                 <ChevronDown className="w-5 h-5 text-primary" />
               </div>
-              {assetDropdownOpen && (
-                <div className="absolute z-10 w-full mt-1 rounded-md border border-border bg-[#19191d] shadow-lg">
-                  {(availableAssets.length > 0
-                    ? availableAssets.map(a => ({ label: a.name || a.symbol, value: a.symbol, sub: `${a.amount.toLocaleString()} ${a.symbol}`, icon: ASSET_ICON_MAP[a.symbol.toUpperCase()] || "/images/usdcbase.png" }))
-                    : ASSETS.map(a => ({ label: a.label, value: a.value, sub: "", icon: a.icon }))
-                  ).map(a => (
-                    <button
-                      key={a.value}
-                      type="button"
-                      className="w-full flex items-center gap-2 px-4 py-3 hover:bg-[#23243a] transition-colors text-left"
-                      onClick={() => { setAsset(a.value); setAssetDropdownOpen(false); }}
-                    >
-                      <img
-                        src={a.icon}
-                        alt={a.label}
-                        className="w-5 h-5 rounded-full"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          const fallbacks = ["/images/ckb.png", "/images/usdtasset.png", "/images/usdcbase.png"]
-                          const current = fallbacks.findIndex(f => target.src.includes(f))
-                          if (current >= 0 && current < fallbacks.length - 1) {
-                            target.src = fallbacks[current + 1]
-                          } else {
-                            target.style.display = "none"
-                          }
-                        }}
-                      />
-                      <span className="text-white font-medium flex-1">{a.label}</span>
-                      {a.sub && <span className="text-muted-foreground text-xs">{a.sub}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Reference ID */}
@@ -292,18 +301,39 @@ export default function CreateTransactionPage() {
 
             <Button
               type="submit"
-              disabled={creating || !referenceId.trim() || !fiatAmount || Number(fiatAmount) <= 0}
+              disabled={creating || !referenceId.trim() || !fiatAmount || Number(fiatAmount) <= 0 || !selectedCurrencyId}
               className="w-full bg-[#6c5dd3] text-white text-base font-semibold py-3 rounded-md disabled:opacity-50"
             >
               {creating
                 ? step === 1
                   ? "Step 1/2: Creating intent…"
                   : "Step 2/2: Generating address…"
-                : `Create ${asset} Payment`}
+                : selectedAsset
+                  ? `Create ${selectedAsset.crypto.symbol} Payment`
+                  : "Create Payment"}
             </Button>
           </form>
         </div>
       </div>
+
+      <SelectBlockchainSheet
+        open={blockchainSheetOpen}
+        onClose={() => setBlockchainSheetOpen(false)}
+        options={networks.map(n => ({ label: n.name, value: n.id, icon: renderNetworkIcon(n) }))}
+        onSelect={val => {
+          setSelectedNetworkId(val);
+          setAssetSheetOpen(false);
+        }}
+      />
+      <SelectAssetSheet
+        open={assetSheetOpen}
+        onClose={() => setAssetSheetOpen(false)}
+        options={networkAssets.map(a => ({ label: `${a.crypto.symbol} - ${a.crypto.name}`, value: a.currency_id, icon: renderAssetIcon(a.crypto) }))}
+        onSelect={val => {
+          setSelectedCurrencyId(val);
+          setAssetSheetOpen(false);
+        }}
+      />
 
       <WaitingForPaymentModal
         open={waitingOpen}
