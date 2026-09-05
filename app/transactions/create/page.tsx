@@ -88,7 +88,7 @@ export default function CreateTransactionPage() {
   const [assetSheetOpen, setAssetSheetOpen] = React.useState(false);
 
   const selectedNetwork = networks.find(n => n.id === selectedNetworkId) || null;
-  const networkAssets = availableAssets.filter(a => a.network.id === selectedNetworkId);
+  const networkAssets = availableAssets.filter(a => a.network && a.network.id === selectedNetworkId);
   const selectedAsset = availableAssets.find(a => a.currency_id === selectedCurrencyId) || null;
 
   const [fiatAmount, setFiatAmount] = React.useState<number | "">("");
@@ -116,7 +116,7 @@ export default function CreateTransactionPage() {
         const items: AvailableAsset[] = json?.data || [];
         if (mounted) {
           setAvailableAssets(items);
-          if (items.length > 0) {
+          if (items.length > 0 && items[0].network) {
             const firstNetwork = items[0].network;
             setSelectedNetworkId(firstNetwork.id);
             setSelectedCurrencyId(items[0].currency_id);

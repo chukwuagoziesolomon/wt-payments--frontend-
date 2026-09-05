@@ -1,77 +1,82 @@
-# Weekly Activity Report — August 18, 2026
+# Weekly Activity Report — August 31, 2026
 
 ## Summary
 
-Implemented mobile-responsive fixes across the dashboard, removed expired QR code UI elements, and fixed two critical runtime errors (React child rendering crash and API response handling).
+Integrated multi-network crypto support (Solana, Tron, EVM, CKB) across wallet dashboard, withdrawal flow, transaction history, payout settings, and transaction creation. Replaced single aggregated balance with per-wallet cards, added wallet selector dropdowns, network-aware address validation, and granular SSE wallet updates.
 
 ---
 
-## 1. Mobile Responsiveness
+## 1. Multi-Network Crypto Integration
 
-### Dashboard Layout
-**File:** `app/(dashboard)/dashboard/page.tsx`
-- Reduced top margins from `mt-8` to `mt-4 md:mt-6` for mobile viewport
-- Sorted imports alphabetically
+### Types & Network Support
+**File:** `types/index.ts`
+- Added `NetworkType = "evm" | "ckb" | "solana" | "tron"`
+- Added `AvailableAsset`, `AvailableAssetCrypto`, `AvailableAssetNetwork` types
+- Added `UserWallet` type with `cryptoNetwork` and `currency` preloaded objects
+- Added `WithdrawalHistoryItem`, `WithdrawalSSEEventData`, `WalletsResponse` types
 
-### Payout Pie Chart
-**File:** `src/components/overview/PayoutPieChart.tsx`
-- Changed `ResponsiveContainer` to use `width="100%" height="100%"` instead of fixed dimensions
-- Resized chart container height from `h-[280px]` to `h-[220px] sm:h-[280px]` for mobile
+### Wallet Dashboard / Balances
+**File:** `src/components/wallet/WalletSummaryCards.tsx`
+- Replaced single aggregated balance card with per-wallet cards
+- Each card shows: network logo, network name, balance, currency symbol, truncated address, testnet badge
+- Added `WalletCard` component for individual wallet display
+- Added total balance card showing USD total and wallet count
 
-### Analytical Transaction Chart
-**File:** `src/components/overview/AnalyticalTransactionChart.tsx`
-- Changed `CardHeader` from flex row to flex-col on mobile for label/date stack
-- Reduced period button padding for small screens
-- Added `interval="preserveEnd"` and `minTickGap={4}` to XAxis for label spacing
+### Withdrawal Flow — Wallet Selector
+**File:** `app/(dashboard)/dashboard/wallet/withdraw/page.tsx`
+- Added wallet selector dropdown fetching `GET /api/user/wallets`
+- Filters by active status; shows network logo, balance, truncated address per option
+- Auto-populates `user_wallet_id`, `network_id`, and `crypto_currency_id` from selected wallet
+- Added network-aware address validation: EVM `0x...`, Solana Base58, Tron `T...`, CKB `ckt1q...`
+- Amount field shows selected wallet's symbol instead of hardcoded "USDT"
+- Added inline address validation error messages per network
 
-### Transactions Table (Dashboard)
-**File:** `src/components/overview/TransactionsTable.tsx`
-- Added click-to-view-details functionality on mobile rows
-- Added `min-w-0` and `truncate` to prevent text overflow
-- Added `cursor-pointer` and hover styling for mobile tap targets
+### Transaction History
+**File:** `src/components/wallet/WithdrawalHistoryTable.tsx`
+- Updated to use new `WithdrawalHistoryItem` shape (`method`, `crypto_currency`, `wallet`, `network`, `tx_hash`)
+- Added dynamic crypto icons for SOL, TRX, USDC, USDT, CKB, ETH, MATIC
+
+**File:** `lib/payment-intent-history.ts`
+- Extended `PaymentIntentHistoryTransaction` with `crypto_amount`, `crypto_currency`, `tx_hash`, `wallet_address`, `user_wallet_id`
+- Updated `HistoryListItem` to include `network`, `txHash`, `cryptoAmount`, `cryptoCurrency`
+- Updated `toHistoryItem` to map new fields and show network/tx hash in details
+
+### SSE Events — Wallet Balance Updates
+**File:** `hooks/use-wallet-balance.ts`
+- `wallet.balance_updated` now merges incoming `wallets[]` with previous state via `mergeWallets()`
+- Individual wallet balances update granularly without losing other wallets
+- Retained `withdrawal.updated` listener for real-time completion notifications
+
+### Payout Settings — Crypto Wallet
+**File:** `src/components/settings/PayoutSettingsSection.tsx`
+- Added Bank Account / Crypto Wallet toggle
+- Crypto form accepts EVM, Solana, Tron, CKB addresses with network-aware validation
+- Posts `type: "CRYPTO"` with `wallet_address`, `network_type`, `currency_id`
+
+### Transaction Creation — Blockchain & Currency Selectors
+**File:** `app/transactions/create/page.tsx`
+- Fetches `/backend/available-assets` on mount to discover supported networks and currencies
+- Added Blockchain selector using `SelectBlockchainSheet`, populated from available assets
+- Added Cryptocurrency selector using `SelectAssetSheet`, filtered by chosen blockchain
+- Both selectors render network/asset logos from API with text fallbacks
+- Passes real `crypto_currency_id` to `POST /user/payment-intent/create-wallet`
+- Added validation requiring both blockchain and currency before submission
+
+### WaitingForPaymentModal Enhancements
+**File:** `components/WaitingForPaymentModal.tsx`
+- Extended `PaymentIntentData.crypto` with optional `logo` and `networkType`
+- Added `renderNetworkBadge()` with network-specific colors
+- Shows asset logo next to amount and colored network badge
+- Added `Estimated arrival` row based on network type
+- Updated footer text to reflect actual selected network
 
 ---
 
-## 2. QR Code Removal
-
-Removed expired QR code UI elements from both modal components:
-
-### DetailsModal.tsx
-- **Lines removed:** QR Code `ReceiptRow` (mobile view) and QR Code `DetailRow` (desktop view)
-- Removed `<img>` and inline `<Button>` with Copy functionality for QR code
-
-### DetailsSheet.tsx
-- Removed QR Code `DetailRow` including image and copy button
-- Cleaned up now-unused `QrCode` import from `lucide-react`
-
----
-
-## 3. React Child Rendering Crash Fix
-
-### Root Cause
-The `notify` function in `ToastProvider` was receiving objects from API responses (e.g., `json.data` containing `{meta, transactions}` or `{id, name, symbol, logo}`) and passing them directly to the Toast component, which tried to render the raw object as a React child.
-
-### ToastProvider.tsx
-- Updated `notify` signature to accept `string | object | unknown`
-- Added type coercion: strings pass through, objects are `JSON.stringify()`, other values use `String()`
-
-### Payment History Page (`app/(dashboard)/dashboard/payments/page.tsx`)
-- Fixed API response handling to check both `json.result` and `json.data` response formats
-- Added `toStr()` helper to safely extract `symbol`/`name` from crypto asset objects
-- Updated `PaymentIntent` type: `crypto_currency` and `network` now accept `string | {symbol, name}` / `string | {name}`
-- Updated all JSX rendering calls to use `toStr()`
-
-### Wallet Withdraw Page (`app/(dashboard)/dashboard/wallet/withdraw/page.tsx`)
-- Fixed `notify(json?.data || ...)` to use `typeof` check before passing to `notify`
-- Guarded `message.toLowerCase()` call with `typeof message === "string"` check
-
----
-
-## 4. Verification
+## 2. Verification
 
 - **TypeScript typecheck:** `tsc --noEmit` passes with no errors
-- **Biome linter:** Only pre-existing issues remain (unused imports, interface vs type, any types, filename conventions, array index keys)
-- **Dev server:** Payment history page returns 200 with no runtime errors
+- **Biome linter:** No new errors introduced in modified files
+- **Runtime:** Fixed null-safety crash in `transactions/create/page.tsx` `useMemo` and `handleSubmit`
 
 ---
 
@@ -79,18 +84,19 @@ The `notify` function in `ToastProvider` was receiving objects from API response
 
 | File | Changes |
 |------|---------|
-| `components/ui/ToastProvider.tsx` | `notify` now coerces non-string values |
-| `components/products/TreasuryCard.tsx` | TreasuryCard with dual mode: product card (props) or default card (no props) |
-| `components/products/ProductCard.tsx` | New ProductCard with wishlist toggle, star rating, compare-at pricing, add-to-cart state |
-| `components/TreasuryCard.ts` | Barrel export |
-| `app/globals.css` | Added checkout theme CSS classes (`bg-base-bg`, `bg-base-surface`, `bg-base-surface2`, `border-base-border`, `text-ink-*`, `shadow-glow`, `text-mint`, `bg-mint`) |
-| `app/checkout/page.tsx` | Replaced with new simplified checkout design |
-| `src/components/DetailsModal.tsx` | Removed QR code, fixed modal centering, `max-w-[95vw] sm:max-w-5xl`, Amount Paid card mobile-responsive |
-| `src/components/DetailsSheet.tsx` | Removed QR code and unused `QrCode` import, Amount Paid card truncation fix |
-| `src/components/overview/PayoutPieChart.tsx` | ResponsiveContainer fix, height resize |
-| `src/components/overview/AnalyticalTransactionChart.tsx` | Header stack, button padding, XAxis label spacing |
-| `src/components/overview/TransactionsTable.tsx` | Mobile click-to-view, truncation, cursor styling |
-| `app/(dashboard)/dashboard/page.tsx` | Margin resize, import sort |
-| `app/(dashboard)/dashboard/payments/page.tsx` | API response handling, `toStr()` helper, type updates, `notify` fix |
-| `app/(dashboard)/dashboard/wallet/withdraw/page.tsx` | `notify` type guard, `toLowerCase()` guard |
-| `app/shop/[subdomain]/page.tsx` | Replaced product grid rendering with ProductCard, added `compareAt`/`rating`/`reviews`/`badge` to Product type |
+| `types/index.ts` | Added multi-network types |
+| `src/components/wallet/WalletSummaryCards.tsx` | Per-network wallet cards |
+| `hooks/use-wallet-balance.ts` | Granular wallet merging, withdrawal SSE |
+| `app/(dashboard)/dashboard/wallet/withdraw/page.tsx` | Wallet selector, network-aware validation |
+| `src/components/wallet/WithdrawalHistoryTable.tsx` | New API shape, dynamic icons |
+| `lib/payment-intent-history.ts` | New history fields mapping |
+| `src/components/transactions/TransactionsTable.tsx` | `txHash` display |
+| `src/components/overview/TransactionsTable.tsx` | `txHash` display |
+| `app/(dashboard)/dashboard/currency/page.tsx` | Updated `AssetItem` type |
+| `src/components/currency/CurrencyTable.tsx` | Contract/mint address display |
+| `src/components/currency/CurrencyMobile.tsx` | Contract/mint address display |
+| `src/components/overview/AvailableAssetCard.tsx` | Updated `AssetItem` type |
+| `src/components/settings/PayoutSettingsSection.tsx` | Crypto wallet form with validation |
+| `app/transactions/create/page.tsx` | Blockchain/currency selectors |
+| `components/WaitingForPaymentModal.tsx` | Network badge, estimated arrival |
+| `app/(dashboard)/dashboard/wallet/page.tsx` | Uses updated WalletSummaryCards |
