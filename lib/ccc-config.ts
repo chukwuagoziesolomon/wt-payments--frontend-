@@ -11,7 +11,7 @@ export const cccNetwork = readNetwork(
   process.env.NEXT_PUBLIC_CCC_NETWORK || process.env.VITE_CCC_NETWORK,
   readNetwork(
     process.env.NEXT_PUBLIC_CKB_NETWORK || process.env.VITE_CKB_NETWORK,
-    "testnet"
+    "mainnet"
   )
 );
 
