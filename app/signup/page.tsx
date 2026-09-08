@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import * as React from "react";
 import SignupOptionCard from "@/components/SignupOptionCard";
@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CccAuthButton } from "@/components/ccc-auth-button";
 
 export default function SignupPage() {
   const [country, setCountry] = React.useState("");
@@ -47,11 +48,26 @@ export default function SignupPage() {
         <div className="mx-auto max-w-4xl px-4">
           <Card className="p-6 md:p-10">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">What type of account would you like to create ?</CardTitle>
-              <CardDescription>Choose the option that fits your organization.</CardDescription>
+              <CardTitle className="text-lg">
+                What type of account would you like to create ?
+              </CardTitle>
+              <CardDescription>
+                Choose the option that fits your organization.
+              </CardDescription>
             </CardHeader>
 
             <CardContent>
+              <div className="mb-6 space-y-2">
+                <CccAuthButton destination="/signup/step2" />
+                <p className="text-center text-xs text-muted-foreground">
+                  Create your account with a verifiable CKB identity.
+                </p>
+              </div>
+              <div className="mb-6 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                or continue with email
+                <span className="h-px flex-1 bg-border" />
+              </div>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -59,16 +75,23 @@ export default function SignupPage() {
                     // persist initial selection so later steps can resume
                     try {
                       const draft = { country, business_type: selected };
-                      localStorage.setItem("signupDraft", JSON.stringify(draft));
+                      localStorage.setItem(
+                        "signupDraft",
+                        JSON.stringify(draft)
+                      );
                     } catch (err) {
                       // ignore storage errors
                     }
-                    router.push(`/signup/step2?country=${encodeURIComponent(country)}&type=${encodeURIComponent(selected)}`);
+                    router.push(
+                      `/signup/step2?country=${encodeURIComponent(country)}&type=${encodeURIComponent(selected)}`
+                    );
                   }
                 }}
                 className="mb-4"
               >
-                <label className="block text-sm text-muted-foreground mb-2">Country</label>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  Country
+                </label>
 
                 <div className="relative rounded-md border border-border bg-card p-1 mb-4 focus-within:ring-2 focus-within:ring-primary/20">
                   <select
@@ -86,19 +109,36 @@ export default function SignupPage() {
                   </select>
 
                   <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden
+                    >
+                      <path
+                        d="M6 9l6 6 6-6"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm text-muted-foreground mb-3">What type of business do you own?</label>
+                  <label className="block text-sm text-muted-foreground mb-3">
+                    What type of business do you own?
+                  </label>
                   <div className="flex flex-col gap-3">
                     <SignupOptionCard
                       id="starter"
                       title="Starter Business"
-                      description={"I'm testing my ideas with customers and preparing to formally register my company"}
+                      description={
+                        "I'm testing my ideas with customers and preparing to formally register my company"
+                      }
                       selected={selected === "starter"}
                       onSelect={(id) => setSelected(id)}
                     />
@@ -106,7 +146,9 @@ export default function SignupPage() {
                     <SignupOptionCard
                       id="registered"
                       title="Registered Business"
-                      description={"My business has obtained the necessary approvals, documentation, and license to operate legally"}
+                      description={
+                        "My business has obtained the necessary approvals, documentation, and license to operate legally"
+                      }
                       selected={selected === "registered"}
                       onSelect={(id) => setSelected(id)}
                     />
@@ -114,14 +156,19 @@ export default function SignupPage() {
                 </div>
 
                 <div className="mt-6 flex flex-col items-center gap-3">
-                  <Button type="submit" disabled={!selected}>Continue</Button>
+                  <Button type="submit" disabled={!selected}>
+                    Continue
+                  </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account? <Link href="/login" className="text-primary">Login</Link>
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary">
+              Login
+            </Link>
           </div>
         </div>
       </div>

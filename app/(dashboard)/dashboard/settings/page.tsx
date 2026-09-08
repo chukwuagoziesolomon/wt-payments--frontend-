@@ -9,11 +9,14 @@ import SettingsNav from "@/src/components/settings/SettingsNav";
 import { useToast } from "@/components/ui/ToastProvider";
 import { authFetch } from "@/lib/auth-fetch";
 import { Edit2, X, Check } from "lucide-react";
+import { CccIdentitySection } from "@/components/ccc-identity-section";
 
 const API = "/backend";
 
 function getToken() {
-  return typeof window !== "undefined" ? (localStorage.getItem("authToken") || localStorage.getItem("token") || "") : "";
+  return typeof window !== "undefined"
+    ? localStorage.getItem("authToken") || localStorage.getItem("token") || ""
+    : "";
 }
 
 function authHeaders(extra?: Record<string, string>) {
@@ -140,7 +143,10 @@ function AccountInfoSettingsContent() {
       const json = await res.json().catch(() => ({}));
 
       if (res.ok && json.result?.profile_image) {
-        setFormData((prev) => ({ ...prev, profile_image: json.result.profile_image }));
+        setFormData((prev) => ({
+          ...prev,
+          profile_image: json.result.profile_image,
+        }));
         notify("Profile image updated successfully!");
       } else {
         notify(json.data || "Failed to upload profile image");
@@ -163,15 +169,29 @@ function AccountInfoSettingsContent() {
         <div className="bg-[#19191d] rounded-2xl p-8 border border-[#23242A] flex items-center gap-6">
           <div className="w-24 h-24 rounded-full bg-[#23242A] flex items-center justify-center overflow-hidden flex-shrink-0">
             {formData.profile_image ? (
-              <img src={formData.profile_image} alt="Profile" className="w-full h-full object-cover" />
+              <img
+                src={formData.profile_image}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <svg className="w-12 h-12 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              <svg
+                className="w-12 h-12 text-muted-foreground"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clipRule="evenodd"
+                />
               </svg>
             )}
           </div>
           <div className="flex-1">
-            <label className="block text-sm text-muted-foreground mb-2">Upload new profile picture</label>
+            <label className="block text-sm text-muted-foreground mb-2">
+              Upload new profile picture
+            </label>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -179,7 +199,9 @@ function AccountInfoSettingsContent() {
               disabled={uploadingImage}
               className="block w-full text-sm text-muted-foreground"
             />
-            <p className="text-xs text-muted-foreground mt-2">JPG, PNG or WebP up to 5MB</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              JPG, PNG or WebP up to 5MB
+            </p>
           </div>
         </div>
       </div>
@@ -187,7 +209,9 @@ function AccountInfoSettingsContent() {
       {/* Personal Information Section */}
       <div className="w-full max-w-5xl mx-auto mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Personal Information</h2>
+          <h2 className="text-lg font-semibold text-white">
+            Personal Information
+          </h2>
           {!isEditMode && !loading && (
             <button
               type="button"
@@ -204,15 +228,22 @@ function AccountInfoSettingsContent() {
             </button>
           )}
         </div>
-        <form onSubmit={handleSave} className="bg-[#19191d] rounded-2xl p-8 border border-[#23242A]">
+        <form
+          onSubmit={handleSave}
+          className="bg-[#19191d] rounded-2xl p-8 border border-[#23242A]"
+        >
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            <div className="text-center py-8 text-muted-foreground">
+              Loading...
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {/* Surname */}
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">Surname</label>
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    Surname
+                  </label>
                   <input
                     type="text"
                     name="surname"
@@ -229,7 +260,9 @@ function AccountInfoSettingsContent() {
 
                 {/* Full Name */}
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">Full Name</label>
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    Full Name
+                  </label>
                   <input
                     type="text"
                     name="full_name"
@@ -246,7 +279,9 @@ function AccountInfoSettingsContent() {
 
                 {/* Email (read-only) */}
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">Email Address</label>
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     value={formData.email}
@@ -257,7 +292,9 @@ function AccountInfoSettingsContent() {
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">Phone Number</label>
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    Phone Number
+                  </label>
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center gap-1 bg-[#23242A] border border-[#23242A] rounded-lg px-3 py-2.5 text-white text-sm flex-shrink-0">
                       +234
@@ -297,7 +334,9 @@ function AccountInfoSettingsContent() {
                       disabled={saving}
                       className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition-all"
                       style={{
-                        background: saving ? "rgba(79,79,143,0.3)" : "linear-gradient(135deg,#9d8df1,#5b4dd4)",
+                        background: saving
+                          ? "rgba(79,79,143,0.3)"
+                          : "linear-gradient(135deg,#9d8df1,#5b4dd4)",
                         color: "#fff",
                         opacity: saving ? 0.6 : 1,
                         cursor: saving ? "not-allowed" : "pointer",
@@ -323,12 +362,19 @@ function AccountInfoSettingsContent() {
           <div className="flex flex-col md:flex-row md:items-center gap-6">
             <div className="flex-1 flex items-center gap-4">
               <span className="text-white">Password</span>
-              <button className="bg-[#23242A] text-white px-4 py-2 rounded-md text-sm">Change Password</button>
+              <button className="bg-[#23242A] text-white px-4 py-2 rounded-md text-sm">
+                Change Password
+              </button>
             </div>
             <div className="flex-1 flex items-center gap-4">
               <span className="text-white">Two factor - Auth</span>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" checked readOnly />
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked
+                  readOnly
+                />
                 <div className="w-14 h-8 bg-[#23242A] rounded-full peer-checked:bg-violet-500 transition-colors" />
                 <span className="absolute left-1 top-1 w-6 h-6 bg-white rounded-full transform transition-transform peer-checked:translate-x-6" />
                 <span className="ml-4 text-violet-400">Enable</span>
@@ -368,11 +414,23 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen p-4 sm:p-8 bg-background">
       <h1 className="text-xl font-semibold text-white mb-6">
-        Setting{'>>'}{tab === "account" ? "Account Info" : tab === "payout" ? "Payout" : tab === "api" ? "API Keys" : tab === "webhooks" ? "Webhooks" : tab === "widget" ? "Widget" : ""}
+        Setting{">>"}
+        {tab === "account"
+          ? "Account Info"
+          : tab === "payout"
+            ? "Payout"
+            : tab === "api"
+              ? "API Keys"
+              : tab === "webhooks"
+                ? "Webhooks"
+                : tab === "widget"
+                  ? "Widget"
+                  : ""}
       </h1>
       <SettingsNav active={tab} onChange={setTab} />
 
       {tab === "account" && <AccountInfoSettingsContent />}
+      {tab === "account" && <CccIdentitySection />}
       {tab === "payout" && <PayoutSettingsContent />}
       {tab === "api" && (
         <>

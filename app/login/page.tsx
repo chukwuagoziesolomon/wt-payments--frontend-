@@ -1,16 +1,12 @@
-"use client"
+"use client";
 
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CccAuthButton } from "@/components/ccc-auth-button";
 
 const API = "/backend";
 
@@ -67,6 +63,17 @@ export default function LoginPage() {
             </CardHeader>
 
             <CardContent>
+              <div className="mb-6 space-y-2">
+                <CccAuthButton />
+                <p className="text-center text-xs text-muted-foreground">
+                  Use your wallet to create a verifiable CKB identity.
+                </p>
+              </div>
+              <div className="mb-6 flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                or continue with email
+                <span className="h-px flex-1 bg-border" />
+              </div>
               <form onSubmit={onSubmit} className="bg-card mx-auto w-full">
                 {error && (
                   <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
@@ -75,16 +82,33 @@ export default function LoginPage() {
                 )}
 
                 <div className="mb-6">
-                  <label className="block text-base text-muted-foreground mb-2">Email address</label>
+                  <label className="block text-base text-muted-foreground mb-2">
+                    Email address
+                  </label>
                   <div className="rounded-md border border-border p-3">
-                    <Input className="border-0 bg-transparent px-0" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input
+                      className="border-0 bg-transparent px-0"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-base text-muted-foreground mb-2">Password</label>
+                  <label className="block text-base text-muted-foreground mb-2">
+                    Password
+                  </label>
                   <div className="rounded-md border border-border p-3">
-                    <Input className="border-0 bg-transparent px-0" type="password" placeholder="••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input
+                      className="border-0 bg-transparent px-0"
+                      type="password"
+                      placeholder="••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
 
@@ -100,7 +124,10 @@ export default function LoginPage() {
           </Card>
 
           <div className="mt-8 text-center text-sm text-muted-foreground">
-            Don't have an account? <Link href="/signup" className="text-primary">Create account</Link>
+            Don't have an account?{" "}
+            <Link href="/signup" className="text-primary">
+              Create account
+            </Link>
           </div>
         </div>
       </div>
