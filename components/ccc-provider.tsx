@@ -8,7 +8,21 @@ export default function CccProvider({
   children: React.ReactNode;
 }) {
   return (
-    <ccc.Provider name="WT Payments" preferredNetworks={["ckb", "ckt"]}>
+    <ccc.Provider
+      name="WT Payments"
+      preferredNetworks={[
+        {
+          addressPrefix: "ckb",
+          signerType: ccc.SignerType.CKB,
+          network: "mainnet",
+        },
+        {
+          addressPrefix: "ckt",
+          signerType: ccc.SignerType.CKB,
+          network: "testnet",
+        },
+      ]}
+    >
       {children}
     </ccc.Provider>
   );
