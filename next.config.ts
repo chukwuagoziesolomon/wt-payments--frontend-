@@ -4,41 +4,41 @@ const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
 
 const csp = [
   "default-src 'self'",
-  "connect-src 'self'",
+  "connect-src 'self' https://mainnet.ckb.dev https://mainnet.ckbapp.dev https://testnet.ckb.dev https://testnet.ckbapp.dev",
   "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https:",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-].join('; ');
+].join("; ");
 
 const securityHeaders = [
   {
-    key: 'Content-Security-Policy',
+    key: "Content-Security-Policy",
     value: csp,
   },
   {
-    key: 'X-Frame-Options',
-    value: 'DENY',
+    key: "X-Frame-Options",
+    value: "DENY",
   },
   {
-    key: 'X-Content-Type-Options',
-    value: 'nosniff',
+    key: "X-Content-Type-Options",
+    value: "nosniff",
   },
   {
-    key: 'Referrer-Policy',
-    value: 'strict-origin-when-cross-origin',
+    key: "Referrer-Policy",
+    value: "strict-origin-when-cross-origin",
   },
   {
-    key: 'Permissions-Policy',
-    value: 'geolocation=(), microphone=(), camera=()',
+    key: "Permissions-Policy",
+    value: "geolocation=(), microphone=(), camera=()",
   },
 ];
 
 const nextConfig: NextConfig = {
-  async rewrites() {
+  rewrites() {
     return [
       {
         source: "/backend/:path*",
@@ -46,10 +46,10 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async headers() {
+  headers() {
     return [
       {
-        source: '/(.*)',
+        source: "/(.*)",
         headers: securityHeaders,
       },
     ];

@@ -20,9 +20,17 @@ export default function CccProvider({
           signerType: ccc.SignerType.CKB,
           network: "testnet",
         };
+  const defaultClient =
+    cccNetwork === "mainnet"
+      ? new ccc.ClientPublicMainnet()
+      : new ccc.ClientPublicTestnet();
 
   return (
-    <ccc.Provider name="WT Payments" preferredNetworks={[preferredNetwork]}>
+    <ccc.Provider
+      defaultClient={defaultClient}
+      name="WT Payments"
+      preferredNetworks={[preferredNetwork]}
+    >
       {children}
     </ccc.Provider>
   );

@@ -136,6 +136,7 @@ wt-payment-dashboard/
 4. Update `NEXT_PUBLIC_API_BASE_URL` in `.env.local`:
    ```env
    NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:3335
+   NEXT_PUBLIC_CCC_NETWORK=mainnet
    ```
 
    For production/Vercel, set this to your deployed backend URL.
@@ -154,11 +155,12 @@ wt-payment-dashboard/
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `NEXT_PUBLIC_API_BASE_URL` | Backend API base URL (e.g., `http://127.0.0.1:3335` or `https://api.yourdomain.com`) | Yes |
+| `NEXT_PUBLIC_CCC_NETWORK` | CKB wallet network: `mainnet` or `testnet` | Yes |
 | `NEXT_PUBLIC_APP_URL` | Frontend app URL (used for shop URL generation) | Recommended |
 
 ### Vercel Deployment
 
-Set `NEXT_PUBLIC_API_BASE_URL` in your Vercel project settings (**Settings → Environment Variables**). No `vercel.json` is needed — the app uses Next.js rewrites internally.
+Set `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_CCC_NETWORK=mainnet` in your Vercel project settings (**Settings → Environment Variables**) for the **Production** environment. Remove or update any conflicting `NEXT_PUBLIC_CKB_NETWORK` or `VITE_*NETWORK` variables, then redeploy because `NEXT_PUBLIC_*` values are embedded during the build. No `vercel.json` is needed — the app uses Next.js rewrites internally.
 
 ---
 

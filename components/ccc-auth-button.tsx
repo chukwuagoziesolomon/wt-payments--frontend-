@@ -45,6 +45,11 @@ export function CccAuthButton({
       const address = await signer.getRecommendedAddress();
       const expectedPrefix = cccNetwork === "mainnet" ? "ckb" : "ckt";
       if (!address.startsWith(expectedPrefix)) {
+        console.warn("[CCC] Wallet network mismatch", {
+          configuredNetwork: cccNetwork,
+          expectedAddressPrefix: expectedPrefix,
+          receivedAddressPrefix: address.slice(0, 3),
+        });
         setStatus("Wrong network");
         setError(
           `Your wallet is connected to the wrong CKB network. Please switch to CKB ${cccNetwork}.`
