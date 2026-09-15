@@ -63,6 +63,8 @@ type CartItem = {
   shop_id: string;
 };
 
+const DEFAULT_BRAND_COLOR = "#9d8df1";
+
 type CartData = {
   cart_id: string;
   items: CartItem[];
@@ -93,6 +95,7 @@ export default function CartPage() {
     null
   );
   const [waitingOpen, setWaitingOpen] = useState(false);
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
 
   const loadCart = async () => {
     setLoading(true);
@@ -103,6 +106,13 @@ export default function CartPage() {
       const json = await res.json().catch(() => ({}));
       if (res.ok && json.result) {
         setCart(json.result);
+        const shopId = json.result.items?.[0]?.shop_id;
+        if (shopId) {
+          setBrandColor(
+            localStorage.getItem(`storefront_brand_color_${shopId}`) ||
+              DEFAULT_BRAND_COLOR
+          );
+        }
       } else {
         notify(json.data || json.message || "Failed to load cart");
       }
@@ -202,7 +212,8 @@ export default function CartPage() {
           json.result.payment_method === "paystack" &&
           json.result.authorization_url
         ) {
-          setCheckoutResult(json.result);
+          window.location.assign(json.result.authorization_url);
+          return;
         } else if (json.result.assets && json.result.assets.length > 0) {
           setSelectedAsset(json.result.assets[0]);
         } else {
@@ -304,7 +315,8 @@ export default function CartPage() {
               <p className="text-muted-foreground mb-4">Your cart is empty</p>
               <Button
                 onClick={() => router.push("/dashboard/shop")}
-                className="bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white"
+                className="text-white"
+                style={{ backgroundColor: brandColor }}
               >
                 Browse Shops
               </Button>
@@ -374,7 +386,8 @@ export default function CartPage() {
                               updateQuantity(item.id, item.quantity - 1)
                             }
                             disabled={item.quantity <= 1}
-                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:border-[#9d8df1] transition-colors disabled:opacity-50"
+                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white transition-colors disabled:opacity-50"
+                            style={{ borderColor: brandColor }}
                           >
                             <Minus className="w-4 h-4" />
                           </button>
@@ -386,7 +399,8 @@ export default function CartPage() {
                               updateQuantity(item.id, item.quantity + 1)
                             }
                             disabled={item.quantity >= item.stock}
-                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:border-[#9d8df1] transition-colors disabled:opacity-50"
+                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white transition-colors disabled:opacity-50"
+                            style={{ borderColor: brandColor }}
                           >
                             <Plus className="w-4 h-4" />
                           </button>
@@ -395,7 +409,7 @@ export default function CartPage() {
                         {/* Price and Remove */}
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <p className="text-sm font-bold text-[#9d8df1]">
+                            <p className="text-sm font-bold" style={{ color: brandColor }}>
                               {formatCurrency(
                                 item.price * item.quantity,
                                 item.currency
@@ -455,7 +469,7 @@ export default function CartPage() {
                       onClick={() => setPaymentMethod("crypto")}
                       className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
                         paymentMethod === "crypto"
-                          ? "border-[#9d8df1] bg-[#9d8df1]/10 text-[#c7bfff]"
+                          ? "text-white"
                           : "border-white/[0.08] bg-white/[0.03] text-white/70 hover:border-white/[0.18]"
                       }`}
                     >
@@ -467,7 +481,7 @@ export default function CartPage() {
                       onClick={() => setPaymentMethod("paystack")}
                       className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
                         paymentMethod === "paystack"
-                          ? "border-[#9d8df1] bg-[#9d8df1]/10 text-[#c7bfff]"
+                          ? "text-white"
                           : "border-white/[0.08] bg-white/[0.03] text-white/70 hover:border-white/[0.18]"
                       }`}
                     >
@@ -560,7 +574,8 @@ export default function CartPage() {
                       <Button
                         onClick={handleCreateWallet}
                         disabled={!selectedAsset || loadingWallet}
-                        className="w-full bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+                        className="w-full text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+                        style={{ backgroundColor: brandColor }}
                       >
                         {loadingWallet ? (
                           <>
@@ -577,7 +592,7 @@ export default function CartPage() {
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-white">Total</span>
-                    <span className="text-xl font-bold text-[#9d8df1]">
+                    <span className="text-xl font-bold" style={{ color: brandColor }}>
                       {formatCurrency(cart.total, cart.currency)}
                     </span>
                   </div>
@@ -586,7 +601,8 @@ export default function CartPage() {
                 <Button
                   onClick={handleCheckout}
                   disabled={checkingOut || cart.items.length === 0}
-                  className="w-full bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white font-semibold py-3 rounded-xl disabled:opacity-50"
+                  className="w-full text-white font-semibold py-3 rounded-xl disabled:opacity-50"
+                  style={{ backgroundColor: brandColor }}
                 >
                   {checkingOut ? (
                     <>

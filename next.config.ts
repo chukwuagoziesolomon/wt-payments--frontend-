@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
+const configuredApiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+const isVercelBuild = process.env.VERCEL === "1";
+const isLocalApi = configuredApiBase?.includes("127.0.0.1") || configuredApiBase?.includes("localhost");
+
+if (isVercelBuild && (!configuredApiBase || isLocalApi)) {
+  throw new Error(
+    "NEXT_PUBLIC_API_BASE_URL must be set to the deployed backend URL on Vercel."
+  );
+}
+
+const apiBase = configuredApiBase || "http://127.0.0.1:3335";
 
 const csp = [
   "default-src 'self'",

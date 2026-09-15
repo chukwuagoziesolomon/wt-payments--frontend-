@@ -33,6 +33,12 @@ export const navigationItems: NavGroup = {
       icon: "currencyIcon",
       isActive: false,
     },
+    {
+      title: "Shop Admin",
+      url: "/dashboard/shop/admin",
+      icon: "overviewIcon",
+      isActive: false,
+    },
   ],
   others: [
     {

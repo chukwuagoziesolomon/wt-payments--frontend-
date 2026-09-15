@@ -24,6 +24,7 @@ type ChartItem = {
 
 type ApiResponse = {
   error: boolean;
+  data?: string;
   result?: {
     period: Period;
     year: number;
@@ -32,6 +33,13 @@ type ApiResponse = {
     data: ChartItem[];
   };
 };
+
+function getApiError(response: ApiResponse | null, status: number): string {
+  if (response?.data) return response.data;
+  if (status === 401) return "Your session has expired. Please log in again.";
+  if (status >= 500) return "The dashboard service is temporarily unavailable.";
+  return `Failed to load analytical transactions (status ${status}).`;
+}
 
 function CustomTooltip({ active, payload }: any) {
   if (active && payload && payload.length) {
@@ -43,7 +51,7 @@ function CustomTooltip({ active, payload }: any) {
           {entry.count} txn{entry.count !== 1 ? "s" : ""}
         </div>
         <div className="text-muted-foreground">
-          ${entry.amount.toLocaleString()}
+          {entry.amount.toLocaleString()}
         </div>
       </div>
     );
@@ -59,6 +67,13 @@ export function AnalyticalTransactionChart() {
   const [chartData, setChartData] = React.useState<ChartItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
+  React.useEffect(() => {
+    const refresh = () => setRefreshKey((value) => value + 1);
+    window.addEventListener("dashboard:refresh", refresh);
+    return () => window.removeEventListener("dashboard:refresh", refresh);
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -78,21 +93,28 @@ export function AnalyticalTransactionChart() {
 
     const apiBase = "/backend";
     authFetch(`${apiBase}/dashboard/analytical-transactions?${params}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: {
+        "Cache-Control": "no-cache",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       cache: "no-store",
     })
-      .then((r) => r.json() as Promise<ApiResponse>)
+      .then(async (response) => {
+        const json = (await response.json().catch(() => null)) as ApiResponse | null;
+        if (!response.ok || json?.error || !json?.result) {
+          throw new Error(getApiError(json, response.status));
+        }
+        return json;
+      })
       .then((json) => {
         if (cancelled) return;
-        if (json.error || !json.result) {
-          setError("Failed to load chart data");
-          setChartData([]);
-        } else {
-          setChartData(json.result.data);
-        }
+        setChartData(json.result?.data ?? []);
       })
-      .catch(() => {
-        if (!cancelled) setError("Failed to load chart data");
+      .catch((reason: unknown) => {
+        if (!cancelled) {
+          setChartData([]);
+          setError(reason instanceof Error ? reason.message : "Failed to load analytical transactions.");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -101,9 +123,9 @@ export function AnalyticalTransactionChart() {
     return () => {
       cancelled = true;
     };
-  }, [period, year, month]);
+  }, [period, year, month, refreshKey]);
 
-  const maxCount = Math.max(...chartData.map((d) => d.count), 1);
+  const maxAmount = Math.max(...chartData.map((d) => d.amount), 1);
 
   return (
     <Card>
@@ -185,11 +207,11 @@ export function AnalyticalTransactionChart() {
                   content={<CustomTooltip />}
                   cursor={{ fill: "#262626" }}
                 />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
                   {chartData.map((entry, index) => (
                     <Cell
                       fill={
-                        entry.count === maxCount && entry.count > 0
+                        entry.amount === maxAmount && entry.amount > 0
                           ? "url(#purple-gradient)"
                           : "#262626"
                       }

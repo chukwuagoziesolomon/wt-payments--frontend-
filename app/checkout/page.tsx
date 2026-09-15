@@ -1,160 +1,255 @@
 "use client";
 
-import { useState } from "react";
-import { TreasuryCard } from "@/components/TreasuryCard";
-import { ShoppingBag } from "lucide-react";
+import * as React from "react";
+import { Loader2, ShoppingBag } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { WaitingForPaymentModal, type PaymentIntentData } from "@/components/WaitingForPaymentModal";
 
-const lineItems = [
-  { label: "Treasury Card — Obsidian", amount: 0 },
-  { label: "Physical card, expedited shipping", amount: 12 },
-  { label: "Estimated tax", amount: 0.96 },
-];
+type CartItem = {
+  product_id: string;
+  name: string;
+  price: number;
+  currency: string;
+  quantity: number;
+  image?: string | null;
+  shop_id?: string;
+};
 
-const total = lineItems.reduce((sum, item) => sum + item.amount, 0);
+type DeliverySettings = {
+  has_free_delivery?: boolean;
+  delivery_fee?: number;
+  free_delivery_threshold?: number;
+};
+
+type CheckoutAsset = {
+  currency_id: string;
+  name: string;
+  symbol: string;
+  logo?: string;
+  network?: { name: string; logo?: string };
+  amount: number;
+};
 
 export default function CheckoutPage() {
-  const [method, setMethod] = useState<"paystack" | "crypto">("paystack");
+  const params = useSearchParams();
+  const [items, setItems] = React.useState<CartItem[]>([]);
+  const [delivery, setDelivery] = React.useState<DeliverySettings>({});
+  const [method, setMethod] = React.useState<"paystack" | "crypto">("crypto");
+  const [submitting, setSubmitting] = React.useState(false);
+  const [message, setMessage] = React.useState<string | null>(null);
+  const [checkoutResult, setCheckoutResult] = React.useState<{ payment_intent_id?: string; assets?: CheckoutAsset[] } | null>(null);
+  const [selectedAsset, setSelectedAsset] = React.useState<CheckoutAsset | null>(null);
+  const [paymentData, setPaymentData] = React.useState<PaymentIntentData | null>(null);
+  const [waitingOpen, setWaitingOpen] = React.useState(false);
+  const [form, setForm] = React.useState({
+    email: "",
+    phone: "",
+    full_name: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "Nigeria",
+    promo_code: "",
+  });
+
+  React.useEffect(() => {
+    try {
+      setItems(JSON.parse(localStorage.getItem("guest_cart") || "[]"));
+    } catch {
+      setItems([]);
+    }
+    const shop = params.get("shop");
+    if (shop) {
+      fetch(`/backend/shop/${shop}/delivery-settings`)
+        .then((response) => response.json())
+        .then((json) => setDelivery(json.result || json.data || {}))
+        .catch(() => undefined);
+    }
+  }, [params]);
+
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const qualifiesForFreeDelivery = Boolean(
+    delivery.has_free_delivery ||
+      (delivery.free_delivery_threshold &&
+        subtotal >= delivery.free_delivery_threshold)
+  );
+  const deliveryFee = qualifiesForFreeDelivery
+    ? 0
+    : Number(delivery.delivery_fee || 0);
+  const total = subtotal + deliveryFee;
+  const currency = items[0]?.currency || "NGN";
+
+  const update = (key: keyof typeof form, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!items.length) {
+      setMessage("Your cart is empty.");
+      return;
+    }
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/cart/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fiat_currency: currency,
+          payment_method: method,
+          customer_email: form.email,
+          customer_phone: form.phone,
+          delivery_address: {
+            full_name: form.full_name,
+            phone: form.phone,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            country: form.country,
+          },
+          delivery_state: form.state,
+          promo_code: form.promo_code || undefined,
+          items: items.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: item.price,
+            shopId: item.shop_id,
+          })),
+        }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(json.data || json.message || "Unable to start checkout");
+      }
+      if (json.result?.authorization_url) {
+        window.location.href = json.result.authorization_url;
+        return;
+      }
+      setCheckoutResult(json.result || null);
+      if (json.result?.assets?.length) {
+        setSelectedAsset(json.result.assets[0]);
+        setMessage("Select a crypto asset, then generate its payment wallet.");
+      } else {
+        setMessage("Checkout started, but no payment assets were returned.");
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to start checkout");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function createWallet() {
+    if (!checkoutResult?.payment_intent_id || !selectedAsset) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/cart/wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_intent_id: checkoutResult.payment_intent_id,
+          crypto_currency_id: selectedAsset.currency_id,
+        }),
+      });
+      const json = await response.json().catch(() => ({}));
+      const data = json.data || json.result;
+      if (!response.ok || !data?.wallet) {
+        throw new Error(json.data || json.message || "Unable to create payment wallet");
+      }
+      setPaymentData({
+        payment_intent_id: data.payment_intent_id || checkoutResult.payment_intent_id,
+        transaction_id: data.transaction_id,
+        expiration_time: data.expiration_time,
+        fee_in_crypto: Number(data.fee_in_crypto || 0),
+        wallet: data.wallet,
+        fiat: data.fiat || { amount: total, currency },
+        crypto: {
+          ...data.crypto,
+          symbol: data.crypto?.symbol || selectedAsset.symbol,
+          network: typeof data.crypto?.network === "object" ? data.crypto.network.name : data.crypto?.network || selectedAsset.network?.name || "",
+          amount: Number(data.crypto?.amount || selectedAsset.amount || 0),
+        },
+      });
+      localStorage.removeItem("guest_cart");
+      setWaitingOpen(true);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to create payment wallet");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
-    <main className="min-h-screen bg-base-bg bg-radial-fade px-6 py-16">
-      <div className="max-w-5xl mx-auto">
-        <p className="text-sm text-ink-muted mb-8">
-          <span className="text-ink-secondary">Product</span>
-          <span className="mx-2">/</span>
-          <span className="text-ink-primary">Checkout</span>
-        </p>
-
-        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-10">
-          {/* Order summary */}
-          <section className="lg:order-2">
-            <div className="rounded-2xl border border-base-border bg-base-surface p-6 lg:sticky lg:top-16">
-              <div className="flex justify-center mb-6">
-                <TreasuryCard small />
-              </div>
-
-              <h2 className="text-ink-primary font-medium text-sm mb-4">
-                Order summary
-              </h2>
-
-              <ul className="space-y-3">
-                {lineItems.map((item) => (
-                  <li
-                    key={item.label}
-                    className="flex justify-between text-sm text-ink-secondary"
-                  >
-                    <span>{item.label}</span>
-                    <span className="font-mono tabular text-ink-primary">
-                      {item.amount === 0 ? "Free" : `$${item.amount.toFixed(2)}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-5 pt-5 border-t border-base-border flex justify-between items-baseline">
-                <span className="text-ink-primary font-medium text-sm">Total due today</span>
-                <span className="font-mono tabular text-xl font-semibold text-ink-primary">
-                  ${total.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="mt-5 flex items-center gap-2 text-xs text-mint bg-mint/10 border border-mint/20 rounded-lg px-3 py-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-mint" />
-                Ships within 2 business days
-              </div>
+    <main className="min-h-screen bg-base-bg px-4 py-10 text-ink-primary sm:px-8">
+      <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <section>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">
+            Secure checkout
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold">Complete your order</h1>
+          <p className="mt-2 text-sm text-ink-muted">
+            Your confirmation email and WhatsApp message are sent after payment is confirmed.
+          </p>
+          <form onSubmit={submit} className="mt-8 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Email" value={form.email} onChange={(value) => update("email", value)} type="email" required />
+              <Field label="Phone / WhatsApp" value={form.phone} onChange={(value) => update("phone", value)} required />
             </div>
-          </section>
-
-          {/* Payment form */}
-          <section className="lg:order-1">
-            <h1 className="text-2xl font-semibold text-ink-primary tracking-tight mb-1">
-              Complete your order
-            </h1>
-            <p className="text-sm text-ink-muted mb-8">
-              Your treasury balance and account details stay encrypted end to end.
-            </p>
-
-            <div className="mb-6">
-              <p className="text-xs font-medium text-ink-secondary mb-2 uppercase tracking-wide">
-                Pay with
-              </p>
-              <div className="inline-flex rounded-xl border border-base-border bg-base-surface p-1 gap-1">
-                {(["paystack", "crypto"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMethod(m)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                      method === m
-                        ? "bg-violet-gradient text-white shadow-glow"
-                        : "text-ink-secondary hover:text-ink-primary"
-                    }`}
-                  >
-                    {m === "paystack" ? "Paystack" : "Crypto wallet"}
-                  </button>
-                ))}
-              </div>
+            <Field label="Full name" value={form.full_name} onChange={(value) => update("full_name", value)} required />
+            <Field label="Address" value={form.address} onChange={(value) => update("address", value)} required />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="City" value={form.city} onChange={(value) => update("city", value)} required />
+              <Field label="State" value={form.state} onChange={(value) => update("state", value)} required />
+              <Field label="Country" value={form.country} onChange={(value) => update("country", value)} required />
             </div>
-
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-              {method === "paystack" ? (
-                <>
-                  <Field label="Billing email" placeholder="you@company.com" />
-                  <button
-                    type="submit"
-                    className="w-full flex items-center justify-center gap-2 mt-2 rounded-xl bg-violet-gradient text-white text-sm font-medium py-3.5 shadow-glow hover:brightness-110 active:scale-[0.99] transition"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    Pay ${total.toFixed(2)} via Paystack
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Field label="Wallet address" placeholder="0x71C7...8f3A" mono />
-                  <div className="rounded-xl border border-base-border bg-base-surface2 p-4 text-sm text-ink-secondary">
-                    We'll settle in USDC at the current treasury rate. No network fee for
-                    Treasury Card holders.
-                  </div>
-                  <Field label="Billing email" placeholder="you@company.com" />
-                  <button
-                    type="submit"
-                    className="w-full mt-2 rounded-xl bg-violet-gradient text-white text-sm font-medium py-3.5 shadow-glow hover:brightness-110 active:scale-[0.99] transition"
-                  >
-                    Pay ${total.toFixed(2)}
-                  </button>
-                </>
-              )}
-
-              <p className="text-xs text-ink-muted text-center pt-1">
-                Secured with 256-bit encryption. Refundable within 30 days.
-              </p>
-            </form>
-          </section>
-        </div>
+            <Field label="Promo code" value={form.promo_code} onChange={(value) => update("promo_code", value)} />
+            <div className="flex gap-2">
+              {(["crypto", "paystack"] as const).map((value) => (
+                <button type="button" key={value} onClick={() => { setMethod(value); setCheckoutResult(null); setSelectedAsset(null); }} className={`rounded-xl border px-4 py-2 text-sm capitalize ${method === value ? "border-violet-400 bg-violet-500/15" : "border-base-border"}`}>
+                  {value}
+                </button>
+              ))}
+            </div>
+            {method === "crypto" && checkoutResult?.assets?.length ? (
+              <div className="space-y-3 rounded-xl border border-base-border bg-base-surface p-4">
+                <p className="text-sm font-medium">Choose a payment asset</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {checkoutResult.assets.map((asset) => (
+                    <button type="button" key={asset.currency_id} onClick={() => setSelectedAsset(asset)} className={`rounded-lg border p-3 text-left ${selectedAsset?.currency_id === asset.currency_id ? "border-violet-400 bg-violet-500/10" : "border-base-border"}`}>
+                      <span className="block text-sm font-semibold">{asset.symbol}</span>
+                      <span className="block text-xs text-ink-muted">{asset.network?.name || asset.name} · {asset.amount}</span>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={createWallet} disabled={submitting || !selectedAsset} className="w-full rounded-xl bg-violet-gradient py-3 font-semibold text-white disabled:opacity-50">
+                  {submitting ? "Generating payment wallet..." : `Pay with ${selectedAsset?.symbol || "crypto"}`}
+                </button>
+              </div>
+            ) : null}
+            {!checkoutResult?.assets?.length && <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-gradient py-3.5 font-semibold text-white disabled:opacity-50">
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? "Starting checkout..." : `Pay ${currency} ${total.toLocaleString()}`}
+            </button>}
+            {message && <p role="alert" className="text-sm text-ink-muted">{message}</p>}
+          </form>
+        </section>
+        <aside className="h-fit rounded-2xl border border-base-border bg-base-surface p-6 lg:sticky lg:top-8">
+          <div className="mb-5 flex items-center gap-2"><ShoppingBag className="h-5 w-5" /><h2 className="font-semibold">Order summary</h2></div>
+          {items.length ? <div className="space-y-4">{items.map((item) => <div key={item.product_id} className="flex justify-between gap-4 text-sm"><span>{item.name} x {item.quantity}</span><span>{item.currency} {(item.price * item.quantity).toLocaleString()}</span></div>)}<div className="border-t border-base-border pt-4"><div className="flex justify-between text-sm text-ink-muted"><span>Delivery</span><span>{deliveryFee ? `${currency} ${deliveryFee.toLocaleString()}` : "Free"}</span></div><div className="mt-2 flex justify-between font-semibold"><span>Total</span><span>{currency} {total.toLocaleString()}</span></div></div></div> : <p className="text-sm text-ink-muted">Your cart is empty.</p>}
+        </aside>
       </div>
+      <WaitingForPaymentModal
+        open={waitingOpen}
+        onClose={() => setWaitingOpen(false)}
+        paymentData={paymentData}
+        enableStream={false}
+      />
     </main>
   );
 }
 
-function Field({
-  label,
-  placeholder,
-  mono = false,
-}: {
-  label: string;
-  placeholder: string;
-  mono?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-xs font-medium text-ink-secondary mb-1.5">
-        {label}
-      </span>
-      <input
-        type="text"
-        placeholder={placeholder}
-        className={`w-full rounded-xl border border-base-border bg-base-surface2 px-4 py-3 text-sm text-ink-primary placeholder:text-ink-muted outline-none focus:border-violet-500 transition ${
-          mono ? "font-mono tabular" : ""
-        }`}
-      />
-    </label>
-  );
+function Field({ label, value, onChange, type = "text", required = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean }) {
+  return <label className="block"><span className="mb-1.5 block text-xs font-medium text-ink-secondary">{label}</span><input required={required} type={type} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-base-border bg-base-surface2 px-4 py-3 text-sm outline-none focus:border-violet-500" /></label>;
 }

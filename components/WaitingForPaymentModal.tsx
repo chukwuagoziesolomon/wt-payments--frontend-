@@ -28,6 +28,7 @@ interface WaitingForPaymentModalProps {
   onClose: () => void;
   paymentData?: PaymentIntentData | null;
   onPaymentComplete?: () => void;
+  enableStream?: boolean;
 }
 
 function getStoredToken() {
@@ -91,24 +92,28 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
   onClose,
   paymentData,
   onPaymentComplete,
+  enableStream = true,
 }) => {
   const [copied, setCopied] = React.useState(false);
   const { display: countdown, secondsLeft } = useCountdown(paymentData?.expiration_time);
 
   // SSE listener for payment.completed
   React.useEffect(() => {
-    if (!open || !paymentData) return;
+    if (!open || !paymentData || !enableStream) return;
 
     const token = getStoredToken();
-    const es = new EventSource(`/backend/payments/stream?token=${encodeURIComponent(token)}`);
+    const es = new EventSource(`/backend/user/stream?token=${encodeURIComponent(token)}`);
 
     const handler = (e: MessageEvent) => {
       try {
-        const data = JSON.parse(e.data);
+        const payload = JSON.parse(e.data);
+        const data = payload?.data ?? payload;
+        const status = String(data.status ?? data.payment_status ?? "").toLowerCase();
         const matchById =
           (paymentData.transaction_id && data.transaction_id === paymentData.transaction_id) ||
-          data.payment_id === paymentData.payment_intent_id;
-        if (matchById) {
+          data.payment_id === paymentData.payment_intent_id ||
+          data.payment_intent_id === paymentData.payment_intent_id;
+        if (matchById && ["paid", "confirmed", "completed", "payment_completed"].includes(status)) {
           es.close();
           onPaymentComplete?.();
         }
@@ -123,7 +128,7 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
       es.removeEventListener("payment.completed", handler);
       es.close();
     };
-  }, [open, paymentData, onPaymentComplete]);
+  }, [enableStream, open, paymentData, onPaymentComplete]);
 
   function handleCopy() {
     if (!paymentData?.wallet.address) return;

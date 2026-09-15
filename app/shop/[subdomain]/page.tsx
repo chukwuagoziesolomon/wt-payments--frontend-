@@ -7,6 +7,9 @@ import {
   ShoppingBag,
   Package,
   Globe,
+  Mail,
+  MapPin,
+  Phone,
   Loader2,
   Plus,
   X,
@@ -15,6 +18,17 @@ import {
 import { ProductCard } from "@/components/products/ProductCard";
 
 const API = "/backend";
+
+function currencyLabel(value: unknown, fallback = "NGN"): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object") {
+    const currency = value as { symbol?: unknown; id?: unknown; name?: unknown };
+    for (const candidate of [currency.symbol, currency.id, currency.name]) {
+      if (typeof candidate === "string" && candidate.trim()) return candidate;
+    }
+  }
+  return fallback;
+}
 
 function getToken() {
   return typeof window !== "undefined"
@@ -29,6 +43,10 @@ type ShopData = {
   shop_url: string;
   storefront_url?: string;
   description: string;
+  bio?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   logo_url: string | null;
   banner_url: string | null;
   theme_config: Record<string, any> | null;
@@ -62,13 +80,16 @@ function normalizeProduct(product: any): Product {
     id: product.id ?? product.uniqueId ?? "",
     name: product.name ?? "",
     price: Number(product.price ?? 0),
-    currency: product.currency ?? "NGN",
+    currency: currencyLabel(product.currency),
     description: product.description ?? "",
     category: product.category ?? "",
     stock: Number(product.stock ?? 0),
     is_active: Boolean(product.is_active ?? product.isActive ?? false),
     images: Array.isArray(product.images) ? product.images : [],
-    compareAt: product.compareAt ? Number(product.compareAt) : undefined,
+    compareAt:
+      Number(
+        product.compareAt ?? product.compare_at ?? product.originalPrice ?? 0
+      ) || undefined,
     rating: product.rating ? Number(product.rating) : undefined,
     reviews: product.reviews ? Number(product.reviews) : undefined,
     badge: product.badge ?? undefined,
@@ -117,7 +138,12 @@ export default function StorefrontPage() {
           return;
         }
 
-        if (!cancelled) setShop(json.data);
+        if (!cancelled) {
+          setShop({
+            ...json.data,
+            currency: currencyLabel(json.data.currency),
+          });
+        }
 
         if (!cancelled)
           setProducts(
@@ -149,6 +175,7 @@ export default function StorefrontPage() {
             );
             return parsed.map((item: any) => ({
               ...item,
+              currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
               shop_id: item.shop_id || shop?.id || "",
             }));
           } catch {
@@ -165,7 +192,12 @@ export default function StorefrontPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok && json.result?.items) {
-        setCartItems(json.result.items);
+        setCartItems(
+          json.result.items.map((item: CartItem & { currency?: unknown }) => ({
+            ...item,
+            currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
+          }))
+        );
       }
     } catch {
       // silently fail - cart is optional
@@ -290,6 +322,12 @@ export default function StorefrontPage() {
   const primary = shop?.theme_config?.primaryColor || "#6c5dd3";
   const accent = shop?.theme_config?.accentColor || "#f59e0b";
 
+  React.useEffect(() => {
+    if (shop?.id) {
+      localStorage.setItem(`storefront_brand_color_${shop.id}`, primary);
+    }
+  }, [primary, shop?.id]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0e0e10]">
@@ -321,6 +359,16 @@ export default function StorefrontPage() {
   }
 
   const checkoutUrl = shop.payment_gateway?.checkout_url;
+  const shopBio = shop.bio || shop.description;
+  const contactItems = [
+    shop.phone && { icon: Phone, label: shop.phone, href: `tel:${shop.phone}` },
+    shop.email && { icon: Mail, label: shop.email, href: `mailto:${shop.email}` },
+    shop.address && { icon: MapPin, label: shop.address },
+  ].filter(Boolean) as Array<{
+    icon: typeof Phone;
+    label: string;
+    href?: string;
+  }>;
 
   return (
     <div
@@ -376,9 +424,9 @@ export default function StorefrontPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-white">
                 {shop.business_name}
               </h1>
-              {shop.description && (
+              {shopBio && (
                 <p className="text-white/50 text-sm mt-1 max-w-lg">
-                  {shop.description}
+                  {shopBio}
                 </p>
               )}
             </div>
@@ -407,12 +455,41 @@ export default function StorefrontPage() {
             <ShoppingBag className="w-4 h-4" />
             <span className="hidden sm:inline">Cart</span>
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#9d8df1] text-white text-xs font-bold flex items-center justify-center">
+              <span
+                className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-white text-xs font-bold flex items-center justify-center"
+                style={{ backgroundColor: primary }}
+              >
                 {cartCount}
               </span>
             )}
           </button>
         </div>
+
+        <section className="mb-12 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.035] shadow-2xl">
+          <div
+            className="h-1 w-full"
+            style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }}
+          />
+          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em]" style={{ color: accent }}>
+                Welcome to {shop.business_name}
+              </p>
+              <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Curated products, made for you.
+              </h2>
+              {shopBio && <p className="mt-3 max-w-2xl text-sm leading-7 text-white/55">{shopBio}</p>}
+            </div>
+            {contactItems.length > 0 && (
+              <div className="grid gap-2 text-sm text-white/65 sm:grid-cols-2 lg:min-w-[330px] lg:grid-cols-1">
+                {contactItems.map(({ icon: Icon, label, href }) => {
+                  const content = <><Icon className="h-4 w-4 shrink-0" style={{ color: primary }} /><span className="truncate">{label}</span></>;
+                  return href ? <a key={label} href={href} className="flex items-center gap-3 rounded-xl bg-black/15 px-3 py-2.5 hover:bg-black/25">{content}</a> : <div key={label} className="flex items-center gap-3 rounded-xl bg-black/15 px-3 py-2.5">{content}</div>;
+                })}
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* Products */}
         <div className="pb-16">
@@ -432,12 +509,19 @@ export default function StorefrontPage() {
                       name: product.name,
                       category: product.category || "Uncategorized",
                       price: product.price,
+                      currency: product.currency,
+                      image: product.images[0]?.url,
+                      description: product.description,
                       compareAt: product.compareAt,
                       rating: product.rating ?? 0,
                       reviews: product.reviews ?? 0,
                       badge: product.badge,
                     }}
+                    primaryColor={primary}
                     onAddToCart={() => addToCart(product)}
+                    onViewProduct={() =>
+                      router.push(`/shop/${subdomain}/products/${product.id}`)
+                    }
                   />
                 </div>
               ))}
@@ -501,7 +585,7 @@ export default function StorefrontPage() {
                           {item.name}
                         </h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {item.currency} {item.price.toLocaleString()}
+                          {currencyLabel(item.currency)} {item.price.toLocaleString()}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <button
@@ -543,8 +627,8 @@ export default function StorefrontPage() {
               <div className="p-4 sm:p-6 border-t border-white/[0.06] space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-sm">Total</span>
-                  <span className="text-lg font-bold text-[#9d8df1]">
-                    {shop?.currency} {cartTotal.toLocaleString()}
+                    <span className="text-lg font-bold" style={{ color: primary }}>
+                    {currencyLabel(shop?.currency)} {cartTotal.toLocaleString()}
                   </span>
                 </div>
                 <button
@@ -552,7 +636,8 @@ export default function StorefrontPage() {
                     setCartOpen(false);
                     router.push("/checkout");
                   }}
-                  className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] hover:shadow-lg transition-all"
+                  className="w-full py-3 rounded-xl font-semibold text-white hover:shadow-lg transition-all"
+                  style={{ backgroundColor: primary }}
                 >
                   View Cart
                 </button>

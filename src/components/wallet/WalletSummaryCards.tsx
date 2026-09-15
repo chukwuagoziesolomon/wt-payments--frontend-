@@ -1,11 +1,26 @@
 "use client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useWalletBalance, type WalletEntry } from "@/hooks/use-wallet-balance";
+import { authFetch } from "@/lib/auth-fetch";
 import type { UserWallet } from "@/types";
+
+type AvailableAsset = {
+  currency_id: string;
+  crypto?: { symbol?: string };
+  network?: { name?: string; isTestnet?: boolean };
+};
+
+type DashboardStatsResponse = {
+  error?: boolean;
+  data?: string;
+  result?: {
+    totalWalletBalance?: number;
+  };
+};
 
 function WithdrawButton() {
   const router = useRouter();
@@ -59,6 +74,127 @@ export function WalletSummaryCards() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const liveBalance = useWalletBalance();
   const router = useRouter();
+  const [provisioning, setProvisioning] = useState(true);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
+  const [totalWalletBalance, setTotalWalletBalance] = useState<number | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setRefreshKey((value) => value + 1);
+    window.addEventListener("dashboard:refresh", refresh);
+    return () => window.removeEventListener("dashboard:refresh", refresh);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadDashboardBalance() {
+      try {
+        const token =
+          localStorage.getItem("authToken") || localStorage.getItem("token");
+        const response = await authFetch("/backend/dashboard/stats", {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            "Cache-Control": "no-cache",
+          },
+          cache: "no-store",
+        });
+        const payload = (await response.json().catch(() => null)) as DashboardStatsResponse | null;
+        if (!response.ok || payload?.error || !payload?.result) {
+          throw new Error(payload?.data || "Unable to load wallet balance.");
+        }
+        if (mounted) {
+          setTotalWalletBalance(Number(payload.result.totalWalletBalance || 0));
+          setBalanceError(null);
+        }
+      } catch (error: unknown) {
+        if (mounted) {
+          setBalanceError(
+            error instanceof Error ? error.message : "Unable to load wallet balance."
+          );
+        }
+      }
+    }
+
+    loadDashboardBalance();
+    return () => {
+      mounted = false;
+    };
+  }, [refreshKey]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function provisionCkbWallet() {
+      try {
+        const token =
+          localStorage.getItem("authToken") || localStorage.getItem("token");
+        if (!token) return;
+
+        const assetsResponse = await authFetch("/backend/available-assets", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+          },
+          cache: "no-store",
+        });
+        const assetsPayload = await assetsResponse.json().catch(() => null);
+        if (!assetsResponse.ok || assetsPayload?.error) {
+          throw new Error(
+            assetsPayload?.data || "Unable to load available wallet assets."
+          );
+        }
+
+        const assets = (assetsPayload?.data || assetsPayload?.result || []) as AvailableAsset[];
+        const ckbTestnetAsset = assets.find((asset) => {
+          const symbol = asset.crypto?.symbol?.toUpperCase();
+          const networkName = asset.network?.name?.toLowerCase() || "";
+          return (
+            symbol === "CKB" &&
+            asset.network?.isTestnet === true &&
+            networkName.includes("testnet")
+          );
+        });
+
+        if (!ckbTestnetAsset) {
+          throw new Error("No CKB testnet currency is available for provisioning.");
+        }
+
+        const provisionResponse = await authFetch("/backend/user/wallet/provision", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
+          body: JSON.stringify({ currency_id: ckbTestnetAsset.currency_id }),
+          cache: "no-store",
+        });
+        const provisionPayload = await provisionResponse.json().catch(() => null);
+        if (!provisionResponse.ok || provisionPayload?.error || !provisionPayload?.result) {
+          throw new Error(
+            provisionPayload?.data || "Unable to provision the CKB wallet."
+          );
+        }
+
+        window.dispatchEvent(new Event("dashboard:refresh"));
+      } catch (error: unknown) {
+        if (mounted) {
+          setProvisionError(
+            error instanceof Error ? error.message : "Unable to provision the CKB wallet."
+          );
+        }
+      } finally {
+        if (mounted) setProvisioning(false);
+      }
+    }
+
+    provisionCkbWallet();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const wallets: UserWallet[] = useMemo(() => {
     if (!liveBalance?.wallets?.length) return [];
@@ -74,7 +210,7 @@ export function WalletSummaryCards() {
     }));
   }, [liveBalance]);
 
-  const totalUsd = liveBalance?.total_balance_usd ?? 0;
+  const totalUsd = totalWalletBalance ?? liveBalance?.total_balance_usd ?? 0;
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -86,6 +222,17 @@ export function WalletSummaryCards() {
 
   return (
     <div className="relative">
+      {provisioning && (
+        <p className="mb-3 text-sm text-muted-foreground">
+          Preparing your CKB testnet wallet...
+        </p>
+      )}
+      {provisionError && (
+        <p className="mb-3 text-sm text-destructive">{provisionError}</p>
+      )}
+      {balanceError && (
+        <p className="mb-3 text-sm text-destructive">{balanceError}</p>
+      )}
       {/* Navigation Buttons - Mobile Only */}
       {wallets.length > 1 && (
         <>

@@ -71,6 +71,10 @@ type Shop = {
   shop_url: string;
   storefront_url?: string;
   description: string;
+  bio?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   logo_url: string | null;
   banner_url: string | null;
   theme_config: Record<string, any>;
@@ -178,6 +182,10 @@ function CreateShopModal({
     business_name: "",
     subdomain: "",
     description: "",
+    bio: "",
+    phone: "",
+    email: "",
+    address: "",
     currency: "NGN",
     primaryColor: "#9d8df1",
     accentColor: "#f59e0b",
@@ -237,6 +245,10 @@ function CreateShopModal({
           business_name: form.business_name,
           subdomain: form.subdomain,
           description: form.description,
+          bio: form.bio,
+          phone: form.phone,
+          email: form.email,
+          address: form.address,
           currency: form.currency,
           template: form.template,
           shop_type: form.shop_type,
@@ -362,6 +374,22 @@ function CreateShopModal({
               rows={3}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#9d8df1]/60 transition-all placeholder:text-white/20 resize-none"
             />
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-medium uppercase tracking-wider text-white/50">Storefront Contact Details</label>
+            <textarea
+              value={form.bio}
+              onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))}
+              placeholder="A short welcome message or brand bio..."
+              rows={2}
+              className="w-full resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#9d8df1]/60"
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} placeholder="Phone number" className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#9d8df1]/60" />
+              <input value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder="Contact email" type="email" className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#9d8df1]/60" />
+            </div>
+            <input value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} placeholder="Business address" className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#9d8df1]/60" />
           </div>
 
           <div className="space-y-1.5">

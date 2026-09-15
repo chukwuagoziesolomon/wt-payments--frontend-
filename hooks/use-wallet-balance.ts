@@ -66,9 +66,14 @@ export function useWalletBalance(options?: {
           previousWalletsRef.current = merged;
           return { total_balance_usd: payload.total_balance_usd, wallets: merged };
         });
+        window.dispatchEvent(new Event("dashboard:refresh"));
       } catch {
         // ignore malformed events
       }
+    });
+
+    es.addEventListener("transaction.confirmed", () => {
+      window.dispatchEvent(new Event("dashboard:refresh"));
     });
 
     if (onWithdrawalUpdate) {

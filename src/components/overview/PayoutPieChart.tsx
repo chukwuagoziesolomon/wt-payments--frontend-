@@ -30,6 +30,13 @@ export function PayoutPieChart() {
   const [result, setResult] = React.useState<PayoutChartResult>(FALLBACK);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
+  React.useEffect(() => {
+    const refresh = () => setRefreshKey((value) => value + 1);
+    window.addEventListener("dashboard:refresh", refresh);
+    return () => window.removeEventListener("dashboard:refresh", refresh);
+  }, []);
 
   React.useEffect(() => {
     let mounted = true;
@@ -41,7 +48,7 @@ export function PayoutPieChart() {
           typeof window !== "undefined"
             ? localStorage.getItem("authToken") || localStorage.getItem("token")
             : null;
-        const headers: Record<string, string> = {};
+        const headers: Record<string, string> = { "Cache-Control": "no-cache" };
         if (token) headers.Authorization = `Bearer ${token}`;
 
         const apiBase = "/backend";
@@ -56,7 +63,11 @@ export function PayoutPieChart() {
           throw new Error(
             typeof payload?.data === "string"
               ? payload.data
-              : `Error ${res.status}`
+              : res.status === 401
+                ? "Your session has expired. Please log in again."
+                : res.status >= 500
+                  ? "The dashboard service is temporarily unavailable."
+                  : `Failed to load payout chart (status ${res.status}).`
           );
         }
 
@@ -64,10 +75,9 @@ export function PayoutPieChart() {
           setResult(payload.result);
         }
       } catch (err: unknown) {
-        if (mounted)
-          setError(
-            err instanceof Error ? err.message : "Failed to load payout chart"
-          );
+        if (mounted) {
+          setError(err instanceof Error ? err.message : "Failed to load payout chart.");
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -77,7 +87,7 @@ export function PayoutPieChart() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const chartData = result.breakdown.map((b) => ({
     name: b.label,

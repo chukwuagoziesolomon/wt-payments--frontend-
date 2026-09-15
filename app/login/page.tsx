@@ -30,10 +30,15 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
 
       if (json.error || !json.result?.token) {
-        setError(json.data ?? "Login failed. Please try again.");
+        setError(
+          json.data ??
+            (res.status >= 500
+              ? "The authentication service is unavailable. Please try again shortly."
+              : "Login failed. Please check your email and password.")
+        );
         return;
       }
 
@@ -42,8 +47,13 @@ export default function LoginPage() {
       localStorage.setItem("token", json.result.token);
 
       router.push("/dashboard");
-    } catch {
-      setError("Network error. Please check your connection.");
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message.toLowerCase() : "";
+      setError(
+        message.includes("fetch") || message.includes("reset") || message.includes("socket")
+          ? "The authentication service closed the connection. Check that the backend is running and try again."
+          : "Network error. Please check your connection."
+      );
     } finally {
       setLoading(false);
     }

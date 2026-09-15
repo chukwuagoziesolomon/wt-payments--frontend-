@@ -6,6 +6,9 @@ type Product = {
   name: string;
   category: string;
   price: number;
+  currency?: string;
+  image?: string;
+  description?: string;
   compareAt?: number;
   rating: number;
   reviews: number;
@@ -15,9 +18,16 @@ type Product = {
 type ProductCardProps = {
   product: Product;
   onAddToCart?: () => void;
+  onViewProduct?: () => void;
+  primaryColor?: string;
 };
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onAddToCart,
+  onViewProduct,
+  primaryColor = "#6c5dd3",
+}: ProductCardProps) {
   const [wishlisted, setWishlisted] = useState(false);
   const [inCart, setInCart] = useState(false);
 
@@ -27,7 +37,15 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   };
 
   return (
-    <div className="group relative w-full max-w-[280px] rounded-2xl border border-base-border bg-base-surface overflow-hidden hover:border-violet-500/40 transition">
+    <div
+      className="group relative w-full max-w-[280px] cursor-pointer rounded-2xl border border-base-border bg-base-surface overflow-hidden transition hover:border-violet-500/40"
+      onClick={onViewProduct}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") onViewProduct?.();
+      }}
+      role={onViewProduct ? "link" : undefined}
+      tabIndex={onViewProduct ? 0 : undefined}
+    >
       <div className="relative aspect-[4/3] bg-gradient-to-br from-violet-700/25 via-base-surface2 to-base-surface2 overflow-hidden">
         {product.badge && (
           <span className="absolute top-3 left-3 z-10 text-[10px] font-medium uppercase tracking-wide text-violet-300 bg-violet-500/15 border border-violet-500/25 rounded-full px-2.5 py-1">
@@ -36,7 +54,10 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         )}
 
         <button
-          onClick={() => setWishlisted((v) => !v)}
+          onClick={(event) => {
+            event.stopPropagation();
+            setWishlisted((v) => !v);
+          }}
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
           aria-pressed={wishlisted}
           className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-base-bg/70 backdrop-blur flex items-center justify-center border border-base-border hover:border-violet-400/50 transition"
@@ -53,9 +74,17 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           </svg>
         </button>
 
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-20 h-20 rounded-2xl bg-violet-gradient opacity-80 rotate-12 group-hover:rotate-6 transition-transform duration-300" />
-        </div>
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-2xl bg-violet-gradient opacity-80 rotate-12 group-hover:rotate-6 transition-transform duration-300" />
+          </div>
+        )}
       </div>
 
       <div className="p-4">
@@ -71,25 +100,35 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           <span className="text-xs text-ink-muted">({product.reviews})</span>
         </div>
 
+        {product.description && (
+          <p className="mb-3 line-clamp-2 text-xs leading-relaxed text-ink-muted">
+            {product.description}
+          </p>
+        )}
+
         <div className="flex items-baseline gap-2 mb-4">
           <span className="font-mono tabular text-lg font-semibold text-ink-primary">
-            ${product.price.toFixed(2)}
+            {product.currency || "USD"} {product.price.toFixed(2)}
           </span>
           {product.compareAt && (
             <span className="font-mono tabular text-xs text-ink-muted line-through">
-              ${product.compareAt.toFixed(2)}
+              {product.currency || "USD"} {product.compareAt.toFixed(2)}
             </span>
           )}
         </div>
 
         <button
-          onClick={handleAddToCart}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleAddToCart();
+          }}
           disabled={inCart}
-          className={`w-full rounded-xl text-sm font-medium py-2.5 transition active:scale-[0.98] ${
+          className="w-full rounded-xl text-sm font-medium py-2.5 transition active:scale-[0.98] disabled:cursor-default"
+          style={
             inCart
-              ? "bg-mint/10 text-mint border border-mint/25"
-              : "bg-violet-gradient text-white shadow-glow hover:brightness-110"
-          }`}
+              ? { backgroundColor: "color-mix(in srgb, #34d399 10%, transparent)", color: "#34d399", border: "1px solid color-mix(in srgb, #34d399 25%, transparent)" }
+              : { backgroundColor: primaryColor, color: "#fff" }
+          }
         >
           {inCart ? "Added to cart" : "Add to cart"}
         </button>
