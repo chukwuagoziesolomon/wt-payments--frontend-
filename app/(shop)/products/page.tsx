@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 import { authFetch } from "@/lib/auth-fetch";
 import { Plus, Edit2, Trash2, ChevronLeft, ChevronRight, Upload, X } from "lucide-react";
@@ -58,6 +59,7 @@ function normalizeProduct(product: any): Product {
 }
 
 export default function ProductsPage() {
+  const router = useRouter();
   const { notify } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ currentPage: 1, total: 0, perPage: 20, lastPage: 1 });

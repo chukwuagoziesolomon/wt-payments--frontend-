@@ -5,6 +5,7 @@ import {
   Settings,
   DollarSign,
   Wallet,
+  Store,
 } from "lucide-react";
 import type { Ref, SVGAttributes } from "react";
 
@@ -15,6 +16,7 @@ const Icons = {
   transactionsIcon: Activity,
   settingsIcon: Settings,
   walletIcon: Wallet,
+  shopIcon: Store,
 };
 export interface IconProps extends SVGAttributes<SVGElement> {
   ref?: Ref<SVGSVGElement>;

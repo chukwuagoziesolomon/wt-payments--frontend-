@@ -26,17 +26,10 @@ export const navigationItems: NavGroup = {
       icon: "walletIcon",
       isActive: false,
     },
-    // Reconstructed Currency nav item (re-added to ensure it renders)
     {
       title: "Currency",
       url: "/dashboard/currency",
       icon: "currencyIcon",
-      isActive: false,
-    },
-    {
-      title: "Shop Admin",
-      url: "/dashboard/shop/admin",
-      icon: "overviewIcon",
       isActive: false,
     },
   ],
@@ -45,6 +38,12 @@ export const navigationItems: NavGroup = {
       title: "Settings",
       url: "/dashboard/settings",
       icon: "settingsIcon",
+      isActive: false,
+    },
+    {
+      title: "Shop Owner",
+      url: "/shop",
+      icon: "shopIcon",
       isActive: false,
     },
   ],

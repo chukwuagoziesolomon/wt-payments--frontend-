@@ -335,13 +335,13 @@ export default function CartPage() {
             <CardContent className="py-16 text-center">
               <ShoppingBag className="w-12 h-12 text-white/20 mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">Your cart is empty</p>
-              <Button
-                onClick={() => router.push("/dashboard/shop")}
-                className="text-white"
-                style={{ backgroundColor: brandColor }}
-              >
-                Browse Shops
-              </Button>
+                <Button
+                  onClick={() => router.push("/")}
+                  className="text-white"
+                  style={{ backgroundColor: brandColor }}
+                >
+                  Browse Shops
+                </Button>
             </CardContent>
           </Card>
         </div>
@@ -669,7 +669,7 @@ export default function CartPage() {
                 </Button>
 
                 <button
-                  onClick={() => router.push("/dashboard/shop")}
+                  onClick={() => router.push("/")}
                   className="w-full text-sm text-muted-foreground hover:text-white transition-colors"
                 >
                   Continue Shopping

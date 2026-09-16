@@ -8,7 +8,6 @@ import { useToast } from "@/components/ui/ToastProvider";
 
 const API = "/backend";
 
-type Metric = { label: string; value: string; detail: string; icon: typeof Boxes };
 type Order = {
   id: string;
   reference_id?: string;
@@ -20,7 +19,6 @@ type Order = {
   status?: string;
   created_at?: string;
 };
-type OrderStatus = { label: string; status: string; icon: typeof Clock3 };
 
 type ShopAdminData = {
   stats: { totalPaymentProcessed?: number; totalPayout?: number; totalWalletBalance?: number };
@@ -106,13 +104,13 @@ export default function ShopAdminPage() {
   React.useEffect(() => { load(); }, [load]);
 
   const maxRevenue = Math.max(...data.revenue.map((item) => item.amount), 1);
-  const metrics: Metric[] = [
+  const metrics = [
     { label: "Revenue processed", value: formatMoney(analytics.total_revenue || Number(data.stats.totalPaymentProcessed ?? 0)), detail: `${analytics.total_orders || 0} confirmed orders`, icon: BarChart3 },
     { label: "Payouts", value: formatMoney(Number(data.stats.totalPayout ?? 0)), detail: "Funds paid out", icon: CheckCircle2 },
     { label: "Products", value: String(data.productCount), detail: "Products in your catalog", icon: Boxes },
     { label: "Pending orders", value: data.orders.filter((order) => ["pending", "processing"].includes(order.status?.toLowerCase() || "")).length.toString(), detail: ordersAvailable ? "Need attention" : "Order API unavailable", icon: Clock3 },
   ];
-  const orderStatuses: OrderStatus[] = [
+  const orderStatuses = [
     { label: "Pending", status: "pending", icon: Clock3 },
     { label: "Processing", status: "processing", icon: Boxes },
     { label: "Shipped", status: "shipped", icon: Truck },
@@ -181,8 +179,15 @@ export default function ShopAdminPage() {
     <main className="min-h-screen bg-background p-4 sm:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9d8df1]">Store control center</p><h1 className="mt-2 text-3xl font-semibold text-white">Your shop admin</h1><p className="mt-1 text-sm text-muted-foreground">Manage products, track confirmed sales, and keep orders moving.</p></div>
-          <div className="flex gap-2"><button onClick={load} className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] px-4 py-2.5 text-sm text-white/70 hover:text-white"><RefreshCw className="h-4 w-4" /> Refresh</button><button onClick={() => router.push("/dashboard/shop/products")} className="inline-flex items-center gap-2 rounded-xl bg-[#9d8df1] px-4 py-2.5 text-sm font-semibold text-white"><Package className="h-4 w-4" /> Manage products</button></div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9d8df1]">Store control center</p>
+            <h1 className="mt-2 text-3xl font-semibold text-white">Your shop admin</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage products, track confirmed sales, and keep orders moving.</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={load} className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] px-4 py-2.5 text-sm text-white/70 hover:text-white"><RefreshCw className="h-4 w-4" /> Refresh</button>
+            <button onClick={() => router.push("/shop/products")} className="inline-flex items-center gap-2 rounded-xl bg-[#9d8df1] px-4 py-2.5 text-sm font-semibold text-white"><Package className="h-4 w-4" /> Manage products</button>
+          </div>
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(({ label, value, detail, icon: Icon }) => <div key={label} className="rounded-2xl border border-white/[0.08] bg-[#19191d] p-5"><div className="flex items-center justify-between"><span className="text-sm text-white/55">{label}</span><Icon className="h-5 w-5 text-[#9d8df1]" /></div><p className="mt-5 text-2xl font-semibold text-white">{loading ? "..." : value}</p><p className="mt-1 text-xs text-white/35">{detail}</p></div>)}</section>
