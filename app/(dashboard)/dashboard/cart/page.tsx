@@ -96,6 +96,12 @@ export default function CartPage() {
   );
   const [waitingOpen, setWaitingOpen] = useState(false);
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
+  const [delivery, setDelivery] = useState<{
+    has_free_delivery?: boolean;
+    delivery_fee?: number;
+    free_delivery_threshold?: number;
+  }>({});
+  const [loadingDelivery, setLoadingDelivery] = useState(false);
 
   const loadCart = async () => {
     setLoading(true);
@@ -112,6 +118,7 @@ export default function CartPage() {
             localStorage.getItem(`storefront_brand_color_${shopId}`) ||
               DEFAULT_BRAND_COLOR
           );
+          loadDeliverySettings(shopId);
         }
       } else {
         notify(json.data || json.message || "Failed to load cart");
@@ -120,6 +127,21 @@ export default function CartPage() {
       if (err.name !== "AuthExpiredError") notify("Error loading cart");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDeliverySettings = async (shopId: string) => {
+    setLoadingDelivery(true);
+    try {
+      const res = await fetch(`/backend/shop/${shopId}/delivery-settings`);
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setDelivery(json.result || json.data || {});
+      }
+    } catch {
+      // delivery settings are optional
+    } finally {
+      setLoadingDelivery(false);
     }
   };
 
@@ -454,7 +476,22 @@ export default function CartPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span className="text-emerald-400">Free</span>
+                    <span className={delivery.delivery_fee ? "text-white" : "text-emerald-400"}>
+                      {(() => {
+                        const subtotal = cart.total || 0;
+                        const qualifiesForFreeDelivery =
+                          Boolean(delivery.has_free_delivery) ||
+                          (delivery.free_delivery_threshold &&
+                            subtotal >= delivery.free_delivery_threshold);
+                        if (qualifiesForFreeDelivery) {
+                          return "Free";
+                        }
+                        const fee = Number(delivery.delivery_fee || 0);
+                        return fee > 0
+                          ? formatCurrency(fee, cart.currency)
+                          : "Free";
+                      })()}
+                    </span>
                   </div>
                 </div>
 
@@ -593,7 +630,19 @@ export default function CartPage() {
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-white">Total</span>
                     <span className="text-xl font-bold" style={{ color: brandColor }}>
-                      {formatCurrency(cart.total, cart.currency)}
+                      {formatCurrency(
+                        (cart.total || 0) +
+                          (() => {
+                            const subtotal = cart.total || 0;
+                            const qualifiesForFreeDelivery =
+                              Boolean(delivery.has_free_delivery) ||
+                              (delivery.free_delivery_threshold &&
+                                subtotal >= delivery.free_delivery_threshold);
+                            if (qualifiesForFreeDelivery) return 0;
+                            return Number(delivery.delivery_fee || 0);
+                          })(),
+                        cart.currency
+                      )}
                     </span>
                   </div>
                 </div>

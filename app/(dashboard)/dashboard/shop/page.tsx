@@ -19,6 +19,7 @@ import {
   Package,
   CreditCard,
   Bot,
+  Truck,
 } from "lucide-react";
 
 const API = "/backend";
@@ -482,6 +483,13 @@ export default function ShopBuilderPage() {
     primaryColor: "#9d8df1",
     accentColor: "#f59e0b",
   });
+  const [deliverySettings, setDeliverySettings] = useState({
+    has_free_delivery: false,
+    delivery_fee: "",
+    free_delivery_threshold: "",
+  });
+  const [savingDelivery, setSavingDelivery] = useState(false);
+  const [loadingDelivery, setLoadingDelivery] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -496,6 +504,7 @@ export default function ShopBuilderPage() {
       primaryColor: shop.theme_config?.primaryColor || "#9d8df1",
       accentColor: shop.theme_config?.accentColor || "#f59e0b",
     });
+    loadDeliverySettings();
   }, [shop]);
 
   const loadShopData = async () => {
@@ -513,6 +522,55 @@ export default function ShopBuilderPage() {
       if (err.name !== "AuthExpiredError") notify("Error loading shop data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDeliverySettings = async () => {
+    if (!shop?.subdomain) return;
+    setLoadingDelivery(true);
+    try {
+      const res = await authFetch(`${API}/user/shop/delivery-settings`, {
+        headers: authHeaders(),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.result) {
+        setDeliverySettings({
+          has_free_delivery: Boolean(json.result.has_free_delivery),
+          delivery_fee: json.result.delivery_fee != null ? String(json.result.delivery_fee) : "",
+          free_delivery_threshold: json.result.free_delivery_threshold != null ? String(json.result.free_delivery_threshold) : "",
+        });
+      }
+    } catch {
+      // delivery settings are optional
+    } finally {
+      setLoadingDelivery(false);
+    }
+  };
+
+  const saveDeliverySettings = async () => {
+    if (!shop) return;
+    setSavingDelivery(true);
+    try {
+      const body = {
+        has_free_delivery: deliverySettings.has_free_delivery,
+        delivery_fee: deliverySettings.delivery_fee === "" ? 0 : Number(deliverySettings.delivery_fee),
+        free_delivery_threshold: deliverySettings.free_delivery_threshold === "" ? 0 : Number(deliverySettings.free_delivery_threshold),
+      };
+      const res = await authFetch(`${API}/user/shop/delivery-settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        notify("Delivery settings saved");
+      } else {
+        notify(json.data || json.message || "Failed to save delivery settings");
+      }
+    } catch (err: any) {
+      if (err.name !== "AuthExpiredError") notify("Error saving delivery settings");
+    } finally {
+      setSavingDelivery(false);
     }
   };
 
@@ -1024,6 +1082,58 @@ export default function ShopBuilderPage() {
                     ))}
                   </div>
               }
+            </div>
+
+            {/* Delivery Settings */}
+            <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: "#19191d" }}>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(245,158,11,0.12)" }}>
+                  <Truck className="w-3.5 h-3.5 text-amber-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-white">Delivery Settings</h3>
+              </div>
+              <p className="text-xs text-white/35 mb-3">Configure shipping costs for your storefront</p>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={deliverySettings.has_free_delivery}
+                    onChange={(e) => setDeliverySettings((prev) => ({ ...prev, has_free_delivery: e.target.checked }))}
+                    className="h-4 w-4 rounded border-white/10 bg-white/5 text-amber-500 focus:ring-amber-500"
+                  />
+                  <span className="text-sm text-white/70">Enable free delivery</span>
+                </label>
+                <div>
+                  <label className="block text-xs text-white/40 mb-1">Delivery fee (NGN)</label>
+                  <input
+                    type="number"
+                    value={deliverySettings.delivery_fee}
+                    onChange={(e) => setDeliverySettings((prev) => ({ ...prev, delivery_fee: e.target.value }))}
+                    disabled={deliverySettings.has_free_delivery}
+                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white outline-none focus:border-amber-500 disabled:opacity-50"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-white/40 mb-1">Free delivery threshold (NGN)</label>
+                  <input
+                    type="number"
+                    value={deliverySettings.free_delivery_threshold}
+                    onChange={(e) => setDeliverySettings((prev) => ({ ...prev, free_delivery_threshold: e.target.value }))}
+                    disabled={deliverySettings.has_free_delivery}
+                    className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white outline-none focus:border-amber-500 disabled:opacity-50"
+                    placeholder="0"
+                  />
+                  <p className="text-[11px] text-white/25 mt-1">Customers get free delivery when their order total meets this amount.</p>
+                </div>
+                <button
+                  onClick={saveDeliverySettings}
+                  disabled={savingDelivery || loadingDelivery}
+                  className="w-full rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-50 hover:bg-amber-400 transition-colors"
+                >
+                  {savingDelivery ? "Saving..." : "Save Delivery Settings"}
+                </button>
+              </div>
             </div>
 
             <div className="rounded-2xl border border-white/[0.06] p-5" style={{ background: "#19191d" }}>

@@ -53,6 +53,14 @@ export default function CheckoutPage() {
   });
 
   React.useEffect(() => {
+    const shop = params.get("shop");
+    if (shop) {
+      fetch(`/backend/shop/${shop}/delivery-settings`)
+        .then((response) => response.json())
+        .then((json) => setDelivery(json.result || json.data || {}))
+        .catch(() => undefined);
+    }
+
     const guestToken = localStorage.getItem("guest_token");
     if (guestToken) {
       fetch(`/api/cart?guest_token=${encodeURIComponent(guestToken)}`)
@@ -60,14 +68,17 @@ export default function CheckoutPage() {
         .then((json) => setItems((json.data || json.result)?.items || []))
         .catch(() => setItems([]));
     } else {
-      setItems([]);
-    }
-    const shop = params.get("shop");
-    if (shop) {
-      fetch(`/backend/shop/${shop}/delivery-settings`)
-        .then((response) => response.json())
-        .then((json) => setDelivery(json.result || json.data || {}))
-        .catch(() => undefined);
+      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+      if (token) {
+        fetch(`/backend/user/cart`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((response) => response.json())
+          .then((json) => setItems((json.data || json.result)?.items || []))
+          .catch(() => setItems([]));
+      } else {
+        setItems([]);
+      }
     }
   }, [params]);
 
