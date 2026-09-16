@@ -13,6 +13,7 @@ export default function AppSidebar() {
     { label: "Wallet", icon: RiWalletLine, href: "/dashboard/wallet" },
     { label: "Currency", icon: RiCoinsLine, href: "/dashboard/currency" },
     { label: "Payments", icon: RiFileHistoryLine, href: "/dashboard/payments" },
+    { label: "Shop", icon: RiStoreLine, href: "/shop" },
   ];
 
   const pathname = usePathname();
