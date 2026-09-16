@@ -11,7 +11,7 @@ export default function CartRedirectPage() {
     if (token) {
       router.replace("/dashboard/cart");
     } else {
-      router.replace("/login");
+      router.replace("/checkout");
     }
   }, [router]);
 

@@ -53,9 +53,13 @@ export default function CheckoutPage() {
   });
 
   React.useEffect(() => {
-    try {
-      setItems(JSON.parse(localStorage.getItem("guest_cart") || "[]"));
-    } catch {
+    const guestToken = localStorage.getItem("guest_token");
+    if (guestToken) {
+      fetch(`/api/cart?guest_token=${encodeURIComponent(guestToken)}`)
+        .then((response) => response.json())
+        .then((json) => setItems((json.data || json.result)?.items || []))
+        .catch(() => setItems([]));
+    } else {
       setItems([]);
     }
     const shop = params.get("shop");
@@ -92,7 +96,11 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setMessage(null);
     try {
-      const response = await fetch("/api/cart/checkout", {
+      const guestToken = localStorage.getItem("guest_token");
+      const checkoutUrl = guestToken
+        ? `/api/cart/checkout?guest_token=${encodeURIComponent(guestToken)}`
+        : "/api/cart/checkout";
+      const response = await fetch(checkoutUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -113,8 +121,6 @@ export default function CheckoutPage() {
           items: items.map((item) => ({
             product_id: item.product_id,
             quantity: item.quantity,
-            price: item.price,
-            shopId: item.shop_id,
           })),
         }),
       });
@@ -172,7 +178,7 @@ export default function CheckoutPage() {
           amount: Number(data.crypto?.amount || selectedAsset.amount || 0),
         },
       });
-      localStorage.removeItem("guest_cart");
+      localStorage.removeItem("guest_token");
       setWaitingOpen(true);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to create payment wallet");

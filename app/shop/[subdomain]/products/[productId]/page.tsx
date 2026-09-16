@@ -119,24 +119,20 @@ export default function ProductDetailPage() {
         });
         if (!response.ok) throw new Error("Unable to add product to cart");
       } else {
-        const current = JSON.parse(localStorage.getItem("guest_cart") || "[]");
-        const existing = current.find((item: any) => item.product_id === product.id);
-        if (existing) existing.quantity += quantity;
-        else {
-          current.push({
-            id: product.id,
+        const guestToken = localStorage.getItem("guest_token");
+        const response = await fetch("/api/cart/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             product_id: product.id,
-            name: product.name,
-            price: product.price,
-            currency: product.currency,
             quantity,
-            image: product.images[0]?.url || null,
-            stock: product.stock,
-            is_active: product.is_active,
-            shop_id: shop?.id || "",
-          });
-        }
-        localStorage.setItem("guest_cart", JSON.stringify(current));
+            ...(guestToken ? { guest_token: guestToken } : {}),
+          }),
+        });
+        const json = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(json.message || json.data || "Unable to add product to cart");
+        const nextToken = json.result?.guest_token;
+        if (nextToken) localStorage.setItem("guest_token", nextToken);
       }
       setMessage("Added to cart");
     } catch (error) {

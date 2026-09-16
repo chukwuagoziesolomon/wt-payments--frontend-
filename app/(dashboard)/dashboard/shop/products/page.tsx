@@ -199,14 +199,14 @@ export default function ProductsPage() {
     setUploadingImage(true);
     try {
       const form = new FormData();
-      form.append("images", file);
+      form.append("images[]", file);
       const res = await authFetch(`${API}/user/shop/products/${productId}/images`, {
         method: "POST",
         headers: authHeaders(),
         body: form,
       });
       const json = await res.json().catch(() => ({}));
-      if (res.ok && json.result) {
+      if (res.ok && (json.data?.images || json.result?.images)) {
         notify("Image uploaded!");
         loadProducts();
       } else {
@@ -255,18 +255,20 @@ export default function ProductsPage() {
   };
 
   const uploadImagesForProduct = async (productId: string, files: File[]) => {
-    for (const file of files) {
-      const form = new FormData();
-      form.append("images", file);
-      const res = await authFetch(`${API}/user/shop/products/${productId}/images`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: form,
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.result) {
-        notify(json.data || json.message || "Failed to upload an image");
-      }
+    if (files.length > 5) {
+      notify("You can upload up to 5 images at a time");
+      return;
+    }
+    const form = new FormData();
+    files.forEach((file) => form.append("images[]", file));
+    const res = await authFetch(`${API}/user/shop/products/${productId}/images`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !(json.data?.images || json.result?.images)) {
+      notify(json.data || json.message || "Failed to upload images");
     }
     loadProducts();
   };

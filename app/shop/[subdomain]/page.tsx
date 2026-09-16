@@ -167,22 +167,19 @@ export default function StorefrontPage() {
   const loadCart = async () => {
     const token = getToken();
     if (!token) {
-      setCartItems(
-        (() => {
-          try {
-            const parsed = JSON.parse(
-              localStorage.getItem("guest_cart") || "[]"
-            );
-            return parsed.map((item: any) => ({
-              ...item,
-              currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
-              shop_id: item.shop_id || shop?.id || "",
-            }));
-          } catch {
-            return [];
-          }
-        })()
-      );
+      const guestToken = localStorage.getItem("guest_token");
+      if (!guestToken) return setCartItems([]);
+      try {
+        const res = await fetch(`${API}/cart?guest_token=${encodeURIComponent(guestToken)}`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        const data = json.data || json.result;
+        setCartItems((data?.items || []).map((item: CartItem & { currency?: unknown }) => ({
+          ...item,
+          currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
+        })));
+      } catch {
+        setCartItems([]);
+      }
       return;
     }
     try {
@@ -211,33 +208,23 @@ export default function StorefrontPage() {
   const addToCart = async (product: Product) => {
     const token = getToken();
     if (!token) {
-      setCartItems((prev) => {
-        const merged = [...prev];
-        const existingIndex = merged.findIndex(
-          (item) => item.product_id === product.id
-        );
-        if (existingIndex >= 0) {
-          merged[existingIndex] = {
-            ...merged[existingIndex],
-            quantity: merged[existingIndex].quantity + 1,
-          };
-        } else {
-          merged.push({
-            id: product.id,
-            product_id: product.id,
-            name: product.name,
-            price: product.price,
-            currency: product.currency,
-            quantity: 1,
-            image: product.images?.[0]?.url ?? null,
-            stock: product.stock,
-            is_active: product.is_active,
-            shop_id: shop?.id || "",
-          });
-        }
-        localStorage.setItem("guest_cart", JSON.stringify(merged));
-        return merged;
-      });
+      setAddingId(product.id);
+      try {
+        const guestToken = localStorage.getItem("guest_token");
+        const res = await fetch("/api/cart/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product_id: product.id, quantity: 1, ...(guestToken ? { guest_token: guestToken } : {}) }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.message || json.data || "Failed to add to cart");
+        if (json.result?.guest_token) localStorage.setItem("guest_token", json.result.guest_token);
+        await loadCart();
+      } catch {
+        alert("Error adding to cart");
+      } finally {
+        setAddingId(null);
+      }
       return;
     }
     setAddingId(product.id);
@@ -267,13 +254,15 @@ export default function StorefrontPage() {
     const token = getToken();
     if (!token || quantity < 1) {
       if (!token) {
-        setCartItems((prev) => {
-          const next = prev.map((item) =>
-            item.product_id === itemId ? { ...item, quantity } : item
-          );
-          localStorage.setItem("guest_cart", JSON.stringify(next));
-          return next;
-        });
+        const guestToken = localStorage.getItem("guest_token");
+        if (guestToken && quantity > 0) {
+          await fetch(`${API}/cart/items/${encodeURIComponent(itemId)}?guest_token=${encodeURIComponent(guestToken)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ quantity }),
+          });
+          await loadCart();
+        }
       }
       return;
     }
@@ -295,11 +284,13 @@ export default function StorefrontPage() {
   const removeCartItem = async (itemId: string) => {
     const token = getToken();
     if (!token) {
-      setCartItems((prev) => {
-        const next = prev.filter((item) => item.product_id !== itemId);
-        localStorage.setItem("guest_cart", JSON.stringify(next));
-        return next;
-      });
+      const guestToken = localStorage.getItem("guest_token");
+      if (guestToken) {
+        await fetch(`${API}/cart/items/${encodeURIComponent(itemId)}?guest_token=${encodeURIComponent(guestToken)}`, {
+          method: "DELETE",
+        });
+        await loadCart();
+      }
       return;
     }
     try {

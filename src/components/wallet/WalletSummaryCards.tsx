@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useWalletBalance, type WalletEntry } from "@/hooks/use-wallet-balance";
 import { authFetch } from "@/lib/auth-fetch";
+import { cccNetwork } from "@/lib/ccc-config";
 import type { UserWallet } from "@/types";
 
 type AvailableAsset = {
   currency_id: string;
   crypto?: { symbol?: string };
-  network?: { name?: string; isTestnet?: boolean };
+  network?: { name?: string; isTestnet?: boolean; networkType?: string };
 };
 
 type DashboardStatsResponse = {
@@ -147,18 +148,20 @@ export function WalletSummaryCards() {
         }
 
         const assets = (assetsPayload?.data || assetsPayload?.result || []) as AvailableAsset[];
-        const ckbTestnetAsset = assets.find((asset) => {
+        const expectedIsTestnet = cccNetwork === "testnet";
+        const ckbAsset = assets.find((asset) => {
           const symbol = asset.crypto?.symbol?.toUpperCase();
-          const networkName = asset.network?.name?.toLowerCase() || "";
+          const networkType = asset.network?.networkType?.toLowerCase() || "";
           return (
             symbol === "CKB" &&
-            asset.network?.isTestnet === true &&
-            networkName.includes("testnet")
+            networkType === "ckb" &&
+            asset.network?.isTestnet === expectedIsTestnet
           );
         });
 
-        if (!ckbTestnetAsset) {
-          throw new Error("No CKB testnet currency is available for provisioning.");
+        if (!ckbAsset) {
+          const networkLabel = expectedIsTestnet ? "testnet" : "mainnet";
+          throw new Error(`No CKB ${networkLabel} currency is available for provisioning.`);
         }
 
         const provisionResponse = await authFetch("/backend/user/wallet/provision", {
@@ -168,7 +171,7 @@ export function WalletSummaryCards() {
             "Content-Type": "application/json",
             "Cache-Control": "no-cache",
           },
-          body: JSON.stringify({ currency_id: ckbTestnetAsset.currency_id }),
+          body: JSON.stringify({ currency_id: ckbAsset.currency_id }),
           cache: "no-store",
         });
         const provisionPayload = await provisionResponse.json().catch(() => null);
@@ -224,7 +227,7 @@ export function WalletSummaryCards() {
     <div className="relative">
       {provisioning && (
         <p className="mb-3 text-sm text-muted-foreground">
-          Preparing your CKB testnet wallet...
+          Preparing your CKB {cccNetwork} wallet...
         </p>
       )}
       {provisionError && (

@@ -4,10 +4,11 @@ export async function POST(request: Request) {
   const apiBase =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
   try {
+    const url = new URL(request.url);
     const body = await request.text();
     const headers = new Headers();
     headers.set("content-type", "application/json");
-    const res = await fetch(`${apiBase}/api/cart/checkout`, {
+    const res = await fetch(`${apiBase}/api/cart/checkout${url.search}`, {
       method: "POST",
       headers,
       body,
