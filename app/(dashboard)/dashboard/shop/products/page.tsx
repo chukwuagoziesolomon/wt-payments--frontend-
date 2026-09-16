@@ -17,6 +17,7 @@ function authHeaders(extra?: Record<string, string>) {
 }
 
 type Product = {
+  id: string;
   uniqueId: string;
   name: string;
   price: number;
@@ -40,7 +41,8 @@ type PaginationMeta = {
 
 function normalizeProduct(product: any): Product {
   return {
-    uniqueId: product.uniqueId ?? product.id ?? "",
+    id: product.id ?? product.uniqueId ?? "",
+    uniqueId: product.uniqueId ?? "",
     name: product.name ?? "",
     price: Number(product.price ?? 0),
     currency: product.currency ?? "NGN",
@@ -173,11 +175,33 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (product: Product) => {
+    let uniqueId = product.uniqueId;
+
+    if (!uniqueId && product.id) {
+      try {
+        const res = await authFetch(`${API}/user/shop/products/${product.id}`, {
+          headers: authHeaders(),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.result?.uniqueId) {
+          uniqueId = json.result.uniqueId;
+        }
+      } catch {
+        notify("Failed to load product details");
+        return;
+      }
+    }
+
+    if (!uniqueId) {
+      notify("Product ID missing");
+      return;
+    }
+
     if (!confirm("Delete this product?")) return;
 
     try {
-      const res = await authFetch(`${API}/user/shop/products/${id}`, {
+      const res = await authFetch(`${API}/user/shop/products/${uniqueId}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -237,7 +261,29 @@ export default function ProductsPage() {
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
+    let uniqueId = product.uniqueId;
+
+    if (!uniqueId && product.id) {
+      try {
+        const res = await authFetch(`${API}/user/shop/products/${product.id}`, {
+          headers: authHeaders(),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.result?.uniqueId) {
+          uniqueId = json.result.uniqueId;
+        }
+      } catch {
+        notify("Failed to load product details");
+        return;
+      }
+    }
+
+    if (!uniqueId) {
+      notify("Product ID missing");
+      return;
+    }
+
     setFormData({
       name: product.name,
       price: product.price.toString(),
@@ -248,7 +294,7 @@ export default function ProductsPage() {
       track_stock: product.trackStock ?? true,
       variants: product.variants ? JSON.stringify(product.variants, null, 2) : "",
     });
-    setEditingId(product.uniqueId);
+    setEditingId(uniqueId);
     setPendingImages([]);
     setImagePreviewUrls([]);
     setShowForm(true);
@@ -469,7 +515,7 @@ export default function ProductsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {products.map((product) => (
                 <div
-                  key={product.uniqueId}
+                  key={product.id}
                   className="group relative"
                 >
                   <TreasuryCard
@@ -488,7 +534,7 @@ export default function ProductsPage() {
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(product.uniqueId)}
+                      onClick={() => handleDelete(product)}
                       className="h-7 w-7 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 flex items-center justify-center transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
