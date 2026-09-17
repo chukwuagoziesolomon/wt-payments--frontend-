@@ -197,9 +197,10 @@ export default function CheckoutConfirmPage() {
     try {
       const token = getToken();
       const guestToken = typeof window !== "undefined" ? localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token") : null;
-      const walletUrl = token ? `/api/user/cart/wallet` : `/api/cart/wallet`;
+      const isGuestCheckout = Boolean(guestToken);
+      const walletUrl = isGuestCheckout ? "/api/cart/wallet" : "/api/user/cart/wallet";
       const body: any = { crypto_currency_id: selectedAsset.currency_id };
-      if (token) {
+      if (!isGuestCheckout) {
         body.payment_intent_id = order.payment_intent_id;
       } else {
         body.reference_id = order.reference_id;
@@ -211,9 +212,13 @@ export default function CheckoutConfirmPage() {
         body: JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
-      const data = json.data || json.result;
+      const data = json.result && typeof json.result === "object"
+        ? json.result
+        : json.data && typeof json.data === "object"
+          ? json.data
+          : null;
       if (!res.ok || !data?.wallet) {
-        throw new Error(json.data || json.message || "Unable to create payment wallet");
+        throw new Error(json.details || (typeof json.data === "string" ? json.data : null) || json.message || "Unable to create payment wallet");
       }
       const cryptoNetwork = typeof data.crypto?.network === "object" ? data.crypto.network?.name ?? "" : data.crypto?.network ?? "";
       setPaymentData({
