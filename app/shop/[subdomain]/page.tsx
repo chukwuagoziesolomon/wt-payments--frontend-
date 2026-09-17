@@ -168,16 +168,25 @@ export default function StorefrontPage() {
     const token = getToken();
     if (!token) {
       const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
+      console.debug("[cart] loadCart guest", { guestToken });
       if (!guestToken) return setCartItems([]);
       try {
         const res = await fetch(`${API}/cart?guest_token=${encodeURIComponent(guestToken)}`, { cache: "no-store" });
         const json = await res.json().catch(() => ({}));
+        console.debug("[cart] loadCart guest response", { status: res.status, json });
         const data = json.data || json.result;
-        setCartItems((data?.items || []).map((item: CartItem & { currency?: unknown }) => ({
-          ...item,
-          currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
-        })));
-      } catch {
+        if (res.ok && data?.items) {
+          setCartItems(
+            data.items.map((item: CartItem & { currency?: unknown }) => ({
+              ...item,
+              currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
+            }))
+          );
+        } else {
+          setCartItems([]);
+        }
+      } catch (err) {
+        console.debug("[cart] loadCart guest error", err);
         setCartItems([]);
       }
       return;
@@ -188,6 +197,7 @@ export default function StorefrontPage() {
         cache: "no-store",
       });
       const json = await res.json().catch(() => ({}));
+      console.debug("[cart] loadCart auth response", { status: res.status, json });
       if (res.ok && json.result?.items) {
         setCartItems(
           json.result.items.map((item: CartItem & { currency?: unknown }) => ({
@@ -195,9 +205,12 @@ export default function StorefrontPage() {
             currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
           }))
         );
+      } else {
+        setCartItems([]);
       }
-    } catch {
-      // silently fail - cart is optional
+    } catch (err) {
+      console.debug("[cart] loadCart auth error", err);
+      setCartItems([]);
     }
   };
 
@@ -219,11 +232,15 @@ export default function StorefrontPage() {
           body: JSON.stringify({ product_id: product.id, quantity: 1 }),
         });
         const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json.message || json.data || "Failed to add to cart");
+        console.debug("[cart] add guest", { status: res.status, guestToken, json });
+        if (!res.ok) {
+          throw new Error(json.message || json.data || "Failed to add to cart");
+        }
         if (json.result?.guest_token) localStorage.setItem("guest_cart_token", json.result.guest_token);
         await loadCart();
-      } catch {
-        alert("Error adding to cart");
+      } catch (e: any) {
+        console.debug("[cart] add guest failed", e);
+        alert(e?.message || "Error adding to cart");
       } finally {
         setAddingId(null);
       }
@@ -240,12 +257,14 @@ export default function StorefrontPage() {
         body: JSON.stringify({ product_id: product.id, quantity: 1 }),
       });
       const json = await res.json().catch(() => ({}));
+      console.debug("[cart] add auth", { status: res.status, json });
       if (res.ok) {
         loadCart();
       } else {
-        alert(json.data || json.message || "Failed to add to cart");
+        throw new Error(json.data || json.message || "Failed to add to cart");
       }
-    } catch {
+    } catch (e: any) {
+      console.debug("[cart] add auth failed", e);
       alert("Error adding to cart");
     } finally {
       setAddingId(null);

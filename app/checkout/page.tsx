@@ -57,23 +57,42 @@ export default function CheckoutPage() {
     }
 
     const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
+    const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+    console.debug("[checkout] load cart", { guestToken, hasToken: Boolean(token) });
+
     if (guestToken) {
       fetch(`/api/cart?guest_token=${encodeURIComponent(guestToken)}`)
-        .then((response) => response.json())
-        .then((json) => setItems((json.data || json.result)?.items || []))
-        .catch(() => setItems([]));
-    } else {
-      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-      if (token) {
-        fetch(`/backend/user/cart`, {
-          headers: { Authorization: `Bearer ${token}` },
+        .then((response) => {
+          console.debug("[checkout] guest cart status", response.status);
+          return response.json();
         })
-          .then((response) => response.json())
-          .then((json) => setItems((json.data || json.result)?.items || []))
-          .catch(() => setItems([]));
-      } else {
-        setItems([]);
-      }
+        .then((json) => {
+          console.debug("[checkout] guest cart body", json);
+          setItems((json.data || json.result)?.items || []);
+        })
+        .catch((err) => {
+          console.debug("[checkout] guest cart error", err);
+          setItems([]);
+        });
+    } else if (token) {
+      fetch(`/backend/user/cart`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((response) => {
+          console.debug("[checkout] auth cart status", response.status);
+          return response.json();
+        })
+        .then((json) => {
+          console.debug("[checkout] auth cart body", json);
+          setItems((json.data || json.result)?.items || []);
+        })
+        .catch((err) => {
+          console.debug("[checkout] auth cart error", err);
+          setItems([]);
+        });
+    } else {
+      console.debug("[checkout] no cart credentials");
+      setItems([]);
     }
   }, [params]);
 
@@ -101,12 +120,15 @@ export default function CheckoutPage() {
     setMessage(null);
     try {
       const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
+      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
       const checkoutUrl = guestToken
         ? `/api/cart/checkout?guest_token=${encodeURIComponent(guestToken)}`
         : "/api/cart/checkout";
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (!guestToken && token) headers["Authorization"] = `Bearer ${token}`;
       const response = await fetch(checkoutUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           fiat_currency: currency,
           payment_method: method,
