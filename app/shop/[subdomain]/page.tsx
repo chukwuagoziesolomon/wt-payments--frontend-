@@ -16,7 +16,7 @@ import {
   Minus,
 } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
-import { getGuestToken, saveGuestToken } from "@/hooks/useGuestCart";
+import { addToGuestCart, fetchGuestCart, getGuestToken } from "@/hooks/useGuestCart";
 
 const API = "/backend";
 
@@ -172,14 +172,15 @@ export default function StorefrontPage() {
       console.debug("[cart] loadCart guest", { guestToken });
       if (!guestToken) return setCartItems([]);
       try {
-        const res = await fetch(`${API}/cart?guest_token=${encodeURIComponent(guestToken)}`, { cache: "no-store" });
-        const json = await res.json().catch(() => ({}));
-        console.debug("[cart] loadCart guest response", { status: res.status, json });
-        const data = json.data || json.result;
-        if (res.ok && data?.items) {
+        const guestCart = await fetchGuestCart();
+        if (guestCart.items) {
           setCartItems(
-            data.items.map((item: CartItem & { currency?: unknown }) => ({
+            guestCart.items.map((item) => ({
               ...item,
+              stock: (item as CartItem).stock ?? 0,
+              is_active: (item as CartItem).is_active ?? true,
+              shop_id: item.shop_id || shop?.id || "",
+              image: item.image ?? null,
               currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
             }))
           );
@@ -225,24 +226,7 @@ export default function StorefrontPage() {
     if (!token) {
       setAddingId(product.id);
       try {
-        const guestToken = getGuestToken();
-        const url = new URL("/api/cart/items", window.location.origin);
-        if (guestToken) url.searchParams.set("guest_token", guestToken);
-        const res = await fetch(url.toString(), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: product.id,
-            quantity: 1,
-            ...(guestToken ? { guest_token: guestToken } : {}),
-          }),
-        });
-        const json = await res.json().catch(() => ({}));
-        console.debug("[cart] add guest", { status: res.status, guestToken, json });
-        if (!res.ok) {
-          throw new Error(json.message || json.data || "Failed to add to cart");
-        }
-        saveGuestToken(json);
+        await addToGuestCart(product.id, 1);
         await loadCart();
       } catch (e: any) {
         console.debug("[cart] add guest failed", e);
