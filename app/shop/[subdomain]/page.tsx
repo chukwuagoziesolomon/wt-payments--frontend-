@@ -228,6 +228,7 @@ export default function StorefrontPage() {
       try {
         await addToGuestCart(product.id, 1);
         await loadCart();
+        setCartOpen(true);
       } catch (e: any) {
         console.debug("[cart] add guest failed", e);
         alert(e?.message || "Error adding to cart");
@@ -250,6 +251,7 @@ export default function StorefrontPage() {
       console.debug("[cart] add auth", { status: res.status, json });
       if (res.ok) {
         await loadCart();
+        setCartOpen(true);
       } else {
         throw new Error(json.data || json.message || "Failed to add to cart");
       }
