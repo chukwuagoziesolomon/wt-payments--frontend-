@@ -228,6 +228,24 @@ export default function StorefrontPage() {
       try {
         await addToGuestCart(product.id, 1);
         await loadCart();
+        setCartItems((current) => {
+          if (current.some((item) => item.product_id === product.id)) return current;
+          return [
+            {
+              id: `pending-${product.id}`,
+              product_id: product.id,
+              name: product.name,
+              price: product.price,
+              currency: product.currency,
+              quantity: 1,
+              image: product.images[0]?.url || null,
+              stock: product.stock,
+              is_active: product.is_active,
+              shop_id: shop?.id || "",
+            },
+            ...current,
+          ];
+        });
         setCartOpen(true);
       } catch (e: any) {
         console.debug("[cart] add guest failed", e);
@@ -251,6 +269,24 @@ export default function StorefrontPage() {
       console.debug("[cart] add auth", { status: res.status, json });
       if (res.ok) {
         await loadCart();
+        setCartItems((current) => {
+          if (current.some((item) => item.product_id === product.id)) return current;
+          return [
+            {
+              id: `pending-${product.id}`,
+              product_id: product.id,
+              name: product.name,
+              price: product.price,
+              currency: product.currency,
+              quantity: 1,
+              image: product.images[0]?.url || null,
+              stock: product.stock,
+              is_active: product.is_active,
+              shop_id: shop?.id || "",
+            },
+            ...current,
+          ];
+        });
         setCartOpen(true);
       } else {
         throw new Error(json.data || json.message || "Failed to add to cart");
