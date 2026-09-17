@@ -16,6 +16,7 @@ import {
   Minus,
 } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
+import { saveGuestToken } from "@/hooks/useGuestCart";
 
 const API = "/backend";
 
@@ -236,8 +237,9 @@ export default function StorefrontPage() {
         if (!res.ok) {
           throw new Error(json.message || json.data || "Failed to add to cart");
         }
-        if (json.result?.guest_token) localStorage.setItem("guest_cart_token", json.result.guest_token);
+        saveGuestToken(json);
         await loadCart();
+        setCartOpen(true);
       } catch (e: any) {
         console.debug("[cart] add guest failed", e);
         alert(e?.message || "Error adding to cart");
@@ -259,7 +261,8 @@ export default function StorefrontPage() {
       const json = await res.json().catch(() => ({}));
       console.debug("[cart] add auth", { status: res.status, json });
       if (res.ok) {
-        loadCart();
+        await loadCart();
+        setCartOpen(true);
       } else {
         throw new Error(json.data || json.message || "Failed to add to cart");
       }
@@ -530,6 +533,7 @@ export default function StorefrontPage() {
                       badge: product.badge,
                     }}
                     primaryColor={primary}
+                    inCart={cartItems.some((item) => item.product_id === product.id)}
                     onAddToCart={() => addToCart(product)}
                     onViewProduct={() =>
                       router.push(`/shop/${subdomain}/products/${product.id}`)
@@ -646,12 +650,22 @@ export default function StorefrontPage() {
                 <button
                   onClick={() => {
                     setCartOpen(false);
-                    router.push("/checkout");
+                    router.push("/cart");
                   }}
                   className="w-full py-3 rounded-xl font-semibold text-white hover:shadow-lg transition-all"
                   style={{ backgroundColor: primary }}
                 >
                   View Cart
+                </button>
+                <button
+                  onClick={() => {
+                    setCartOpen(false);
+                    router.push("/checkout");
+                  }}
+                  className="w-full py-3 rounded-xl font-semibold text-white hover:shadow-lg transition-all mt-2"
+                  style={{ backgroundColor: "#3f3b4f" }}
+                >
+                  Checkout
                 </button>
               </div>
             )}

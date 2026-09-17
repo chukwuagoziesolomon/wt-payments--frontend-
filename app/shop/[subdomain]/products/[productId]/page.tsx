@@ -1,3 +1,4 @@
+import { saveGuestToken } from "@/hooks/useGuestCart";
 "use client";
 
 import * as React from "react";
@@ -129,8 +130,7 @@ export default function ProductDetailPage() {
         });
         const json = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(json.message || json.data || "Unable to add product to cart");
-        const nextToken = json.result?.guest_token;
-        if (nextToken) localStorage.setItem("guest_cart_token", nextToken);
+        saveGuestToken(json);
       }
       setMessage("Added to cart");
     } catch (error) {

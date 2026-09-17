@@ -4,7 +4,7 @@ const GUEST_TOKEN_KEY = "guest_cart_token";
 
 export function getGuestToken() {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(GUEST_TOKEN_KEY);
+  return localStorage.getItem(GUEST_TOKEN_KEY) || localStorage.getItem("guest_token");
 }
 
 export function setGuestToken(token: string) {
@@ -13,6 +13,20 @@ export function setGuestToken(token: string) {
 
 export function clearGuestToken() {
   localStorage.removeItem(GUEST_TOKEN_KEY);
+  localStorage.removeItem("guest_token");
+}
+
+export function saveGuestToken(payload: unknown) {
+  if (!payload || typeof payload !== "object") return null;
+  const response = payload as {
+    guest_token?: unknown;
+    result?: { guest_token?: unknown };
+    data?: { guest_token?: unknown };
+  };
+  const token = response.guest_token || response.result?.guest_token || response.data?.guest_token;
+  if (typeof token !== "string" || !token) return null;
+  setGuestToken(token);
+  return token;
 }
 
 type GuestCartItem = {
@@ -49,9 +63,7 @@ export async function addToGuestCart(productId: string, quantity = 1) {
   if (!res.ok) {
     throw new Error(data.data || data.message || "Failed to add to cart");
   }
-  if (data.result?.guest_token) {
-    setGuestToken(data.result.guest_token);
-  }
+  saveGuestToken(data);
   return data;
 }
 

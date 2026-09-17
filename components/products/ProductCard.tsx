@@ -17,9 +17,10 @@ type Product = {
 
 type ProductCardProps = {
   product: Product;
-  onAddToCart?: () => void;
+  onAddToCart?: () => void | Promise<void>;
   onViewProduct?: () => void;
   primaryColor?: string;
+  inCart?: boolean;
 };
 
 export function ProductCard({
@@ -27,13 +28,20 @@ export function ProductCard({
   onAddToCart,
   onViewProduct,
   primaryColor = "#6c5dd3",
+  inCart: inCartProp,
 }: ProductCardProps) {
   const [wishlisted, setWishlisted] = useState(false);
-  const [inCart, setInCart] = useState(false);
+  const [pending, setPending] = useState(false);
+  const isAdded = Boolean(inCartProp);
 
-  const handleAddToCart = () => {
-    setInCart(true);
-    onAddToCart?.();
+  const handleAddToCart = async () => {
+    if (inCartProp || pending) return;
+    setPending(true);
+    try {
+      await onAddToCart?.();
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -122,15 +130,15 @@ export function ProductCard({
             event.stopPropagation();
             handleAddToCart();
           }}
-          disabled={inCart}
+          disabled={pending || isAdded}
           className="w-full rounded-xl text-sm font-medium py-2.5 transition active:scale-[0.98] disabled:cursor-default"
           style={
-            inCart
+            isAdded
               ? { backgroundColor: "color-mix(in srgb, #34d399 10%, transparent)", color: "#34d399", border: "1px solid color-mix(in srgb, #34d399 25%, transparent)" }
               : { backgroundColor: primaryColor, color: "#fff" }
           }
         >
-          {inCart ? "Added to cart" : "Add to cart"}
+          {isAdded ? "Added to cart" : "Add to cart"}
         </button>
       </div>
     </div>

@@ -20,15 +20,6 @@ type DeliverySettings = {
   free_delivery_threshold?: number;
 };
 
-type CheckoutAsset = {
-  currency_id: string;
-  name: string;
-  symbol: string;
-  logo?: string;
-  network?: { name: string; logo?: string };
-  amount: number;
-};
-
 export default function CheckoutPage() {
   const params = useSearchParams();
   const [items, setItems] = React.useState<CartItem[]>([]);
