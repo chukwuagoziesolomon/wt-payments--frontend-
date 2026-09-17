@@ -231,7 +231,11 @@ export default function StorefrontPage() {
         const res = await fetch(url.toString(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ product_id: product.id, quantity: 1 }),
+          body: JSON.stringify({
+            product_id: product.id,
+            quantity: 1,
+            ...(guestToken ? { guest_token: guestToken } : {}),
+          }),
         });
         const json = await res.json().catch(() => ({}));
         console.debug("[cart] add guest", { status: res.status, guestToken, json });

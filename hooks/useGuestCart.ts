@@ -57,6 +57,7 @@ export async function addToGuestCart(productId: string, quantity = 1) {
     body: JSON.stringify({
       product_id: productId,
       quantity,
+      ...(existingToken ? { guest_token: existingToken } : {}),
     }),
   });
   const data = await res.json().catch(() => ({}));

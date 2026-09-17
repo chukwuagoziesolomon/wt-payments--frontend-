@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { saveGuestToken } from "@/hooks/useGuestCart";
+import { getGuestToken, saveGuestToken } from "@/hooks/useGuestCart";
 
 const API = "/backend";
 
@@ -116,17 +116,24 @@ export default function ProductDetailPage() {
         const response = await fetch(`${API}/user/cart/items`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ product_id: product.id, quantity }),
+          body: JSON.stringify({
+            product_id: product.id,
+            quantity,
+          }),
         });
         if (!response.ok) throw new Error("Unable to add product to cart");
       } else {
-        const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
+        const guestToken = getGuestToken();
         const url = new URL("/api/cart/items", window.location.origin);
         if (guestToken) url.searchParams.set("guest_token", guestToken);
         const response = await fetch(url.toString(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ product_id: product.id, quantity }),
+          body: JSON.stringify({
+            product_id: product.id,
+            quantity,
+            ...(guestToken ? { guest_token: guestToken } : {}),
+          }),
         });
         const json = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(json.message || json.data || "Unable to add product to cart");
