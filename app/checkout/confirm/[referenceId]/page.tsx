@@ -83,6 +83,7 @@ export default function CheckoutConfirmPage() {
   const [waitingOpen, setWaitingOpen] = React.useState(false);
   const [creatingWallet, setCreatingWallet] = React.useState(false);
   const [paymentComplete, setPaymentComplete] = React.useState(false);
+  const walletRequested = React.useRef(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -92,7 +93,13 @@ export default function CheckoutConfirmPage() {
     if (!getToken()) {
       try {
         const cached = sessionStorage.getItem(`checkout:${referenceId}`);
-        if (cached) setOrder(JSON.parse(cached) as OrderDetail);
+        if (cached) {
+          const cachedOrder = JSON.parse(cached) as OrderDetail;
+          setOrder(cachedOrder);
+          if (cachedOrder.assets?.length && cachedOrder.payment_method === "crypto") {
+            setSelectedAsset(cachedOrder.assets[0]);
+          }
+        }
       } catch {
         // Continue with the public status request.
       }
@@ -205,6 +212,12 @@ export default function CheckoutConfirmPage() {
       setCreatingWallet(false);
     }
   };
+
+  React.useEffect(() => {
+    if (!order || order.payment_method !== "crypto" || !selectedAsset || walletRequested.current || paymentComplete) return;
+    walletRequested.current = true;
+    void handleCreateWallet();
+  }, [order, selectedAsset, paymentComplete]);
 
   const handlePaymentComplete = () => {
     setWaitingOpen(false);
