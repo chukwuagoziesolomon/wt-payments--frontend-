@@ -38,6 +38,7 @@ export default function CheckoutSuccessPage() {
   const [data, setData] = useState<CheckoutSuccessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paid, setPaid] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,32 +47,30 @@ export default function CheckoutSuccessPage() {
 
     async function load() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("authToken") || localStorage.getItem("token") : null;
-        const guestToken = typeof window !== "undefined" ? localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token") : null;
-        const checkoutUrl = guestToken
-          ? `/api/cart/checkout?guest_token=${encodeURIComponent(guestToken)}`
-          : "/api/cart/checkout";
-
-        const res = await fetch(checkoutUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            fiat_currency: "NGN",
-            payment_method: "crypto",
-          }),
-        });
+        if (!referenceId) throw new Error("Missing payment reference.");
+        const res = await fetch(`/api/payment/status/${encodeURIComponent(referenceId)}`, { cache: "no-store" });
 
         const json = await res.json().catch(() => ({}));
         if (!res.ok || json.error) {
           throw new Error(json.data || json.message || "Failed to load order details");
         }
 
-        const result = (json.result || json.data || {}) as CheckoutSuccessData;
+        const result = (json.result || json.data || {}) as CheckoutSuccessData & { status?: string; order_status?: string };
+        const status = String(result.status || "").toLowerCase();
+        if (!["payment_completed", "completed", "payment_confirmed"].includes(status)) {
+          router.replace(`/checkout/confirm/${encodeURIComponent(referenceId)}`);
+          return;
+        }
         if (!cancelled) {
-          setData(result);
+          let summary: CheckoutSuccessData = result;
+          try {
+            const cached = sessionStorage.getItem(`checkout:${referenceId}`);
+            if (cached) summary = { ...(JSON.parse(cached) as CheckoutSuccessData), ...result };
+          } catch {
+            // The payment status remains authoritative even without cached summary data.
+          }
+          setData(summary);
+          setPaid(true);
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -88,7 +87,7 @@ export default function CheckoutSuccessPage() {
     return () => {
       cancelled = true;
     };
-  }, [referenceId]);
+  }, [referenceId, router]);
 
   const formatCurrency = (amount: number, currency = "NGN") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount || 0);
@@ -99,6 +98,14 @@ export default function CheckoutSuccessPage() {
   const discount = data?.discount_amount || 0;
   const total = data?.fiat_amount || subtotal + deliveryFee - discount;
   const currency = data?.fiat_currency || items[0]?.currency || "NGN";
+
+  if (!paid) {
+    return (
+      <div className="min-h-screen bg-background p-4 sm:p-8 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /> Verifying payment...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8 flex items-center justify-center">

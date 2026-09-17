@@ -118,7 +118,7 @@ export default function CheckoutConfirmPage() {
         if (!cancelled) {
           setOrder((current) => ({ ...(current || {}), ...data, items: data.items || current?.items || [] }) as OrderDetail);
           if (["payment_completed", "completed", "payment_confirmed"].includes(String(data.status).toLowerCase())) {
-            setPaymentComplete(true);
+            router.replace(`/checkout/success?reference_id=${encodeURIComponent(referenceId)}`);
           }
         }
       } catch (err: unknown) {
@@ -146,7 +146,7 @@ export default function CheckoutConfirmPage() {
         if (data && (data.status || data.order_status)) {
           setOrder((current) => current ? { ...current, ...data, items: data.items || current.items || [] } : data as OrderDetail);
           if (["payment_completed", "completed", "payment_confirmed"].includes(String(data.status).toLowerCase())) {
-            setPaymentComplete(true);
+            router.replace(`/checkout/success?reference_id=${encodeURIComponent(referenceId)}`);
             window.clearInterval(timer);
           }
         }
@@ -208,8 +208,8 @@ export default function CheckoutConfirmPage() {
 
   const handlePaymentComplete = () => {
     setWaitingOpen(false);
-    setPaymentComplete(true);
     notify("Payment received!");
+    router.push(`/checkout/success?reference_id=${encodeURIComponent(order?.reference_id || referenceId)}`);
   };
 
   if (loading) {
