@@ -16,7 +16,7 @@ import {
   Minus,
 } from "lucide-react";
 import { ProductCard } from "@/components/products/ProductCard";
-import { saveGuestToken } from "@/hooks/useGuestCart";
+import { getGuestToken, saveGuestToken } from "@/hooks/useGuestCart";
 
 const API = "/backend";
 
@@ -168,7 +168,7 @@ export default function StorefrontPage() {
   const loadCart = async () => {
     const token = getToken();
     if (!token) {
-      const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
+      const guestToken = getGuestToken();
       console.debug("[cart] loadCart guest", { guestToken });
       if (!guestToken) return setCartItems([]);
       try {
@@ -199,9 +199,10 @@ export default function StorefrontPage() {
       });
       const json = await res.json().catch(() => ({}));
       console.debug("[cart] loadCart auth response", { status: res.status, json });
-      if (res.ok && json.result?.items) {
+      const data = json.data || json.result;
+      if (res.ok && data?.items) {
         setCartItems(
-          json.result.items.map((item: CartItem & { currency?: unknown }) => ({
+          data.items.map((item: CartItem & { currency?: unknown }) => ({
             ...item,
             currency: currencyLabel(item.currency, currencyLabel(shop?.currency)),
           }))
@@ -224,7 +225,7 @@ export default function StorefrontPage() {
     if (!token) {
       setAddingId(product.id);
       try {
-        const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
+        const guestToken = getGuestToken();
         const url = new URL("/api/cart/items", window.location.origin);
         if (guestToken) url.searchParams.set("guest_token", guestToken);
         const res = await fetch(url.toString(), {

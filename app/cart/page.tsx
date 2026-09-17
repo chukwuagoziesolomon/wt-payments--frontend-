@@ -56,8 +56,9 @@ export default function CartPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json().catch(() => ({}));
-        if (res.ok && json.result) {
-          setCart(json.result);
+        const data = json.data || json.result;
+        if (res.ok && data) {
+          setCart(data);
         } else {
           setCart(null);
         }
