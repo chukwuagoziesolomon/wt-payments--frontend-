@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request, { params }: { params: { referenceId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ referenceId: string }> }) {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
   try {
+    const { referenceId } = await params;
     const url = new URL(req.url);
     const headers = new Headers();
     const auth = req.headers.get("authorization");
     if (auth) headers.set("authorization", auth);
 
-    const res = await fetch(`${apiBase}/api/user/checkout/${encodeURIComponent(params.referenceId)}${url.search}`, {
+    const res = await fetch(`${apiBase}/api/user/checkout/${encodeURIComponent(referenceId)}${url.search}`, {
       method: "GET",
       headers,
       cache: "no-store",
