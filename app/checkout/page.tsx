@@ -138,6 +138,15 @@ export default function CheckoutPage() {
           items: items.map((item) => ({
             product_id: item.product_id,
             quantity: item.quantity,
+            price: item.price,
+            shopId: item.shop_id,
+            product: {
+              uniqueId: item.product_id,
+              name: item.name,
+              price: item.price,
+              currency: item.currency,
+              images: item.image ? [{ url: item.image }] : [],
+            },
           })),
         }),
       });
