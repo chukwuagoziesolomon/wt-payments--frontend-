@@ -83,7 +83,6 @@ export default function CheckoutConfirmPage() {
   const [waitingOpen, setWaitingOpen] = React.useState(false);
   const [creatingWallet, setCreatingWallet] = React.useState(false);
   const [paymentComplete, setPaymentComplete] = React.useState(false);
-  const walletRequested = React.useRef(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -96,9 +95,6 @@ export default function CheckoutConfirmPage() {
         if (cached) {
           const cachedOrder = JSON.parse(cached) as OrderDetail;
           setOrder(cachedOrder);
-          if (cachedOrder.assets?.length && cachedOrder.payment_method === "crypto") {
-            setSelectedAsset(cachedOrder.assets[0]);
-          }
         }
       } catch {
         // Continue with the public status request.
@@ -123,9 +119,6 @@ export default function CheckoutConfirmPage() {
           setOrder((current) => ({ ...(current || {}), ...data, items: data.items || current?.items || [] }) as OrderDetail);
           if (["payment_completed", "completed", "payment_confirmed"].includes(String(data.status).toLowerCase())) {
             setPaymentComplete(true);
-          }
-          if (data.assets?.length && (data.payment_method || "crypto") === "crypto") {
-            setSelectedAsset(data.assets[0]);
           }
         }
       } catch (err: unknown) {
@@ -212,12 +205,6 @@ export default function CheckoutConfirmPage() {
       setCreatingWallet(false);
     }
   };
-
-  React.useEffect(() => {
-    if (!order || order.payment_method !== "crypto" || !selectedAsset || walletRequested.current || paymentComplete) return;
-    walletRequested.current = true;
-    void handleCreateWallet();
-  }, [order, selectedAsset, paymentComplete]);
 
   const handlePaymentComplete = () => {
     setWaitingOpen(false);
@@ -356,7 +343,7 @@ export default function CheckoutConfirmPage() {
                   ))}
                 </div>
                 <Button onClick={handleCreateWallet} disabled={creatingWallet || !selectedAsset} className="w-full text-white font-semibold py-2.5 rounded-xl disabled:opacity-50" style={{ backgroundColor: "#9d8df1" }}>
-                  {creatingWallet ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Generating wallet...</> : `Pay with ${selectedAsset?.symbol || "crypto"}`}
+                  {creatingWallet ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Generating payment address...</> : selectedAsset ? `Generate ${selectedAsset.symbol} payment address` : "Select a crypto to continue"}
                 </Button>
               </CardContent>
             </Card>
