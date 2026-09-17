@@ -82,7 +82,6 @@ export default function CheckoutConfirmPage() {
   const [paymentData, setPaymentData] = React.useState<PaymentIntentData | null>(null);
   const [waitingOpen, setWaitingOpen] = React.useState(false);
   const [creatingWallet, setCreatingWallet] = React.useState(false);
-  const [paymentComplete, setPaymentComplete] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -238,54 +237,23 @@ export default function CheckoutConfirmPage() {
   const total = order.total_amount || order.fiat_amount || (order.items_total || 0) + (order.delivery_fee || 0);
   const currency = order.fiat_currency || "NGN";
 
-  if (paymentComplete) {
-    return (
-      <main className="min-h-screen bg-background px-4 py-12 text-white sm:px-8">
-        <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center text-center">
-          <div className="success-check mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-500/15">
-            <CheckCircle2 className="h-16 w-16 text-emerald-400" strokeWidth={1.5} />
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">Payment confirmed</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Order successful</h1>
-          <p className="mt-4 max-w-md text-sm leading-7 text-white/55">
-            Your payment has been confirmed and your order is now being processed.
-          </p>
-          <div className="mt-8 w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 text-left">
-            <div className="flex justify-between gap-4 text-sm">
-              <span className="text-white/45">Reference</span>
-              <span className="font-mono text-white/80">{order.reference_id}</span>
-            </div>
-            <div className="mt-3 flex justify-between gap-4 text-sm">
-              <span className="text-white/45">Amount paid</span>
-              <span className="font-semibold text-white">{formatCurrency(total, currency)}</span>
-            </div>
-          </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button onClick={() => router.push("/orders")} className="bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white">View Orders</Button>
-            <Button variant="outline" onClick={() => router.push("/")}>Continue Shopping</Button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-background p-4 sm:p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9d8df1]">Checkout</p>
-            <h1 className="mt-2 text-3xl font-semibold text-white">Order Confirmation</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Reference: {order.reference_id}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9d8df1]">Secure payment</p>
+            <h1 className="mt-2 text-3xl font-semibold text-white">Choose your payment method</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Your order is reserved until payment is confirmed.</p>
           </div>
-          <Button variant="outline" onClick={() => router.push("/orders")}>View Orders</Button>
+          <Button variant="outline" onClick={() => router.push("/checkout")}>Back to checkout</Button>
         </header>
 
         <div className="grid gap-4">
           <Card className="bg-[#19191d] border-border">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-white">Status</CardTitle>
+                <CardTitle className="text-base font-semibold text-white">Payment status</CardTitle>
                 <StatusBadge status={order.status} />
               </div>
             </CardHeader>
@@ -298,7 +266,7 @@ export default function CheckoutConfirmPage() {
           </Card>
 
           <Card className="bg-[#19191d] border-border">
-            <CardHeader><CardTitle className="text-base font-semibold text-white">Items</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base font-semibold text-white">Order summary</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {(order.items || []).map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
@@ -320,7 +288,7 @@ export default function CheckoutConfirmPage() {
           </Card>
 
           <Card className="bg-[#19191d] border-border">
-            <CardHeader><CardTitle className="text-base font-semibold text-white">Payment</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-semibold text-white">Amount to pay</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Method</span><span className="text-white capitalize">{order.payment_method}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-white">{formatCurrency(order.items_total, currency)}</span></div>
