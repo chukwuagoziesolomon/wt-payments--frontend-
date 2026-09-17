@@ -1,9 +1,9 @@
-import { saveGuestToken } from "@/hooks/useGuestCart";
 "use client";
 
 import * as React from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { saveGuestToken } from "@/hooks/useGuestCart";
 
 const API = "/backend";
 
