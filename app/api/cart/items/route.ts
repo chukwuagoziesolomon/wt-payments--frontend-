@@ -3,8 +3,12 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:3335";
   try {
+    const url = new URL(request.url);
     const body = await request.text();
-    const response = await fetch(`${apiBase}/api/cart/items`, {
+    const backendUrl = new URL(`${apiBase}/api/cart/items`);
+    url.searchParams.forEach((value, key) => backendUrl.searchParams.set(key, value));
+
+    const response = await fetch(backendUrl.toString(), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body,
