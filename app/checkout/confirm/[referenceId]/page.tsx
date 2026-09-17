@@ -57,8 +57,10 @@ function formatCurrency(amount: number, currency = "NGN") {
 
 function StatusBadge({ status }: { status: string }) {
   const lower = status.toLowerCase();
-  const icon = lower === "completed" || lower === "payment_confirmed" ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : lower === "failed" || lower === "cancelled" ? <XCircle className="h-4 w-4 text-red-400" /> : <Loader2 className="h-4 w-4 text-amber-400" />;
-  const color = lower === "completed" || lower === "payment_confirmed" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" : lower === "failed" || lower === "cancelled" ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-amber-500/15 text-amber-400 border-amber-500/25";
+  const successful = lower === "completed" || lower === "payment_completed" || lower === "payment_confirmed";
+  const failed = lower === "failed" || lower === "cancelled";
+  const icon = successful ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : failed ? <XCircle className="h-4 w-4 text-red-400" /> : <Loader2 className="h-4 w-4 text-amber-400" />;
+  const color = successful ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" : failed ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-amber-500/15 text-amber-400 border-amber-500/25";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium border ${color}`}>
       {icon}
@@ -86,21 +88,32 @@ export default function CheckoutConfirmPage() {
     setLoading(true);
     setError(null);
 
+    if (!getToken()) {
+      try {
+        const cached = sessionStorage.getItem(`checkout:${referenceId}`);
+        if (cached) setOrder(JSON.parse(cached) as OrderDetail);
+      } catch {
+        // Continue with the public status request.
+      }
+    }
+
     async function load() {
       try {
         const token = getToken();
-        const res = await authFetch(`${API}/user/checkout/${encodeURIComponent(referenceId)}`, {
-          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          cache: "no-store",
-        });
+        const res = token
+          ? await authFetch(`${API}/user/checkout/${encodeURIComponent(referenceId)}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: "no-store",
+            })
+          : await fetch(`/api/payment/status/${encodeURIComponent(referenceId)}`, { cache: "no-store" });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || json.error) {
           throw new Error(json.data || json.message || "Failed to load order details");
         }
-        const data = (json.result || json.data || {}) as OrderDetail;
+        const data = (json.result || json.data || {}) as Partial<OrderDetail>;
         if (!cancelled) {
-          setOrder(data);
-          if (data.assets?.length && data.payment_method === "crypto") {
+          setOrder((current) => ({ ...(current || {}), ...data, items: data.items || current?.items || [] }) as OrderDetail);
+          if (data.assets?.length && (data.payment_method || "crypto") === "crypto") {
             setSelectedAsset(data.assets[0]);
           }
         }
@@ -118,6 +131,26 @@ export default function CheckoutConfirmPage() {
     if (referenceId) load();
     return () => { cancelled = true; };
   }, [referenceId, notify]);
+
+  React.useEffect(() => {
+    if (!referenceId || getToken()) return;
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await fetch(`/api/payment/status/${encodeURIComponent(referenceId)}`, { cache: "no-store" });
+        const json = await response.json().catch(() => ({}));
+        const data = (json.result || json.data || {}) as Partial<OrderDetail>;
+        if (data && (data.status || data.order_status)) {
+          setOrder((current) => current ? { ...current, ...data, items: data.items || current.items || [] } : data as OrderDetail);
+          if (["payment_completed", "completed", "payment_confirmed"].includes(String(data.status).toLowerCase())) {
+            window.clearInterval(timer);
+          }
+        }
+      } catch {
+        // Keep the pending state while the payment status endpoint is unavailable.
+      }
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [referenceId]);
 
   const copyAddress = async (address: string) => {
     await navigator.clipboard.writeText(address);
@@ -197,7 +230,7 @@ export default function CheckoutConfirmPage() {
     );
   }
 
-  const total = order.total_amount || order.fiat_amount || order.items_total + order.delivery_fee;
+  const total = order.total_amount || order.fiat_amount || (order.items_total || 0) + (order.delivery_fee || 0);
   const currency = order.fiat_currency || "NGN";
 
   return (
@@ -231,7 +264,7 @@ export default function CheckoutConfirmPage() {
           <Card className="bg-[#19191d] border-border">
             <CardHeader><CardTitle className="text-base font-semibold text-white">Items</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {order.items.map((item, idx) => (
+              {(order.items || []).map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
                   <div className="flex items-center gap-3 min-w-0">
                     {item.image ? (

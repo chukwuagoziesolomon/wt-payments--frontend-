@@ -160,6 +160,7 @@ export default function CheckoutPage() {
       }
       const referenceId = json.result?.reference_id;
       if (referenceId) {
+        sessionStorage.setItem(`checkout:${referenceId}`, JSON.stringify(json.result));
         window.location.href = `/checkout/confirm/${encodeURIComponent(referenceId)}`;
         return;
       }
