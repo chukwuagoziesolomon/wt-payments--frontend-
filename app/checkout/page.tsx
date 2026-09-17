@@ -56,7 +56,7 @@ export default function CheckoutPage() {
         .catch(() => undefined);
     }
 
-    const guestToken = localStorage.getItem("guest_token");
+    const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
     if (guestToken) {
       fetch(`/api/cart?guest_token=${encodeURIComponent(guestToken)}`)
         .then((response) => response.json())
@@ -100,7 +100,7 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setMessage(null);
     try {
-      const guestToken = localStorage.getItem("guest_token");
+      const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
       const checkoutUrl = guestToken
         ? `/api/cart/checkout?guest_token=${encodeURIComponent(guestToken)}`
         : "/api/cart/checkout";

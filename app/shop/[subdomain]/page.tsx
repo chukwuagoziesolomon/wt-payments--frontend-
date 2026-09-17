@@ -167,7 +167,7 @@ export default function StorefrontPage() {
   const loadCart = async () => {
     const token = getToken();
     if (!token) {
-      const guestToken = localStorage.getItem("guest_token");
+      const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
       if (!guestToken) return setCartItems([]);
       try {
         const res = await fetch(`${API}/cart?guest_token=${encodeURIComponent(guestToken)}`, { cache: "no-store" });
@@ -210,7 +210,7 @@ export default function StorefrontPage() {
     if (!token) {
       setAddingId(product.id);
       try {
-        const guestToken = localStorage.getItem("guest_token");
+        const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
         const url = new URL("/api/cart/items", window.location.origin);
         if (guestToken) url.searchParams.set("guest_token", guestToken);
         const res = await fetch(url.toString(), {
@@ -220,7 +220,7 @@ export default function StorefrontPage() {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.message || json.data || "Failed to add to cart");
-        if (json.result?.guest_token) localStorage.setItem("guest_token", json.result.guest_token);
+        if (json.result?.guest_token) localStorage.setItem("guest_cart_token", json.result.guest_token);
         await loadCart();
       } catch {
         alert("Error adding to cart");
@@ -256,7 +256,7 @@ export default function StorefrontPage() {
     const token = getToken();
     if (!token || quantity < 1) {
       if (!token) {
-        const guestToken = localStorage.getItem("guest_token");
+        const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
         if (guestToken && quantity > 0) {
           await fetch(`${API}/cart/items/${encodeURIComponent(itemId)}?guest_token=${encodeURIComponent(guestToken)}`, {
             method: "PUT",
@@ -286,7 +286,7 @@ export default function StorefrontPage() {
   const removeCartItem = async (itemId: string) => {
     const token = getToken();
     if (!token) {
-      const guestToken = localStorage.getItem("guest_token");
+      const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
       if (guestToken) {
         await fetch(`${API}/cart/items/${encodeURIComponent(itemId)}?guest_token=${encodeURIComponent(guestToken)}`, {
           method: "DELETE",

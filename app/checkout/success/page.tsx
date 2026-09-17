@@ -47,7 +47,7 @@ export default function CheckoutSuccessPage() {
     async function load() {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("authToken") || localStorage.getItem("token") : null;
-        const guestToken = typeof window !== "undefined" ? localStorage.getItem("guest_token") : null;
+        const guestToken = typeof window !== "undefined" ? localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token") : null;
         const checkoutUrl = guestToken
           ? `/api/cart/checkout?guest_token=${encodeURIComponent(guestToken)}`
           : "/api/cart/checkout";

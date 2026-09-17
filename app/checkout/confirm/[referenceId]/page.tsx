@@ -131,7 +131,7 @@ export default function CheckoutConfirmPage() {
     setCreatingWallet(true);
     try {
       const token = getToken();
-      const guestToken = typeof window !== "undefined" ? localStorage.getItem("guest_token") : null;
+      const guestToken = typeof window !== "undefined" ? localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token") : null;
       const walletUrl = token ? `/api/user/cart/wallet` : `/api/cart/wallet`;
       const body: any = { crypto_currency_id: selectedAsset.currency_id };
       if (token) {

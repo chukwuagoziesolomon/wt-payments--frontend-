@@ -119,7 +119,7 @@ export default function ProductDetailPage() {
         });
         if (!response.ok) throw new Error("Unable to add product to cart");
       } else {
-        const guestToken = localStorage.getItem("guest_token");
+        const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
         const url = new URL("/api/cart/items", window.location.origin);
         if (guestToken) url.searchParams.set("guest_token", guestToken);
         const response = await fetch(url.toString(), {
@@ -130,7 +130,7 @@ export default function ProductDetailPage() {
         const json = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(json.message || json.data || "Unable to add product to cart");
         const nextToken = json.result?.guest_token;
-        if (nextToken) localStorage.setItem("guest_token", nextToken);
+        if (nextToken) localStorage.setItem("guest_cart_token", nextToken);
       }
       setMessage("Added to cart");
     } catch (error) {
