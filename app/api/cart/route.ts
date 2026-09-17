@@ -10,7 +10,9 @@ async function proxy(request: Request, method: string) {
     const headers = new Headers();
     const contentType = request.headers.get("content-type");
     if (contentType) headers.set("content-type", contentType);
-    const body = method === "DELETE" ? undefined : await request.text();
+    const body = ["POST", "PUT", "PATCH"].includes(method)
+      ? await request.text()
+      : undefined;
     let response: Response | undefined;
     let lastError: unknown;
     for (let attempt = 0; attempt < 2; attempt += 1) {
