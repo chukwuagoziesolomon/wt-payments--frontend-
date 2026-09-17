@@ -156,6 +156,34 @@ export default function CheckoutConfirmPage() {
     return () => window.clearInterval(timer);
   }, [referenceId]);
 
+  React.useEffect(() => {
+    if (!order || order.assets?.length || order.status !== "payment_created") return;
+    let cancelled = false;
+    fetch("/api/available-assets", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((json) => {
+        const rawAssets = Array.isArray(json.data) ? json.data : json.result?.assets || [];
+        const assets = rawAssets
+          .filter((asset: any) => asset.crypto?.type === "CRYPTO" && asset.network)
+          .map((asset: any) => ({
+            currency_id: asset.currency_id || asset.crypto.id,
+            name: asset.crypto.name,
+            symbol: asset.crypto.symbol,
+            logo: asset.crypto.logo,
+            network: {
+              name: asset.network.name,
+              logo: asset.network.logo,
+            },
+            amount: Number(order.fiat_amount || 0),
+          }));
+        if (!cancelled && assets.length) {
+          setOrder((current) => current ? { ...current, payment_method: "crypto", assets } : current);
+        }
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [order]);
+
   const copyAddress = async (address: string) => {
     await navigator.clipboard.writeText(address);
     setCopied(true);
