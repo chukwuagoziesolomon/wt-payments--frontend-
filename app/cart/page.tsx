@@ -40,6 +40,18 @@ function formatCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "NGN", maximumFractionDigits: 2 }).format(amount || 0);
 }
 
+function normalizeCartData(payload: unknown): CartData | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = payload as Partial<CartData>;
+  return {
+    cart_id: value.cart_id || "",
+    items: Array.isArray(value.items) ? value.items : [],
+    total: Number(value.total || 0),
+    currency: value.currency || "NGN",
+    item_count: Number(value.item_count || value.items?.length || 0),
+  };
+}
+
 export default function CartPage() {
   const router = useRouter();
   const { notify } = useToast();
@@ -56,9 +68,13 @@ export default function CartPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json().catch(() => ({}));
-        const data = json.data || json.result;
+        const data = json.result && typeof json.result === "object"
+          ? json.result
+          : json.data && typeof json.data === "object"
+            ? json.data
+            : null;
         if (res.ok && data) {
-          setCart(data);
+          setCart(normalizeCartData(data));
         } else {
           setCart(null);
         }
