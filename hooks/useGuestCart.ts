@@ -76,7 +76,12 @@ export async function fetchGuestCart(): Promise<GuestCart> {
   if (!res.ok) {
     throw new Error(data.data || data.message || "Failed to load cart");
   }
-  return (data.data || data.result || { items: [], total: 0, currency: "NGN", item_count: 0 }) as GuestCart;
+  const payload = data.result && typeof data.result === "object"
+    ? data.result
+    : data.data && typeof data.data === "object"
+      ? data.data
+      : { items: [], total: 0, currency: "NGN", item_count: 0 };
+  return payload as GuestCart;
 }
 
 export async function updateGuestCartItem(itemId: string, quantity: number) {

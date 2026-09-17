@@ -59,7 +59,7 @@ export default function CheckoutPage() {
         })
         .then((json) => {
           console.debug("[checkout] guest cart body", json);
-          setItems((json.data || json.result)?.items || []);
+          setItems((json.result || (typeof json.data === "object" ? json.data : null))?.items || []);
         })
         .catch((err) => {
           console.debug("[checkout] guest cart error", err);

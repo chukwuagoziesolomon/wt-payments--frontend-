@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { getGuestToken, saveGuestToken } from "@/hooks/useGuestCart";
+import { addToGuestCart } from "@/hooks/useGuestCart";
 
 const API = "/backend";
 
@@ -123,21 +123,7 @@ export default function ProductDetailPage() {
         });
         if (!response.ok) throw new Error("Unable to add product to cart");
       } else {
-        const guestToken = getGuestToken();
-        const url = new URL("/api/cart/items", window.location.origin);
-        if (guestToken) url.searchParams.set("guest_token", guestToken);
-        const response = await fetch(url.toString(), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: product.id,
-            quantity,
-            ...(guestToken ? { guest_token: guestToken } : {}),
-          }),
-        });
-        const json = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(json.message || json.data || "Unable to add product to cart");
-        saveGuestToken(json);
+        await addToGuestCart(product.id, quantity);
       }
       setMessage("Added to cart");
     } catch (error) {
