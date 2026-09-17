@@ -82,6 +82,7 @@ export default function CheckoutConfirmPage() {
   const [paymentData, setPaymentData] = React.useState<PaymentIntentData | null>(null);
   const [waitingOpen, setWaitingOpen] = React.useState(false);
   const [creatingWallet, setCreatingWallet] = React.useState(false);
+  const [paymentComplete, setPaymentComplete] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -113,6 +114,9 @@ export default function CheckoutConfirmPage() {
         const data = (json.result || json.data || {}) as Partial<OrderDetail>;
         if (!cancelled) {
           setOrder((current) => ({ ...(current || {}), ...data, items: data.items || current?.items || [] }) as OrderDetail);
+          if (["payment_completed", "completed", "payment_confirmed"].includes(String(data.status).toLowerCase())) {
+            setPaymentComplete(true);
+          }
           if (data.assets?.length && (data.payment_method || "crypto") === "crypto") {
             setSelectedAsset(data.assets[0]);
           }
@@ -133,7 +137,7 @@ export default function CheckoutConfirmPage() {
   }, [referenceId, notify]);
 
   React.useEffect(() => {
-    if (!referenceId || getToken()) return;
+    if (!referenceId) return;
     const timer = window.setInterval(async () => {
       try {
         const response = await fetch(`/api/payment/status/${encodeURIComponent(referenceId)}`, { cache: "no-store" });
@@ -142,6 +146,7 @@ export default function CheckoutConfirmPage() {
         if (data && (data.status || data.order_status)) {
           setOrder((current) => current ? { ...current, ...data, items: data.items || current.items || [] } : data as OrderDetail);
           if (["payment_completed", "completed", "payment_confirmed"].includes(String(data.status).toLowerCase())) {
+            setPaymentComplete(true);
             window.clearInterval(timer);
           }
         }
@@ -203,8 +208,8 @@ export default function CheckoutConfirmPage() {
 
   const handlePaymentComplete = () => {
     setWaitingOpen(false);
+    setPaymentComplete(true);
     notify("Payment received!");
-    router.push("/orders");
   };
 
   if (loading) {
@@ -232,6 +237,37 @@ export default function CheckoutConfirmPage() {
 
   const total = order.total_amount || order.fiat_amount || (order.items_total || 0) + (order.delivery_fee || 0);
   const currency = order.fiat_currency || "NGN";
+
+  if (paymentComplete) {
+    return (
+      <main className="min-h-screen bg-background px-4 py-12 text-white sm:px-8">
+        <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center text-center">
+          <div className="success-check mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-500/15">
+            <CheckCircle2 className="h-16 w-16 text-emerald-400" strokeWidth={1.5} />
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">Payment confirmed</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Order successful</h1>
+          <p className="mt-4 max-w-md text-sm leading-7 text-white/55">
+            Your payment has been confirmed and your order is now being processed.
+          </p>
+          <div className="mt-8 w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 text-left">
+            <div className="flex justify-between gap-4 text-sm">
+              <span className="text-white/45">Reference</span>
+              <span className="font-mono text-white/80">{order.reference_id}</span>
+            </div>
+            <div className="mt-3 flex justify-between gap-4 text-sm">
+              <span className="text-white/45">Amount paid</span>
+              <span className="font-semibold text-white">{formatCurrency(total, currency)}</span>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button onClick={() => router.push("/orders")} className="bg-gradient-to-r from-[#9d8df1] to-[#5b4dd4] text-white">View Orders</Button>
+            <Button variant="outline" onClick={() => router.push("/")}>Continue Shopping</Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background p-4 sm:p-8">

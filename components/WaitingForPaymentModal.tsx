@@ -171,7 +171,10 @@ export const WaitingForPaymentModal: React.FC<WaitingForPaymentModalProps> = ({
       <div className="bg-[#17171a] border border-[#2a2a3a] rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col items-center relative p-6 gap-5">
 
         <div className="w-full flex items-center justify-between">
-          <span className="text-white text-base font-semibold">Complete Payment</span>
+          <div className="flex items-center gap-2">
+            <img src="/images/logo.svg" alt="Western Treasury" className="h-7 w-7 rounded-md" />
+            <span className="text-white text-base font-semibold">Complete Payment</span>
+          </div>
           <div className="flex items-center gap-3">
             <span className={`text-sm font-mono font-bold ${isExpired ? "text-red-400" : "text-yellow-400"}`}>
               {isExpired ? "Expired" : countdown}

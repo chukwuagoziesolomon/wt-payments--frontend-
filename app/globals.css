@@ -1,5 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Mulish:wght@400;700&display=swap');
 @import "tailwindcss";
+
+@keyframes success-check-pop {
+  0% { opacity: 0; transform: scale(0.55); }
+  70% { opacity: 1; transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.success-check {
+  animation: success-check-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
 @import "tw-animate-css";
 
 
