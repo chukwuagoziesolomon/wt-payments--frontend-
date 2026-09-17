@@ -55,6 +55,35 @@ function formatCurrency(amount: number, currency = "NGN") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount || 0);
 }
 
+function safeAssetUrl(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  return value.startsWith("https://") || value.startsWith("/") || value.startsWith("data:") ? value : undefined;
+}
+
+function normalizeAssets(rawAssets: any[], amount: number) {
+  const seen = new Set<string>();
+  return rawAssets
+    .filter((asset) => asset?.crypto?.type === "CRYPTO" && asset.network)
+    .map((asset) => {
+      const symbol = String(asset.crypto.symbol || "").toUpperCase();
+      const networkName = String(asset.network.name || "").trim();
+      const key = `${symbol}:${networkName.toLowerCase()}`;
+      if (!symbol || !networkName || seen.has(key)) return null;
+      seen.add(key);
+      const networkType = String(asset.network.networkType || "").toLowerCase();
+      return {
+        currency_id: asset.currency_id || asset.crypto.id,
+        name: asset.crypto.name,
+        symbol,
+        logo: safeAssetUrl(asset.crypto.logo),
+        network: { name: networkName, logo: safeAssetUrl(asset.network.logo) },
+        amount,
+        supported: networkType === "ckb" && networkName.toLowerCase().includes("testnet"),
+      };
+    })
+    .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
+}
+
 function StatusBadge({ status }: { status: string }) {
   const lower = status.toLowerCase();
   const successful = lower === "completed" || lower === "payment_completed" || lower === "payment_confirmed";
@@ -157,32 +186,20 @@ export default function CheckoutConfirmPage() {
   }, [referenceId]);
 
   React.useEffect(() => {
-    if (!order || order.assets?.length || order.status !== "payment_created") return;
+    if (!order || order.status !== "payment_created") return;
     let cancelled = false;
     fetch("/api/available-assets", { cache: "no-store" })
       .then((response) => response.json())
       .then((json) => {
         const rawAssets = Array.isArray(json.data) ? json.data : json.result?.assets || [];
-        const assets = rawAssets
-          .filter((asset: any) => asset.crypto?.type === "CRYPTO" && asset.network)
-          .map((asset: any) => ({
-            currency_id: asset.currency_id || asset.crypto.id,
-            name: asset.crypto.name,
-            symbol: asset.crypto.symbol,
-            logo: asset.crypto.logo,
-            network: {
-              name: asset.network.name,
-              logo: asset.network.logo,
-            },
-            amount: Number(order.fiat_amount || 0),
-          }));
+        const assets = normalizeAssets(rawAssets, Number(order.fiat_amount || 0));
         if (!cancelled && assets.length) {
           setOrder((current) => current ? { ...current, payment_method: "crypto", assets } : current);
         }
       })
       .catch(() => undefined);
     return () => { cancelled = true; };
-  }, [order]);
+  }, [order?.status, order?.fiat_amount]);
 
   const copyAddress = async (address: string) => {
     await navigator.clipboard.writeText(address);
@@ -228,7 +245,7 @@ export default function CheckoutConfirmPage() {
         fee_in_crypto: Number(data.fee_in_crypto || 0),
         wallet: data.wallet,
         fiat: data.fiat || { amount: order.fiat_amount || order.total_amount || 0, currency: order.fiat_currency || "NGN" },
-        crypto: { ...data.crypto, network: cryptoNetwork, symbol: data.crypto?.symbol || selectedAsset?.symbol || "", amount: Number(data.crypto?.amount || selectedAsset?.amount || 0) },
+        crypto: { ...data.crypto, logo: safeAssetUrl(data.crypto?.logo), network: cryptoNetwork, symbol: data.crypto?.symbol || selectedAsset?.symbol || "", amount: Number(data.crypto?.amount || selectedAsset?.amount || 0) },
       });
       setWaitingOpen(true);
     } catch (err: any) {
@@ -336,10 +353,11 @@ export default function CheckoutConfirmPage() {
               <CardHeader><CardTitle className="text-base font-semibold text-white">Pay with Crypto</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {order.assets.map((asset) => (
-                    <button key={asset.currency_id} type="button" onClick={() => setSelectedAsset(asset)} className={`rounded-lg border p-3 text-left ${selectedAsset?.currency_id === asset.currency_id ? "border-[#9d8df1] bg-[#9d8df1]/10" : "border-white/[0.08]"}`}>
+                  {order.assets.map((asset: any) => (
+                    <button key={`${asset.symbol}-${asset.network?.name}`} type="button" disabled={asset.supported === false} onClick={() => setSelectedAsset(asset)} className={`rounded-lg border p-3 text-left disabled:cursor-not-allowed disabled:opacity-40 ${selectedAsset?.currency_id === asset.currency_id ? "border-[#9d8df1] bg-[#9d8df1]/10" : "border-white/[0.08]"}`}>
                       <span className="block text-sm font-semibold text-white">{asset.symbol}</span>
                       <span className="block text-xs text-white/50">{asset.network?.name || asset.name} · {asset.amount}</span>
+                      {asset.supported === false && <span className="mt-1 block text-[10px] text-red-300">Temporarily unavailable</span>}
                     </button>
                   ))}
                 </div>
@@ -398,6 +416,7 @@ export default function CheckoutConfirmPage() {
         onClose={() => setWaitingOpen(false)}
         paymentData={paymentData}
         onPaymentComplete={handlePaymentComplete}
+        enableStream={false}
       />
     </main>
   );
