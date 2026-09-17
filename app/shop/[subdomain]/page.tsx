@@ -211,10 +211,12 @@ export default function StorefrontPage() {
       setAddingId(product.id);
       try {
         const guestToken = localStorage.getItem("guest_token");
-        const res = await fetch("/api/cart/items", {
+        const url = new URL("/api/cart/items", window.location.origin);
+        if (guestToken) url.searchParams.set("guest_token", guestToken);
+        const res = await fetch(url.toString(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ product_id: product.id, quantity: 1, ...(guestToken ? { guest_token: guestToken } : {}) }),
+          body: JSON.stringify({ product_id: product.id, quantity: 1 }),
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.message || json.data || "Failed to add to cart");

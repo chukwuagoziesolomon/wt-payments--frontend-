@@ -35,13 +35,14 @@ type GuestCart = {
 
 export async function addToGuestCart(productId: string, quantity = 1) {
   const existingToken = getGuestToken();
-  const res = await fetch("/api/cart/items", {
+  const url = new URL("/api/cart/items", typeof window !== "undefined" ? window.location.origin : "http://localhost");
+  if (existingToken) url.searchParams.set("guest_token", existingToken);
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       product_id: productId,
       quantity,
-      guest_token: existingToken || undefined,
     }),
   });
   const data = await res.json().catch(() => ({}));

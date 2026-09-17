@@ -120,14 +120,12 @@ export default function ProductDetailPage() {
         if (!response.ok) throw new Error("Unable to add product to cart");
       } else {
         const guestToken = localStorage.getItem("guest_token");
-        const response = await fetch("/api/cart/items", {
+        const url = new URL("/api/cart/items", window.location.origin);
+        if (guestToken) url.searchParams.set("guest_token", guestToken);
+        const response = await fetch(url.toString(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: product.id,
-            quantity,
-            ...(guestToken ? { guest_token: guestToken } : {}),
-          }),
+          body: JSON.stringify({ product_id: product.id, quantity }),
         });
         const json = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(json.message || json.data || "Unable to add product to cart");
