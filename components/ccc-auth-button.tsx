@@ -3,7 +3,7 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { requestCccChallenge, verifyCccIdentity } from "@/lib/ccc-auth";
 import { cccNetwork, storeAuthToken } from "@/lib/ccc-config";
@@ -32,6 +32,19 @@ export function CccAuthButton({
   const [status, setStatus] = useState("Disconnected");
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [activeNetwork, setActiveNetwork] = useState(cccNetwork);
+
+  useEffect(() => {
+    fetch("/api/ckb/config", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((json) => {
+        const config = json.result || json.data || json;
+        if (config.ccc_network === "mainnet" || config.ccc_network === "testnet") {
+          setActiveNetwork(config.ccc_network);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   async function authenticate() {
     setError(null);
@@ -43,23 +56,23 @@ export function CccAuthButton({
       }
       const subject = await signer.getIdentity();
       const address = await signer.getRecommendedAddress();
-      const expectedPrefix = cccNetwork === "mainnet" ? "ckb" : "ckt";
+      const expectedPrefix = activeNetwork === "mainnet" ? "ckb" : "ckt";
       if (!address.startsWith(expectedPrefix)) {
         console.warn("[CCC] Wallet network mismatch", {
-          configuredNetwork: cccNetwork,
+          configuredNetwork: activeNetwork,
           expectedAddressPrefix: expectedPrefix,
           receivedAddressPrefix: address.slice(0, 3),
         });
         setStatus("Wrong network");
         setError(
-          `Your wallet is connected to the wrong CKB network. Please switch to CKB ${cccNetwork}.`
+          `Your wallet is connected to the wrong CKB network. Please switch to CKB ${activeNetwork}.`
         );
         return;
       }
       setStatus("Awaiting signature");
       const identity = {
         provider: "ccc" as const,
-        network: cccNetwork,
+        network: activeNetwork,
         subject,
         address,
       };

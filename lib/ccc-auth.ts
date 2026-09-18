@@ -39,6 +39,9 @@ async function post<T>(
   if (!response.ok || json.error || json.result === undefined) {
     throw new Error(
       json.message ||
+        (typeof (json as ApiResponse<T> & { details?: unknown }).details === "string"
+          ? (json as ApiResponse<T> & { details: string }).details
+          : undefined) ||
         (typeof json.data === "string" ? json.data : undefined) ||
         "Unable to authenticate with CKB wallet."
     );
