@@ -49,6 +49,9 @@ type OrderDetail = {
   created_at: string;
   paid_at?: string;
   updated_at?: string;
+  transaction_hash?: string;
+  payment_hash?: string;
+  explorer_url?: string | null;
 };
 
 function formatCurrency(amount: number, currency = "NGN") {
@@ -194,7 +197,12 @@ export default function CheckoutConfirmPage() {
         const rawAssets = Array.isArray(json.data) ? json.data : json.result?.assets || [];
         const assets = normalizeAssets(rawAssets, Number(order.fiat_amount || 0));
         if (!cancelled && assets.length) {
-          setOrder((current) => current ? { ...current, payment_method: "crypto", assets } : current);
+          const orderedAssets = [...assets].sort((left: any, right: any) => {
+            const leftCkb = left.network?.name.toLowerCase().includes("ckb") || left.network?.name.toLowerCase().includes("fiber");
+            const rightCkb = right.network?.name.toLowerCase().includes("ckb") || right.network?.name.toLowerCase().includes("fiber");
+            return Number(rightCkb) - Number(leftCkb);
+          });
+          setOrder((current) => current ? { ...current, payment_method: "crypto", assets: orderedAssets } : current);
         }
       })
       .catch(() => undefined);

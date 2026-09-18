@@ -78,6 +78,26 @@ export function verifyCccIdentity(
   });
 }
 
+export async function getCccIdentity(token: string) {
+  const response = await fetch("/backend/user/auth/ccc/identity", {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const json = (await response.json().catch(() => ({}))) as ApiResponse<{
+    identities?: CccIdentity[];
+  }>;
+  if (!response.ok || json.error) {
+    throw new Error(
+      json.message ||
+        (typeof json.data === "string" ? json.data : undefined) ||
+        "Unable to load your CKB identity."
+    );
+  }
+  return json.result?.identities?.find(
+    (identity) => identity.provider === "ccc"
+  ) || null;
+}
+
 export function linkCccIdentity(
   identity: CccIdentity,
   challengeId: string,

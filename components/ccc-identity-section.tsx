@@ -1,9 +1,10 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
+  getCccIdentity,
   linkCccIdentity,
   requestCccChallenge,
   unlinkCccIdentity,
@@ -15,12 +16,37 @@ export function CccIdentitySection() {
   const signer = ccc.useSigner();
   const [status, setStatus] = useState("Disconnected");
   const [address, setAddress] = useState<string | null>(null);
+    const [identity, setIdentity] = useState<{ subject: string; network: string; address?: string } | null>(null);
+  const [activeNetwork, setActiveNetwork] = useState<string>(cccNetwork);
+  const [switching, setSwitching] = useState(false);
   const token =
     typeof window === "undefined"
       ? ""
       : localStorage.getItem("authToken") ||
         localStorage.getItem("token") ||
         "";
+
+  useEffect(() => {
+    fetch("/api/ckb/config", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((json) => {
+        const config = json.result || json.data || json;
+        if (config.ccc_network) setActiveNetwork(config.ccc_network);
+        setSwitching(Boolean(config.switching));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    getCccIdentity(token)
+      .then((loaded) => {
+        setIdentity(loaded);
+        setAddress(loaded?.address || null);
+        if (loaded) setStatus("Connected");
+      })
+      .catch(() => undefined);
+  }, [token]);
 
   async function linkWallet() {
     try {
@@ -48,6 +74,7 @@ export function CccIdentitySection() {
         throw new Error("CCC identity does not match the challenge subject.");
       }
       await linkCccIdentity(identity, challenge.challengeId, signed, token);
+      setIdentity(identity);
       setAddress(nextAddress);
       setStatus("Connected");
     } catch {
@@ -64,6 +91,7 @@ export function CccIdentitySection() {
       await unlinkCccIdentity(token, subject);
       disconnect();
       setAddress(null);
+        setIdentity(null);
       setStatus("Disconnected");
     } catch {
       setStatus("Unable to disconnect");
@@ -85,6 +113,12 @@ export function CccIdentitySection() {
           <p className="text-muted-foreground text-sm">
             {address ||
               "Connect a wallet to link your verifiable CKB identity."}
+            {identity && (
+              <span className="mt-2 block text-xs text-emerald-300">
+                {activeNetwork === "testnet" ? "CKB Testnet" : "CKB Mainnet"} · {identity.subject.slice(0, 12)}...
+              </span>
+            )}
+            {!identity && <span className="mt-2 block text-xs text-emerald-300">Active network: {activeNetwork === "testnet" ? "CKB Testnet" : "CKB Mainnet"}{switching ? " · switching" : " · fixed by deployment"}</span>}
           </p>
         </div>
         <Button onClick={address ? disconnectWallet : linkWallet} type="button">

@@ -29,6 +29,10 @@ type CheckoutSuccessData = {
   delivery_fee_local_currency?: string;
   discount_amount?: number;
   items?: CheckoutItem[];
+  status?: string;
+  transaction_hash?: string;
+  payment_hash?: string;
+  explorer_url?: string | null;
 };
 
 export default function CheckoutSuccessPage() {
@@ -173,6 +177,14 @@ export default function CheckoutSuccessPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="text-white">{formatCurrency(subtotal, currency)}</span>
                 </div>
+                {(data.transaction_hash || data.payment_hash || data.explorer_url) && (
+                  <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 text-sm">
+                    <p className="font-semibold text-emerald-300">Confirmed payment</p>
+                    {data.transaction_hash && <div><span className="text-white/45">Transaction hash</span><p className="break-all font-mono text-xs text-white/80">{data.transaction_hash}</p></div>}
+                    {data.payment_hash && <div><span className="text-white/45">Fiber payment hash</span><p className="break-all font-mono text-xs text-white/80">{data.payment_hash}</p></div>}
+                    {data.explorer_url && <a href={data.explorer_url} target="_blank" rel="noreferrer" className="inline-block text-emerald-300 underline">View on CKB Explorer</a>}
+                  </div>
+                )}
                 {deliveryFee > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Delivery</span>
