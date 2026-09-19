@@ -81,7 +81,9 @@ export function verifyCccIdentity(
     accessToken?: string;
   }>("verify", {
     challengeId,
-    ...identity,
+    provider: identity.provider,
+    network: identity.network,
+    subject: identity.subject,
     identity: signed.identity,
     signType: signed.signType,
     signature: signed.signature,
@@ -118,7 +120,9 @@ export function linkCccIdentity(
     "link",
     {
       challengeId,
-      ...identity,
+      provider: identity.provider,
+      network: identity.network,
+      subject: identity.subject,
       identity: signed.identity,
       signType: signed.signType,
       signature: signed.signature,

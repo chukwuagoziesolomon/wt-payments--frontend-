@@ -223,7 +223,9 @@ export default function CheckoutConfirmPage() {
       const token = getToken();
       const guestToken = typeof window !== "undefined" ? localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token") : null;
       const isGuestCheckout = Boolean(guestToken);
-      const walletUrl = isGuestCheckout ? "/api/cart/wallet" : "/api/user/cart/wallet";
+      const walletUrl = isGuestCheckout && guestToken
+        ? `/api/cart/wallet?guest_token=${encodeURIComponent(guestToken)}`
+        : "/api/user/cart/wallet";
       const body: any = { crypto_currency_id: selectedAsset.currency_id };
       if (!isGuestCheckout) {
         body.payment_intent_id = order.payment_intent_id;
