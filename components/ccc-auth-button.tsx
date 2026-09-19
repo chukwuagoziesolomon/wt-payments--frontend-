@@ -18,7 +18,9 @@ function errorMessage(error: unknown) {
   if (message.includes("network") || message.includes("chain")) {
     return "Your wallet is connected to the wrong CKB network.";
   }
-  return "Unable to connect your CKB wallet. Please try again.";
+  return error instanceof Error && error.message
+    ? error.message
+    : "Unable to connect your CKB wallet. Please try again.";
 }
 
 export function CccAuthButton({

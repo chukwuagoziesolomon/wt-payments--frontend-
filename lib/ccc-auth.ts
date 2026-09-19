@@ -35,7 +35,13 @@ async function post<T>(
     },
     body: JSON.stringify(body),
   });
-  const json = (await response.json().catch(() => ({}))) as ApiResponse<T>;
+  const responseText = await response.text();
+  let json: ApiResponse<T> = {};
+  try {
+    json = JSON.parse(responseText) as ApiResponse<T>;
+  } catch {
+    // Some backend validation failures are returned as plain text.
+  }
   if (!response.ok || json.error || json.result === undefined) {
     throw new Error(
       json.message ||
@@ -43,7 +49,8 @@ async function post<T>(
           ? (json as ApiResponse<T> & { details: string }).details
           : undefined) ||
         (typeof json.data === "string" ? json.data : undefined) ||
-        "Unable to authenticate with CKB wallet."
+        responseText ||
+        `CCC ${path} request failed with status ${response.status}.`
     );
   }
   return json.result as T;
