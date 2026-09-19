@@ -9,6 +9,7 @@ import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/components/ui/ToastProvider";
 import { Clock, CheckCircle2, XCircle, Loader2, ShoppingBag, Copy, Check } from "lucide-react";
 import { WaitingForPaymentModal, type PaymentIntentData } from "@/components/WaitingForPaymentModal";
+import { cccNetwork } from "@/lib/ccc-config";
 
 const API = "/backend";
 
@@ -65,23 +66,36 @@ function safeAssetUrl(value: unknown) {
 
 function normalizeAssets(rawAssets: any[], amount: number) {
   const seen = new Set<string>();
+  const expectedIsTestnet = cccNetwork === "testnet";
+
   return rawAssets
     .filter((asset) => asset?.crypto?.type === "CRYPTO" && asset.network)
     .map((asset) => {
       const symbol = String(asset.crypto.symbol || "").toUpperCase();
       const networkName = String(asset.network.name || "").trim();
-      const key = `${symbol}:${networkName.toLowerCase()}`;
-      if (!symbol || !networkName || seen.has(key)) return null;
-      seen.add(key);
       const networkType = String(asset.network.networkType || "").toLowerCase();
+      const networkIsTestnet = Boolean(asset.network.isTestnet ?? networkName.toLowerCase().includes("testnet"));
+
+      if (!symbol || !networkName || networkType !== "ckb") return null;
+      if (networkIsTestnet !== expectedIsTestnet) return null;
+
+      const key = `${symbol}:${networkName.toLowerCase()}`;
+      if (seen.has(key)) return null;
+      seen.add(key);
+
       return {
         currency_id: asset.currency_id || asset.crypto.id,
         name: asset.crypto.name,
         symbol,
         logo: safeAssetUrl(asset.crypto.logo),
-        network: { name: networkName, logo: safeAssetUrl(asset.network.logo) },
+        network: {
+          name: networkName,
+          logo: safeAssetUrl(asset.network.logo),
+          isTestnet: networkIsTestnet,
+          networkType,
+        },
         amount,
-        supported: networkType === "ckb" && networkName.toLowerCase().includes("testnet"),
+        supported: true,
       };
     })
     .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
