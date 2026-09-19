@@ -252,7 +252,7 @@ export default function CheckoutConfirmPage() {
       if (!isGuestCheckout) {
         body.payment_intent_id = order.payment_intent_id;
       } else {
-        body.reference_id = order.reference_id;
+        body.reference_id = order.reference_id || referenceId;
       }
 
       const res = await fetch(walletUrl, {
