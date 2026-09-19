@@ -160,7 +160,7 @@ wt-payment-dashboard/
 
 ### Vercel Deployment
 
-Set `NEXT_PUBLIC_API_BASE_URL=https://zedify-server.onrender.com` and `NEXT_PUBLIC_CCC_NETWORK=mainnet` in your Vercel project settings (**Settings → Environment Variables**) for the **Production** environment. Do not use the old `wt-payments-server` origin, `127.0.0.1`, or `localhost` on Vercel. Remove or update any conflicting `NEXT_PUBLIC_CKB_NETWORK` or `VITE_*NETWORK` variables, then redeploy because `NEXT_PUBLIC_*` values are embedded during the build. No `vercel.json` is needed — the app uses Next.js rewrites internally.
+Set `NEXT_PUBLIC_API_BASE_URL=https://zedify-server.onrender.com` and `NEXT_PUBLIC_CCC_NETWORK=testnet` in your Vercel project settings (**Settings → Environment Variables**) for the **Production** environment. Do not use the old `wt-payments-server` origin, `127.0.0.1`, or `localhost` on Vercel. Remove or update any conflicting `NEXT_PUBLIC_CKB_NETWORK` or `VITE_*NETWORK` variables, then redeploy because `NEXT_PUBLIC_*` values are embedded during the build. No `vercel.json` is needed — the app uses Next.js rewrites internally.
 
 ---
 
