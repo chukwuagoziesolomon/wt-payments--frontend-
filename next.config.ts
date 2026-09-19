@@ -14,7 +14,7 @@ const apiBase = configuredApiBase || "http://127.0.0.1:3335";
 
 const csp = [
   "default-src 'self'",
-  "connect-src 'self' https://mainnet.ckb.dev https://mainnet.ckbapp.dev https://testnet.ckb.dev https://testnet.ckbapp.dev",
+  "connect-src 'self' https://mainnet.ckb.dev https://mainnet.ckbapp.dev wss://mainnet.ckb.dev wss://mainnet.ckbapp.dev https://testnet.ckb.dev https://testnet.ckbapp.dev wss://testnet.ckb.dev wss://testnet.ckbapp.dev",
   "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https:",
