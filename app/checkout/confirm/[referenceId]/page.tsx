@@ -206,7 +206,7 @@ export default function CheckoutConfirmPage() {
   }, [referenceId]);
 
   React.useEffect(() => {
-    if (!order || order.payment_method !== "crypto") return;
+    if (!order || (order.payment_method && order.payment_method !== "crypto")) return;
     let cancelled = false;
     Promise.all([
       fetch("/api/available-assets", { cache: "no-store" }).then((response) => response.json()),
