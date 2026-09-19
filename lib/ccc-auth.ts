@@ -15,6 +15,22 @@ export type CccSignature = {
   signType: string;
 };
 
+export type CccAuthUser = {
+  email?: string | null;
+  isVerified?: boolean | null;
+  businessType?: string | null;
+  cacNumber?: string | null;
+};
+
+export function isIncompleteCccUser(user?: Partial<CccAuthUser> | null) {
+  if (!user) return false;
+  const email = user.email ?? "";
+  const hasCccEmail = email.startsWith("ccc:");
+  const notVerified = user.isVerified === false;
+  const starterMissingCac = user.businessType === "starter" && !user.cacNumber;
+  return hasCccEmail || notVerified || starterMissingCac;
+}
+
 type ApiResponse<T> = {
   message?: string;
   data?: T | string;
@@ -79,6 +95,7 @@ export function verifyCccIdentity(
   return post<{
     token?: { token: string; type: string };
     accessToken?: string;
+    user?: CccAuthUser;
   }>("verify", {
     challengeId,
     provider: identity.provider,

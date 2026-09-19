@@ -5,7 +5,11 @@ import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { requestCccChallenge, verifyCccIdentity } from "@/lib/ccc-auth";
+import {
+  isIncompleteCccUser,
+  requestCccChallenge,
+  verifyCccIdentity,
+} from "@/lib/ccc-auth";
 import { cccNetwork, storeAuthToken } from "@/lib/ccc-config";
 
 const SUCCESS_REDIRECT_DELAY_MS = 1400;
@@ -96,13 +100,16 @@ export function CccAuthButton({
         );
       }
       storeAuthToken(token);
+      const targetDestination = isIncompleteCccUser(result.user)
+        ? "/onboarding/complete"
+        : destination;
       setStatus("Connected");
       setShowSuccess(true);
       if (destination === "/signup/step2") {
         localStorage.setItem("cccIdentity", JSON.stringify(identity));
       }
       window.setTimeout(
-        () => router.push(destination),
+        () => router.push(targetDestination),
         SUCCESS_REDIRECT_DELAY_MS
       );
     } catch (caught) {

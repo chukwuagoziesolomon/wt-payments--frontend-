@@ -226,7 +226,11 @@ export default function CheckoutConfirmPage() {
       const walletUrl = isGuestCheckout && guestToken
         ? `/api/cart/wallet?guest_token=${encodeURIComponent(guestToken)}`
         : "/api/user/cart/wallet";
-      const body: any = { crypto_currency_id: selectedAsset.currency_id };
+      const body: any = {
+        crypto_currency_id: selectedAsset.currency_id,
+        ...(selectedAsset?.network?.id ? { network_id: selectedAsset.network.id } : {}),
+        ...(selectedAsset?.crypto?.contractAddress ? { contract_address: selectedAsset.crypto.contractAddress } : {}),
+      };
       if (!isGuestCheckout) {
         body.payment_intent_id = order.payment_intent_id;
       } else {

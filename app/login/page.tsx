@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CccAuthButton } from "@/components/ccc-auth-button";
+import { isIncompleteCccUser } from "@/lib/ccc-auth";
 
 const API = "/backend";
 
@@ -45,6 +46,12 @@ export default function LoginPage() {
       // Persist token and environment info
       localStorage.setItem("authToken", json.result.token);
       localStorage.setItem("token", json.result.token);
+
+      const user = json.result?.user;
+      if (isIncompleteCccUser(user)) {
+        router.replace("/onboarding/complete");
+        return;
+      }
 
       router.push("/dashboard");
     } catch (caught) {

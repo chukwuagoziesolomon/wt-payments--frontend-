@@ -30,7 +30,8 @@ type CheckoutAsset = {
   name: string;
   symbol: string;
   logo?: string;
-  network?: { name: string; logo?: string };
+  network?: { id?: string; name: string; logo?: string };
+  crypto?: { contractAddress?: string | null };
   amount: number;
 };
 
@@ -266,6 +267,8 @@ export default function CartPage() {
         body: JSON.stringify({
           payment_intent_id: checkoutResult.payment_intent_id,
           crypto_currency_id: selectedAsset.currency_id,
+          ...(selectedAsset?.network?.id ? { network_id: selectedAsset.network.id } : {}),
+          ...(selectedAsset?.crypto?.contractAddress ? { contract_address: selectedAsset.crypto.contractAddress } : {}),
         }),
       });
       const json = await res.json().catch(() => null);
