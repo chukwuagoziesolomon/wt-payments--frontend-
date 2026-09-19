@@ -64,9 +64,8 @@ function safeAssetUrl(value: unknown) {
   return value.startsWith("https://") || value.startsWith("/") || value.startsWith("data:") ? value : undefined;
 }
 
-function normalizeAssets(rawAssets: any[], amount: number) {
+function normalizeAssets(rawAssets: any[], amount: number, expectedIsTestnet = cccNetwork === "testnet") {
   const seen = new Set<string>();
-  const expectedIsTestnet = cccNetwork === "testnet";
 
   return rawAssets
     .filter((asset) => asset?.crypto?.type === "CRYPTO" && asset.network)
@@ -209,11 +208,19 @@ export default function CheckoutConfirmPage() {
   React.useEffect(() => {
     if (!order || order.payment_method !== "crypto") return;
     let cancelled = false;
-    fetch("/api/available-assets", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((json) => {
-        const rawAssets = Array.isArray(json.data) ? json.data : json.result?.assets || [];
-        const assets = normalizeAssets(rawAssets, Number(order.fiat_amount || 0));
+    Promise.all([
+      fetch("/api/available-assets", { cache: "no-store" }).then((response) => response.json()),
+      fetch("/api/ckb/config", { cache: "no-store" }).then((response) => response.json()),
+    ])
+      .then(([assetsJson, configJson]) => {
+        const rawAssets = Array.isArray(assetsJson.data) ? assetsJson.data : assetsJson.result?.assets || [];
+        const configuredNetwork = configJson.data?.ckb_network || configJson.result?.ckb_network;
+        const expectedIsTestnet = configuredNetwork === "testnet"
+          ? true
+          : configuredNetwork === "mainnet"
+            ? false
+            : cccNetwork === "testnet";
+        const assets = normalizeAssets(rawAssets, Number(order.fiat_amount || 0), expectedIsTestnet);
         if (!cancelled && assets.length) {
           const orderedAssets = [...assets].sort((left: any, right: any) => {
             const leftCkb = left.network?.name.toLowerCase().includes("ckb") || left.network?.name.toLowerCase().includes("fiber");
