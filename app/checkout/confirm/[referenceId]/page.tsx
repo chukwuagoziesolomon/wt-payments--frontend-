@@ -207,7 +207,7 @@ export default function CheckoutConfirmPage() {
   }, [referenceId]);
 
   React.useEffect(() => {
-    if (!order || order.status !== "payment_created") return;
+    if (!order || order.payment_method !== "crypto") return;
     let cancelled = false;
     fetch("/api/available-assets", { cache: "no-store" })
       .then((response) => response.json())
@@ -225,7 +225,7 @@ export default function CheckoutConfirmPage() {
       })
       .catch(() => undefined);
     return () => { cancelled = true; };
-  }, [order?.status, order?.fiat_amount]);
+  }, [order?.payment_method, order?.fiat_amount]);
 
   const copyAddress = async (address: string) => {
     await navigator.clipboard.writeText(address);
