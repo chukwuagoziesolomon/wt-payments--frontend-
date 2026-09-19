@@ -89,10 +89,14 @@ function normalizeAssets(rawAssets: any[], amount: number) {
         symbol,
         logo: safeAssetUrl(asset.crypto.logo),
         network: {
+          id: asset.network.id,
           name: networkName,
           logo: safeAssetUrl(asset.network.logo),
           isTestnet: networkIsTestnet,
           networkType,
+        },
+        crypto: {
+          contractAddress: asset.crypto.contractAddress ?? null,
         },
         amount,
         supported: true,
