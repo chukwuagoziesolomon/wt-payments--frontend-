@@ -35,8 +35,9 @@ export default function MyShopsPage() {
         headers: { Authorization: `Bearer ${typeof window !== "undefined" ? (localStorage.getItem("authToken") || localStorage.getItem("token") || "") : ""}` },
       });
       const json = await res.json().catch(() => ({}));
-      if (res.ok && json.result) {
-        setShops(Array.isArray(json.result) ? json.result : []);
+      const payload = json.result ?? json.data;
+      if (res.ok && payload) {
+        setShops(Array.isArray(payload) ? payload : payload.shops || []);
       } else {
         notify(json.data || json.message || "Failed to load shops");
       }
@@ -54,17 +55,6 @@ export default function MyShopsPage() {
   const getShopUrl = (shop: ShopSummary) => {
     return shop.storefront_url || shop.shop_url || `${typeof window !== "undefined" ? window.location.origin : ""}/shop/${shop.subdomain}`;
   };
-
-  if (!loading && shops.length === 1) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <p className="text-sm">Redirecting to shop dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8">
@@ -136,6 +126,14 @@ export default function MyShopsPage() {
                       <span className="text-xs">Subdomain:</span>
                       <span className="text-white text-xs font-medium">{shop.subdomain}</span>
                     </div>
+                    <a
+                      href={getShopUrl(shop)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate text-xs text-[#a89cff] hover:underline"
+                    >
+                      {getShopUrl(shop)}
+                    </a>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <span className="text-xs">Currency:</span>
                       <span className="text-white text-xs font-medium">{shop.currency}</span>

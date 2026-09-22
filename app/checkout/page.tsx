@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Loader2, ShoppingBag } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { fetchGuestCart, getGuestToken } from "@/hooks/useGuestCart";
 
 type CartItem = {
   product_id: string;
@@ -23,6 +24,7 @@ type DeliverySettings = {
 export default function CheckoutPage() {
   const params = useSearchParams();
   const [items, setItems] = React.useState<CartItem[]>([]);
+  const [cartLoading, setCartLoading] = React.useState(true);
   const [delivery, setDelivery] = React.useState<DeliverySettings>({});
   const [method, setMethod] = React.useState<"paystack" | "crypto">("crypto");
   const [submitting, setSubmitting] = React.useState(false);
@@ -39,6 +41,8 @@ export default function CheckoutPage() {
   });
 
   React.useEffect(() => {
+    let cancelled = false;
+    setCartLoading(true);
     const shop = params.get("shop");
     if (shop) {
       fetch(`/backend/shop/${shop}/delivery-settings`)
@@ -47,23 +51,21 @@ export default function CheckoutPage() {
         .catch(() => undefined);
     }
 
-    const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
+    const guestToken = getGuestToken();
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
     console.debug("[checkout] load cart", { guestToken, hasToken: Boolean(token) });
 
     if (guestToken) {
-      fetch(`/api/cart?guest_token=${encodeURIComponent(guestToken)}`)
-        .then((response) => {
-          console.debug("[checkout] guest cart status", response.status);
-          return response.json();
-        })
-        .then((json) => {
-          console.debug("[checkout] guest cart body", json);
-          setItems((json.result || (typeof json.data === "object" ? json.data : null))?.items || []);
+      fetchGuestCart()
+        .then((cart) => {
+          if (!cancelled) setItems(cart.items || []);
         })
         .catch((err) => {
           console.debug("[checkout] guest cart error", err);
-          setItems([]);
+          if (!cancelled) setItems([]);
+        })
+        .finally(() => {
+          if (!cancelled) setCartLoading(false);
         });
     } else if (token) {
       fetch(`/backend/user/cart`, {
@@ -75,16 +77,22 @@ export default function CheckoutPage() {
         })
         .then((json) => {
           console.debug("[checkout] auth cart body", json);
-          setItems((json.data || json.result)?.items || []);
+          if (!cancelled) setItems((json.data || json.result)?.items || []);
         })
         .catch((err) => {
           console.debug("[checkout] auth cart error", err);
-          setItems([]);
+          if (!cancelled) setItems([]);
+        })
+        .finally(() => {
+          if (!cancelled) setCartLoading(false);
         });
     } else {
       console.debug("[checkout] no cart credentials");
       setItems([]);
+      setCartLoading(false);
     }
+
+    return () => { cancelled = true; };
   }, [params]);
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -208,7 +216,7 @@ export default function CheckoutPage() {
         </section>
         <aside className="h-fit rounded-2xl border border-base-border bg-base-surface p-6 lg:sticky lg:top-8">
           <div className="mb-5 flex items-center gap-2"><ShoppingBag className="h-5 w-5" /><h2 className="font-semibold">Order summary</h2></div>
-          {items.length ? <div className="space-y-4">{items.map((item) => <div key={item.product_id} className="flex justify-between gap-4 text-sm"><span>{item.name} x {item.quantity}</span><span>{item.currency} {(item.price * item.quantity).toLocaleString()}</span></div>)}<div className="border-t border-base-border pt-4"><div className="flex justify-between text-sm text-ink-muted"><span>Delivery</span><span>{deliveryFee ? `${currency} ${deliveryFee.toLocaleString()}` : "Free"}</span></div><div className="mt-2 flex justify-between font-semibold"><span>Total</span><span>{currency} {total.toLocaleString()}</span></div></div></div> : <p className="text-sm text-ink-muted">Your cart is empty.</p>}
+          {cartLoading ? <p className="text-sm text-ink-muted">Loading your cart...</p> : items.length ? <div className="space-y-4">{items.map((item) => <div key={item.product_id} className="flex justify-between gap-4 text-sm"><span>{item.name} x {item.quantity}</span><span>{item.currency} {(item.price * item.quantity).toLocaleString()}</span></div>)}<div className="border-t border-base-border pt-4"><div className="flex justify-between text-sm text-ink-muted"><span>Delivery</span><span>{deliveryFee ? `${currency} ${deliveryFee.toLocaleString()}` : "Free"}</span></div><div className="mt-2 flex justify-between font-semibold"><span>Total</span><span>{currency} {total.toLocaleString()}</span></div></div></div> : <p className="text-sm text-ink-muted">Your cart is empty.</p>}
         </aside>
       </div>
     </main>
