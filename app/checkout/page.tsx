@@ -120,11 +120,13 @@ export default function CheckoutPage() {
     try {
       const guestToken = localStorage.getItem("guest_cart_token") || localStorage.getItem("guest_token");
       const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-      const checkoutUrl = guestToken
-        ? `/api/cart/checkout?guest_token=${encodeURIComponent(guestToken)}`
-        : "/api/cart/checkout";
+      const checkoutUrl = token
+        ? "/api/user/cart/checkout"
+        : guestToken
+          ? `/api/cart/checkout?guest_token=${encodeURIComponent(guestToken)}`
+          : "/api/cart/checkout";
       const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (!guestToken && token) headers["Authorization"] = `Bearer ${token}`;
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const response = await fetch(checkoutUrl, {
         method: "POST",
         headers,
