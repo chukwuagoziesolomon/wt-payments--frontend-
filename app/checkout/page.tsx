@@ -55,19 +55,7 @@ export default function CheckoutPage() {
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
     console.debug("[checkout] load cart", { guestToken, hasToken: Boolean(token) });
 
-    if (guestToken) {
-      fetchGuestCart()
-        .then((cart) => {
-          if (!cancelled) setItems(cart.items || []);
-        })
-        .catch((err) => {
-          console.debug("[checkout] guest cart error", err);
-          if (!cancelled) setItems([]);
-        })
-        .finally(() => {
-          if (!cancelled) setCartLoading(false);
-        });
-    } else if (token) {
+    if (token) {
       fetch(`/backend/user/cart`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -81,6 +69,18 @@ export default function CheckoutPage() {
         })
         .catch((err) => {
           console.debug("[checkout] auth cart error", err);
+          if (!cancelled) setItems([]);
+        })
+        .finally(() => {
+          if (!cancelled) setCartLoading(false);
+        });
+    } else if (guestToken) {
+      fetchGuestCart()
+        .then((cart) => {
+          if (!cancelled) setItems(cart.items || []);
+        })
+        .catch((err) => {
+          console.debug("[checkout] guest cart error", err);
           if (!cancelled) setItems([]);
         })
         .finally(() => {
